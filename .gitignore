@@ -65,6 +65,15 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Uploads directory contents (keep .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
 # dotenv environment variable files
 .env
 .env.*
