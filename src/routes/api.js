@@ -11,9 +11,19 @@ import fs from 'fs/promises';
 
 import storage from '../storage.js';
 import { chatWithAI } from '../services/openai.js';
+import { apiLimiter, uploadLimiter, chatLimiter } from '../middleware/rateLimit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
+
+// Blocked file extensions for security
+const BLOCKED_EXTENSIONS = new Set([
+    '.exe', '.bat', '.cmd', '.com', '.msi', '.scr', '.pif',
+    '.sh', '.bash', '.zsh', '.ps1', '.psm1',
+    '.php', '.php3', '.php4', '.php5', '.phtml',
+    '.asp', '.aspx', '.jsp', '.jspx', '.cgi',
+    '.dll', '.so', '.dylib'
+]);
 
 // Configure multer for file uploads
 const uploadDir = path.join(__dirname, '..', '..', 'uploads');
@@ -21,13 +31,21 @@ const upload = multer({
     storage: multer.diskStorage({
         destination: uploadDir,
         filename: (req, file, cb) => {
-            const ext = path.extname(file.originalname);
+            const ext = path.extname(file.originalname).toLowerCase();
             const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
             cb(null, `${nanoid(10)}_${safeName}`);
         }
     }),
     limits: {
         fileSize: parseInt(process.env.UPLOAD_MAX_SIZE_MB || '50') * 1024 * 1024
+    },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (BLOCKED_EXTENSIONS.has(ext)) {
+            cb(new Error(`File type ${ext} is not allowed for security reasons`), false);
+        } else {
+            cb(null, true);
+        }
     }
 });
 
@@ -54,7 +72,7 @@ router.get('/config', (req, res) => {
 // ============================================
 // OpenAI Console
 // ============================================
-router.post('/chat', async (req, res) => {
+router.post('/chat', chatLimiter, async (req, res) => {
     if (process.env.ENABLE_OPENAI === 'false') {
         return res.status(403).json({ error: 'OpenAI console is disabled' });
     }
@@ -202,7 +220,7 @@ router.get('/uploads', async (req, res) => {
     }
 });
 
-router.post('/uploads', upload.single('file'), async (req, res) => {
+router.post('/uploads', uploadLimiter, upload.single('file'), async (req, res) => {
     if (process.env.ENABLE_UPLOADS === 'false') {
         return res.status(403).json({ error: 'Uploads are disabled' });
     }
@@ -237,7 +255,7 @@ router.post('/uploads', upload.single('file'), async (req, res) => {
     }
 });
 
-router.delete('/uploads/:id', async (req, res) => {
+router.delete('/uploads/:id', uploadLimiter, async (req, res) => {
     if (process.env.ENABLE_UPLOADS === 'false') {
         return res.status(403).json({ error: 'Uploads are disabled' });
     }
@@ -270,7 +288,7 @@ router.delete('/uploads/:id', async (req, res) => {
 // ============================================
 // File Browser
 // ============================================
-router.get('/files', async (req, res) => {
+router.get('/files', apiLimiter, async (req, res) => {
     if (process.env.ENABLE_FILES === 'false') {
         return res.status(403).json({ error: 'File browser is disabled' });
     }
@@ -279,9 +297,22 @@ router.get('/files', async (req, res) => {
         const basePath = process.env.HOME_STORAGE_PATH || './uploads';
         const requestedPath = req.query.path || '';
         
-        // Resolve and validate path
-        const fullPath = path.resolve(basePath, requestedPath);
+        // Resolve and validate base path exists
         const resolvedBase = path.resolve(basePath);
+        try {
+            const baseStat = await fs.stat(resolvedBase);
+            if (!baseStat.isDirectory()) {
+                return res.status(500).json({ error: 'HOME_STORAGE_PATH is not a directory' });
+            }
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(500).json({ error: 'HOME_STORAGE_PATH does not exist' });
+            }
+            throw err;
+        }
+        
+        // Resolve and validate requested path
+        const fullPath = path.resolve(basePath, requestedPath);
         
         // Prevent directory traversal
         if (!fullPath.startsWith(resolvedBase)) {
@@ -333,7 +364,7 @@ router.get('/files', async (req, res) => {
     }
 });
 
-router.get('/files/download', async (req, res) => {
+router.get('/files/download', apiLimiter, async (req, res) => {
     if (process.env.ENABLE_FILES === 'false') {
         return res.status(403).json({ error: 'File browser is disabled' });
     }
@@ -346,9 +377,22 @@ router.get('/files/download', async (req, res) => {
             return res.status(400).json({ error: 'Path is required' });
         }
         
-        // Resolve and validate path
-        const fullPath = path.resolve(basePath, requestedPath);
+        // Resolve and validate base path exists
         const resolvedBase = path.resolve(basePath);
+        try {
+            const baseStat = await fs.stat(resolvedBase);
+            if (!baseStat.isDirectory()) {
+                return res.status(500).json({ error: 'HOME_STORAGE_PATH is not a directory' });
+            }
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(500).json({ error: 'HOME_STORAGE_PATH does not exist' });
+            }
+            throw err;
+        }
+        
+        // Resolve and validate requested path
+        const fullPath = path.resolve(basePath, requestedPath);
         
         // Prevent directory traversal
         if (!fullPath.startsWith(resolvedBase)) {

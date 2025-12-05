@@ -18,9 +18,10 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Import routes
+// Import routes and middleware
 import apiRoutes from './routes/api.js';
 import { startCleanupJob } from './services/cleanup.js';
+import { apiLimiter } from './middleware/rateLimit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -28,6 +29,9 @@ const app = express();
 // Configuration
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+// Trust proxy for proper IP detection behind reverse proxy
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(express.json());
@@ -37,11 +41,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// API routes
-app.use('/api', apiRoutes);
+// API routes with rate limiting
+app.use('/api', apiLimiter, apiRoutes);
 
-// Link shortener redirect
-app.get('/r/:code', async (req, res) => {
+// Link shortener redirect with rate limiting
+app.get('/r/:code', apiLimiter, async (req, res) => {
     try {
         const { default: storage } = await import('./storage.js');
         const link = await storage.findOne('links', 'code', req.params.code);

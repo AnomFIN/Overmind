@@ -60,6 +60,11 @@ async function read(collection) {
             // File doesn't exist, return empty array
             return [];
         }
+        if (err instanceof SyntaxError) {
+            // Invalid JSON - log error and return empty array to prevent crash
+            console.error(`Invalid JSON in ${collection}.json, resetting to empty array:`, err.message);
+            return [];
+        }
         throw err;
     }
 }

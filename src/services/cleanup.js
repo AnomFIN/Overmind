@@ -115,8 +115,12 @@ async function runCleanup() {
  * Start the cleanup job
  */
 export function startCleanupJob() {
-    // Run immediately on start
-    runCleanup();
+    // Run cleanup in the background without blocking server startup
+    setImmediate(() => {
+        runCleanup().catch(err => {
+            console.error('[Cleanup] Initial cleanup failed:', err);
+        });
+    });
     
     // Then run periodically
     cleanupTimer = setInterval(runCleanup, CLEANUP_INTERVAL);
