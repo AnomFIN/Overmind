@@ -24,10 +24,15 @@ const storage = multer.diskStorage({
     }
 });
 
+// Parse and validate max upload size
+const DEFAULT_MAX_SIZE_MB = 100;
+const maxSizeMb = parseInt(process.env.MAX_UPLOAD_SIZE, 10);
+const fileSizeLimit = (Number.isFinite(maxSizeMb) && maxSizeMb > 0 ? maxSizeMb : DEFAULT_MAX_SIZE_MB) * 1024 * 1024;
+
 const upload = multer({
     storage,
     limits: {
-        fileSize: parseInt(process.env.MAX_UPLOAD_SIZE || '100') * 1024 * 1024 // Default 100MB
+        fileSize: fileSizeLimit
     }
 });
 

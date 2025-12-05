@@ -960,7 +960,13 @@ function escapeHtml(text) {
 }
 
 function escapeAttr(text) {
-    return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    // Properly escape for use in HTML attributes
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/'/g, '&#39;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function formatBytes(bytes) {

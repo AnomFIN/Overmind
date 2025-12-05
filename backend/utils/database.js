@@ -22,9 +22,10 @@ async function ensureDataDir() {
 /**
  * Read data from a JSON file
  * @param {string} filename - Name of the JSON file
+ * @param {any} defaultValue - Default value if file doesn't exist (defaults to empty array)
  * @returns {Promise<any>} Parsed JSON data
  */
-async function readData(filename) {
+async function readData(filename, defaultValue = []) {
     await ensureDataDir();
     const filepath = path.join(DATA_DIR, filename);
     
@@ -33,8 +34,8 @@ async function readData(filename) {
         return JSON.parse(data);
     } catch (err) {
         if (err.code === 'ENOENT') {
-            // File doesn't exist, return empty array
-            return [];
+            // File doesn't exist, return default value
+            return defaultValue;
         }
         throw err;
     }
