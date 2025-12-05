@@ -614,6 +614,18 @@
             return div.innerHTML;
         }
 
+        function escapeAttr(text) {
+            return String(text).replace(/[&<>"']/g, function(match) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[match];
+            });
+        }
+
         // ============================================
         // Link Shortener Functions
         // ============================================
@@ -626,14 +638,16 @@
                 listDiv.innerHTML = '';
 
                 Object.entries(links).forEach(([slug, info]) => {
+                    const escapedSlug = escapeAttr(slug);
+                    const shortUrl = `${window.location.origin}/s/${escapedSlug}`;
                     listDiv.innerHTML += `
                         <div class="link-item">
                             <div class="link-info">
-                                <div class="link-short" onclick="copyToClipboard('${window.location.origin}/s/${slug}')">/s/${slug}</div>
+                                <div class="link-short" onclick="copyToClipboard('${escapeAttr(shortUrl)}')">/s/${escapeHtml(slug)}</div>
                                 <div class="link-original">${escapeHtml(info.url)}</div>
                             </div>
                             <span class="link-clicks">${info.clicks} clicks</span>
-                            <button class="danger" onclick="deleteLink('${slug}')" style="margin-left: 0.5rem; padding: 0.5rem 0.75rem;">×</button>
+                            <button class="danger" onclick="deleteLink('${escapedSlug}')" style="margin-left: 0.5rem; padding: 0.5rem 0.75rem;">×</button>
                         </div>
                     `;
                 });
@@ -766,16 +780,18 @@
                 listDiv.innerHTML = '';
 
                 uploads.forEach(upload => {
+                    const escapedId = escapeAttr(upload.id);
+                    const escapedFilename = escapeAttr(upload.filename);
                     listDiv.innerHTML += `
                         <div class="upload-item">
                             <div class="upload-info">
                                 <div class="upload-name">${escapeHtml(upload.originalName)}</div>
                                 <div class="upload-meta">${formatSize(upload.size)} • Expires: ${formatDate(upload.expiresAt)}</div>
                             </div>
-                            <a href="/uploads/${upload.filename}" target="_blank" style="margin-right: 0.5rem;">
+                            <a href="/uploads/${escapedFilename}" target="_blank" style="margin-right: 0.5rem;">
                                 <button class="secondary" style="padding: 0.5rem 0.75rem;">↓</button>
                             </a>
-                            <button class="danger" onclick="deleteUpload('${upload.id}')" style="padding: 0.5rem 0.75rem;">×</button>
+                            <button class="danger" onclick="deleteUpload('${escapedId}')" style="padding: 0.5rem 0.75rem;">×</button>
                         </div>
                     `;
                 });

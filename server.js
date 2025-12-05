@@ -246,7 +246,7 @@ app.get('/s/:slug', (req, res) => {
 // ============================================
 
 // Upload file
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -268,7 +268,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     
     if (!writeJSON(UPLOADS_FILE, data)) {
         // Clean up uploaded file on save failure
-        fs.unlinkSync(req.file.path);
+        try {
+            await fs.promises.unlink(req.file.path);
+        } catch (err) {
+            console.error('Error cleaning up file:', err.message);
+        }
         return res.status(500).json({ error: 'Failed to save upload info' });
     }
 
@@ -289,7 +293,7 @@ app.get('/api/uploads', (req, res) => {
 });
 
 // Delete an upload
-app.delete('/api/uploads/:id', (req, res) => {
+app.delete('/api/uploads/:id', async (req, res) => {
     const { id } = req.params;
     const data = readJSON(UPLOADS_FILE) || { uploads: [] };
     
@@ -301,10 +305,10 @@ app.delete('/api/uploads/:id', (req, res) => {
     const upload = data.uploads[uploadIndex];
     const filepath = path.join(UPLOADS_DIR, upload.filename);
     
-    // Remove file from disk
+    // Remove file from disk asynchronously
     try {
         if (fs.existsSync(filepath)) {
-            fs.unlinkSync(filepath);
+            await fs.promises.unlink(filepath);
         }
     } catch (err) {
         console.error('Error deleting file:', err.message);
@@ -321,26 +325,29 @@ app.delete('/api/uploads/:id', (req, res) => {
 });
 
 // Cleanup expired uploads
-function cleanupExpiredUploads() {
+async function cleanupExpiredUploads() {
     const data = readJSON(UPLOADS_FILE) || { uploads: [] };
     const now = new Date();
     let cleaned = 0;
 
-    data.uploads = data.uploads.filter(upload => {
+    const filteredUploads = [];
+    for (const upload of data.uploads) {
         if (new Date(upload.expiresAt) <= now) {
             const filepath = path.join(UPLOADS_DIR, upload.filename);
             try {
                 if (fs.existsSync(filepath)) {
-                    fs.unlinkSync(filepath);
+                    await fs.promises.unlink(filepath);
                 }
             } catch (err) {
                 console.error('Error cleaning up file:', err.message);
             }
             cleaned++;
-            return false;
+        } else {
+            filteredUploads.push(upload);
         }
-        return true;
-    });
+    }
+    
+    data.uploads = filteredUploads;
 
     if (cleaned > 0) {
         writeJSON(UPLOADS_FILE, data);
