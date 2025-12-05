@@ -1,0 +1,29 @@
+{
+  "name": "anomhome-overmind",
+  "version": "1.0.0",
+  "description": "AnomHome Overmind: A self-hosted home dashboard for Linux",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "dashboard",
+    "home-automation",
+    "self-hosted",
+    "openai",
+    "file-browser"
+  ],
+  "author": "AnomFIN",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "16.3.1",
+    "express": "4.22.1",
+    "multer": "2.0.2",
+    "nanoid": "5.1.6"
+  }
+}

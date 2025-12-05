@@ -1,0 +1,2 @@
+# Requirements file for install.py
+# Keep minimal - only standard library is used
