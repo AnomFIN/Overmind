@@ -27,9 +27,9 @@ const UPLOADS_FILE = path.join(DATA_DIR, 'uploads.json');
 const CAMERAS_FILE = path.join(DATA_DIR, 'cameras.json');
 const NOTES_FILE = path.join(DATA_DIR, 'notes.json');
 
-// Upload directory (configurable via env)
+// Upload directory (configurable via env - must be relative to project)
 const UPLOADS_DIR = process.env.TEMP_UPLOAD_DIR 
-    ? path.resolve(__dirname, process.env.TEMP_UPLOAD_DIR)
+    ? path.join(__dirname, process.env.TEMP_UPLOAD_DIR.replace(/^\/+/, ''))
     : path.join(__dirname, 'tmp_uploads');
 
 // Home storage path for file browser
@@ -503,9 +503,9 @@ app.post('/api/cameras', (req, res) => {
     
     const camera = {
         id: uuidv4(),
-        name: name,
-        url: url,
-        type: type, // 'http', 'rtsp', 'mjpeg'
+        name,
+        url,
+        type, // 'http', 'rtsp', 'mjpeg'
         createdAt: new Date().toISOString()
     };
 

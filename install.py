@@ -97,7 +97,7 @@ def check_python_version():
     elif version.major >= 3 and version.minor >= 6:
         return (True, f"Python version {version_str} detected (3.10+ recommended)")
     else:
-        return (False, f"Python {version_str} is below minimum (3.10+ required). "
+        return (False, f"Python {version_str} is below minimum (3.6+ required, 3.10+ recommended). "
                        f"Install Python from https://www.python.org/downloads/")
 
 

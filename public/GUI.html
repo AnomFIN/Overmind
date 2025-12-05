@@ -1127,9 +1127,14 @@
             
             const board = document.getElementById('notesBoard');
             const boardRect = board.getBoundingClientRect();
+            const noteRect = draggedNote.getBoundingClientRect();
             
-            const x = Math.max(0, e.clientX - boardRect.left - dragOffsetX + board.scrollLeft);
-            const y = Math.max(0, e.clientY - boardRect.top - dragOffsetY + board.scrollTop);
+            // Calculate position with bounds checking
+            const maxX = Math.max(0, board.scrollWidth - noteRect.width);
+            const maxY = Math.max(0, board.scrollHeight - noteRect.height);
+            
+            const x = Math.min(maxX, Math.max(0, e.clientX - boardRect.left - dragOffsetX + board.scrollLeft));
+            const y = Math.min(maxY, Math.max(0, e.clientY - boardRect.top - dragOffsetY + board.scrollTop));
             
             updateNotePosition(draggedNote.dataset.noteId, x, y);
             draggedNote = null;
