@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnomHome Overmind</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>🧠 Overmind</h1>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-panel="dashboard">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Dashboard</span>
+                </li>
+                <li class="nav-item" data-panel="chat">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">AI Chat</span>
+                </li>
+                <li class="nav-item" data-panel="links">
+                    <span class="nav-icon">🔗</span>
+                    <span class="nav-text">Link Shortener</span>
+                </li>
+                <li class="nav-item" data-panel="uploads">
+                    <span class="nav-icon">📤</span>
+                    <span class="nav-text">Temp Uploads</span>
+                </li>
+                <li class="nav-item" data-panel="files">
+                    <span class="nav-icon">📁</span>
+                    <span class="nav-text">File Browser</span>
+                </li>
+                <li class="nav-item" data-panel="cameras">
+                    <span class="nav-icon">📷</span>
+                    <span class="nav-text">Camera Wall</span>
+                </li>
+                <li class="nav-item" data-panel="notes">
+                    <span class="nav-icon">🗺️</span>
+                    <span class="nav-text">Mind Map</span>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="system-status" id="systemStatus">
+                    <span class="status-indicator online"></span>
+                    <span>System Online</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard Panel -->
+            <div class="panel active" id="panel-dashboard">
+                <header class="panel-header">
+                    <h2>Dashboard</h2>
+                </header>
+                <div class="panel-content">
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card" onclick="showPanel('chat')">
+                            <div class="card-icon">💬</div>
+                            <div class="card-title">AI Chat</div>
+                            <div class="card-desc">Chat with OpenAI</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('links')">
+                            <div class="card-icon">🔗</div>
+                            <div class="card-title">Link Shortener</div>
+                            <div class="card-desc" id="linksCount">0 links</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('uploads')">
+                            <div class="card-icon">📤</div>
+                            <div class="card-title">Temp Uploads</div>
+                            <div class="card-desc">15-min expiring files</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('files')">
+                            <div class="card-icon">📁</div>
+                            <div class="card-title">File Browser</div>
+                            <div class="card-desc">Browse local files</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('cameras')">
+                            <div class="card-icon">📷</div>
+                            <div class="card-title">Camera Wall</div>
+                            <div class="card-desc" id="camerasCount">0 cameras</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('notes')">
+                            <div class="card-icon">🗺️</div>
+                            <div class="card-title">Mind Map</div>
+                            <div class="card-desc" id="notesCount">0 notes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="system-info">
+                        <h3>System Information</h3>
+                        <div id="systemInfo" class="info-grid">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Panel -->
+            <div class="panel" id="panel-chat">
+                <header class="panel-header">
+                    <h2>AI Chat Console</h2>
+                    <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
+                </header>
+                <div class="panel-content chat-panel">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-welcome">
+                            <p>👋 Welcome to the AI Chat Console!</p>
+                            <p class="chat-status" id="chatStatus">Checking API status...</p>
+                        </div>
+                    </div>
+                    <form class="chat-input-form" onsubmit="sendMessage(event)">
+                        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Link Shortener Panel -->
+            <div class="panel" id="panel-links">
+                <header class="panel-header">
+                    <h2>Link Shortener</h2>
+                </header>
+                <div class="panel-content">
+                    <form class="form-inline" onsubmit="createLink(event)">
+                        <input type="url" id="linkUrl" placeholder="Enter URL to shorten..." required>
+                        <input type="text" id="linkCode" placeholder="Custom code (optional)" pattern="[a-zA-Z0-9]+" maxlength="20">
+                        <button type="submit" class="btn btn-primary">Shorten</button>
+                    </form>
+                    <div class="links-list" id="linksList">
+                        <p class="loading">Loading links...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Temp Uploads Panel -->
+            <div class="panel" id="panel-uploads">
+                <header class="panel-header">
+                    <h2>Temporary File Uploads</h2>
+                    <span class="header-note">Files expire after 15 minutes</span>
+                </header>
+                <div class="panel-content">
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag & drop files here or click to select</p>
+                        <input type="file" id="fileInput" multiple hidden>
+                    </div>
+                    <div class="uploads-list" id="uploadsList">
+                        <p class="empty-message">No active uploads</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Browser Panel -->
+            <div class="panel" id="panel-files">
+                <header class="panel-header">
+                    <h2>File Browser</h2>
+                    <div class="file-search">
+                        <input type="text" id="fileSearch" placeholder="Search files...">
+                        <button onclick="searchFiles()" class="btn btn-secondary">Search</button>
+                    </div>
+                </header>
+                <div class="panel-content">
+                    <div class="breadcrumb" id="fileBreadcrumb">
+                        <span class="crumb" onclick="browsePath('')">Home</span>
+                    </div>
+                    <div class="files-grid" id="filesGrid">
+                        <p class="loading">Loading files...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Wall Panel -->
+            <div class="panel" id="panel-cameras">
+                <header class="panel-header">
+                    <h2>Camera Wall</h2>
+                    <button class="btn btn-primary" onclick="showAddCameraModal()">+ Add Camera</button>
+                </header>
+                <div class="panel-content">
+                    <div class="camera-grid" id="cameraGrid">
+                        <p class="empty-message">No cameras configured</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mind Map Panel -->
+            <div class="panel" id="panel-notes">
+                <header class="panel-header">
+                    <h2>Mind Map Notes</h2>
+                    <div class="notes-actions">
+                        <select id="noteSelect" onchange="loadNote(this.value)">
+                            <option value="">-- Select Note --</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="showCreateNoteModal()">+ New Note</button>
+                    </div>
+                </header>
+                <div class="panel-content mindmap-panel">
+                    <div class="mindmap-toolbar" id="mindmapToolbar" style="display: none;">
+                        <button class="btn btn-secondary" onclick="addNode()">+ Add Node</button>
+                        <button class="btn btn-secondary" onclick="toggleNotePublic()">
+                            <span id="publicToggle">Make Public</span>
+                        </button>
+                        <span class="share-url" id="shareUrl"></span>
+                        <button class="btn btn-danger" onclick="deleteCurrentNote()">Delete Note</button>
+                    </div>
+                    <div class="mindmap-container" id="mindmapContainer">
+                        <svg id="mindmapSvg"></svg>
+                        <div id="mindmapNodes"></div>
+                    </div>
+                    <div class="mindmap-empty" id="mindmapEmpty">
+                        <p>Select a note or create a new one to start mind mapping</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="addCameraModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Camera</h3>
+                <button class="close-btn" onclick="closeModal('addCameraModal')">&times;</button>
+            </div>
+            <form onsubmit="addCamera(event)">
+                <div class="form-group">
+                    <label>Camera Name</label>
+                    <input type="text" id="cameraName" required placeholder="e.g., Front Door">
+                </div>
+                <div class="form-group">
+                    <label>Stream URL</label>
+                    <input type="url" id="cameraUrl" required placeholder="http://camera.local/stream">
+                </div>
+                <div class="form-group">
+                    <label>Stream Type</label>
+                    <select id="cameraType">
+                        <option value="mjpeg">MJPEG</option>
+                        <option value="hls">HLS</option>
+                        <option value="img">Static Image</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Username (optional)</label>
+                    <input type="text" id="cameraUser" placeholder="Username">
+                </div>
+                <div class="form-group">
+                    <label>Password (optional)</label>
+                    <input type="password" id="cameraPass" placeholder="Password">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addCameraModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Camera</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="createNoteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Note</h3>
+                <button class="close-btn" onclick="closeModal('createNoteModal')">&times;</button>
+            </div>
+            <form onsubmit="createNote(event)">
+                <div class="form-group">
+                    <label>Note Title</label>
+                    <input type="text" id="noteTitle" required placeholder="My Mind Map">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="notePublic"> Make publicly shareable
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createNoteModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="filePreviewModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="previewFileName">File Preview</h3>
+                <button class="close-btn" onclick="closeModal('filePreviewModal')">&times;</button>
+            </div>
+            <div class="file-preview" id="filePreviewContent">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
