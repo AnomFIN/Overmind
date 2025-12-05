@@ -511,7 +511,7 @@
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
                         </svg>
-                        Temp File Upload
+                        15-min Temp Upload
                     </span>
                     <button class="secondary" onclick="loadUploads()">Refresh</button>
                 </div>
@@ -520,11 +520,79 @@
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
                         </svg>
-                        <p>Click or drag files here to upload</p>
+                        <p>Click or drag files here to upload (expires in 15 min)</p>
                         <input type="file" id="fileInput" onchange="uploadFile(this.files[0])">
                     </div>
                     <div class="upload-list" id="uploadList">
                         <!-- Uploads will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Local File Browser -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                        </svg>
+                        File Browser
+                    </span>
+                    <button class="secondary" onclick="loadFiles()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div id="filePath" style="margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
+                        <span onclick="navigateToPath('')" style="cursor: pointer; color: var(--accent-primary);">🏠 Home</span>
+                        <span id="breadcrumbs"></span>
+                    </div>
+                    <div class="file-list" id="fileList" style="max-height: 250px; overflow-y: auto;">
+                        <!-- Files will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Wall -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                        </svg>
+                        Camera Wall
+                    </span>
+                    <button class="secondary" onclick="loadCameras()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="cameraName" placeholder="Camera name" style="flex: 1;">
+                        <input type="text" id="cameraUrl" placeholder="Stream URL" style="flex: 2;">
+                        <button onclick="addCamera()">Add</button>
+                    </div>
+                    <div class="camera-grid" id="cameraGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
+                        <!-- Cameras will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mind-Map Notes -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        Mind-Map Notes
+                    </span>
+                    <button class="secondary" onclick="loadNotes()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="noteTitle" placeholder="Note title" style="flex: 1;">
+                        <input type="color" id="noteColor" value="#58a6ff" style="width: 50px; padding: 0.25rem;">
+                        <button onclick="addNote()">Add Note</button>
+                    </div>
+                    <div class="notes-board" id="notesBoard" style="position: relative; height: 300px; background: var(--bg-tertiary); border-radius: 8px; overflow: auto;">
+                        <!-- Notes will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -823,11 +891,333 @@
         }
 
         // ============================================
+        // File Browser Functions
+        // ============================================
+        let currentFilePath = '';
+
+        async function loadFiles(filePath = '') {
+            currentFilePath = filePath;
+            try {
+                const response = await fetch(`/api/files?path=${encodeURIComponent(filePath)}`);
+                const data = await response.json();
+                
+                const listDiv = document.getElementById('fileList');
+                const breadcrumbs = document.getElementById('breadcrumbs');
+                
+                if (data.error) {
+                    listDiv.innerHTML = `<p style="color: var(--text-secondary); text-align: center;">${escapeHtml(data.error)}</p>`;
+                    breadcrumbs.innerHTML = '';
+                    return;
+                }
+                
+                // Update breadcrumbs
+                const parts = filePath.split('/').filter(Boolean);
+                breadcrumbs.innerHTML = parts.map((part, i) => {
+                    const path = parts.slice(0, i + 1).join('/');
+                    return ` / <span onclick="navigateToPath('${escapeAttr(path)}')" style="cursor: pointer; color: var(--accent-primary);">${escapeHtml(part)}</span>`;
+                }).join('');
+                
+                listDiv.innerHTML = '';
+                
+                // Add parent directory link
+                if (filePath) {
+                    const parentPath = parts.slice(0, -1).join('/');
+                    listDiv.innerHTML += `
+                        <div class="file-item" onclick="navigateToPath('${escapeAttr(parentPath)}')" style="padding: 0.5rem; cursor: pointer; border-radius: 4px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📁</span>
+                            <span>..</span>
+                        </div>
+                    `;
+                }
+                
+                data.files.forEach(file => {
+                    const icon = file.isDirectory ? '📁' : '📄';
+                    const size = file.isDirectory ? '' : formatSize(file.size);
+                    const escapedName = escapeAttr(file.name);
+                    const fullPath = filePath ? `${filePath}/${file.name}` : file.name;
+                    
+                    if (file.isDirectory) {
+                        listDiv.innerHTML += `
+                            <div class="file-item" onclick="navigateToPath('${escapeAttr(fullPath)}')" style="padding: 0.5rem; cursor: pointer; border-radius: 4px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-tertiary);">
+                                <span>${icon}</span>
+                                <span style="flex: 1;">${escapeHtml(file.name)}</span>
+                            </div>
+                        `;
+                    } else {
+                        listDiv.innerHTML += `
+                            <div class="file-item" style="padding: 0.5rem; border-radius: 4px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-tertiary);">
+                                <span>${icon}</span>
+                                <span style="flex: 1;">${escapeHtml(file.name)}</span>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">${size}</span>
+                                <a href="/api/files/download?path=${encodeURIComponent(fullPath)}" target="_blank">
+                                    <button class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">↓</button>
+                                </a>
+                            </div>
+                        `;
+                    }
+                });
+                
+                if (data.files.length === 0 && !filePath) {
+                    listDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Configure HOME_STORAGE_PATH in .env</p>';
+                } else if (data.files.length === 0) {
+                    listDiv.innerHTML += '<p style="color: var(--text-secondary); text-align: center;">Empty directory</p>';
+                }
+            } catch (err) {
+                document.getElementById('fileList').innerHTML = '<p style="color: var(--text-secondary); text-align: center;">File browser not configured</p>';
+            }
+        }
+
+        function navigateToPath(path) {
+            loadFiles(path);
+        }
+
+        // ============================================
+        // Camera Wall Functions
+        // ============================================
+        async function loadCameras() {
+            try {
+                const response = await fetch('/api/cameras');
+                const cameras = await response.json();
+                
+                const grid = document.getElementById('cameraGrid');
+                grid.innerHTML = '';
+                
+                cameras.forEach(camera => {
+                    const escapedId = escapeAttr(camera.id);
+                    grid.innerHTML += `
+                        <div class="camera-tile" style="background: var(--bg-tertiary); border-radius: 8px; overflow: hidden; position: relative;">
+                            <div style="aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center;">
+                                <img src="${escapeAttr(camera.url)}" alt="${escapeHtml(camera.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div style="display: none; color: var(--text-secondary); font-size: 0.75rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">No Signal</div>
+                            </div>
+                            <div style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.85rem; font-weight: 500;">${escapeHtml(camera.name)}</span>
+                                <button class="danger" onclick="deleteCamera('${escapedId}')" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">×</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (cameras.length === 0) {
+                    grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1/-1;">No cameras configured</p>';
+                }
+            } catch (err) {
+                showToast('Failed to load cameras', 'error');
+            }
+        }
+
+        async function addCamera() {
+            const name = document.getElementById('cameraName').value.trim();
+            const url = document.getElementById('cameraUrl').value.trim();
+            
+            if (!name || !url) {
+                showToast('Name and URL are required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cameras', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast('Camera added!', 'success');
+                    document.getElementById('cameraName').value = '';
+                    document.getElementById('cameraUrl').value = '';
+                    loadCameras();
+                }
+            } catch (err) {
+                showToast('Failed to add camera', 'error');
+            }
+        }
+
+        async function deleteCamera(id) {
+            if (!confirm('Delete this camera?')) return;
+
+            try {
+                const response = await fetch(`/api/cameras/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast('Camera deleted', 'success');
+                    loadCameras();
+                }
+            } catch (err) {
+                showToast('Failed to delete camera', 'error');
+            }
+        }
+
+        // ============================================
+        // Mind-Map Notes Functions
+        // ============================================
+        async function loadNotes() {
+            try {
+                const response = await fetch('/api/notes');
+                const notes = await response.json();
+                
+                const board = document.getElementById('notesBoard');
+                board.innerHTML = '';
+                
+                notes.forEach(note => {
+                    const escapedId = escapeAttr(note.id);
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'note-card';
+                    noteEl.style.cssText = `
+                        position: absolute;
+                        left: ${note.x}px;
+                        top: ${note.y}px;
+                        min-width: 120px;
+                        max-width: 200px;
+                        padding: 0.75rem;
+                        background: ${note.color}22;
+                        border: 2px solid ${note.color};
+                        border-radius: 8px;
+                        cursor: move;
+                    `;
+                    noteEl.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>${escapeHtml(note.title)}</span>
+                            <button class="danger" onclick="deleteNote('${escapedId}')" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">×</button>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">${escapeHtml(note.content || '')}</div>
+                        <div style="font-size: 0.7rem; margin-top: 0.5rem;">
+                            <a href="/note/${escapedId}" target="_blank" style="color: var(--accent-primary);">Share</a>
+                        </div>
+                    `;
+                    
+                    // Make draggable
+                    noteEl.draggable = true;
+                    noteEl.dataset.noteId = note.id;
+                    noteEl.addEventListener('dragstart', handleNoteDragStart);
+                    noteEl.addEventListener('dragend', handleNoteDragEnd);
+                    
+                    board.appendChild(noteEl);
+                });
+                
+                if (notes.length === 0) {
+                    board.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding-top: 130px;">No notes yet. Add one above!</p>';
+                }
+            } catch (err) {
+                showToast('Failed to load notes', 'error');
+            }
+        }
+
+        let draggedNote = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        function handleNoteDragStart(e) {
+            draggedNote = e.target;
+            const rect = draggedNote.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleNoteDragEnd(e) {
+            if (!draggedNote) return;
+            
+            const board = document.getElementById('notesBoard');
+            const boardRect = board.getBoundingClientRect();
+            
+            const x = Math.max(0, e.clientX - boardRect.left - dragOffsetX + board.scrollLeft);
+            const y = Math.max(0, e.clientY - boardRect.top - dragOffsetY + board.scrollTop);
+            
+            updateNotePosition(draggedNote.dataset.noteId, x, y);
+            draggedNote = null;
+        }
+
+        async function updateNotePosition(id, x, y) {
+            try {
+                await fetch(`/api/notes/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x: Math.round(x), y: Math.round(y) })
+                });
+                loadNotes();
+            } catch (err) {
+                console.error('Failed to update note position');
+            }
+        }
+
+        async function addNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const color = document.getElementById('noteColor').value;
+            
+            if (!title) {
+                showToast('Title is required', 'error');
+                return;
+            }
+
+            // Random position for new note
+            const x = Math.floor(Math.random() * 300) + 20;
+            const y = Math.floor(Math.random() * 150) + 20;
+
+            try {
+                const response = await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, color, x, y })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast('Note added!', 'success');
+                    document.getElementById('noteTitle').value = '';
+                    loadNotes();
+                }
+            } catch (err) {
+                showToast('Failed to add note', 'error');
+            }
+        }
+
+        async function deleteNote(id) {
+            if (!confirm('Delete this note?')) return;
+
+            try {
+                const response = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast('Note deleted', 'success');
+                    loadNotes();
+                }
+            } catch (err) {
+                showToast('Failed to delete note', 'error');
+            }
+        }
+
+        // ============================================
         // Initialize
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadLinks();
             loadUploads();
+            loadFiles();
+            loadCameras();
+            loadNotes();
+            
+            // Check if we're viewing a specific note
+            const noteMatch = window.location.pathname.match(/^\/note\/(.+)$/);
+            if (noteMatch) {
+                // Scroll to notes section
+                setTimeout(() => {
+                    document.querySelector('.notes-board')?.scrollIntoView({ behavior: 'smooth' });
+                }, 500);
+            }
         });
     </script>
 </body>

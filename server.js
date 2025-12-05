@@ -19,17 +19,28 @@ const HOST = process.env.HOST || '0.0.0.0';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
 
 // Data file paths
 const DATA_DIR = path.join(__dirname, 'data');
 const LINKS_FILE = path.join(DATA_DIR, 'links.json');
 const UPLOADS_FILE = path.join(DATA_DIR, 'uploads.json');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const CAMERAS_FILE = path.join(DATA_DIR, 'cameras.json');
+const NOTES_FILE = path.join(DATA_DIR, 'notes.json');
+
+// Upload directory (configurable via env)
+const UPLOADS_DIR = process.env.TEMP_UPLOAD_DIR 
+    ? path.resolve(__dirname, process.env.TEMP_UPLOAD_DIR)
+    : path.join(__dirname, 'tmp_uploads');
+
+// Home storage path for file browser
+const HOME_STORAGE_PATH = process.env.HOME_STORAGE_PATH || null;
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Serve uploads
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Utility functions for JSON persistence
 function readJSON(filepath) {
@@ -56,6 +67,8 @@ function writeJSON(filepath, data) {
 // Initialize data files if they don't exist
 if (!fs.existsSync(LINKS_FILE)) writeJSON(LINKS_FILE, { links: {} });
 if (!fs.existsSync(UPLOADS_FILE)) writeJSON(UPLOADS_FILE, { uploads: [] });
+if (!fs.existsSync(CAMERAS_FILE)) writeJSON(CAMERAS_FILE, { cameras: [] });
+if (!fs.existsSync(NOTES_FILE)) writeJSON(NOTES_FILE, { notes: [] });
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -252,7 +265,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
 
     const data = readJSON(UPLOADS_FILE) || { uploads: [] };
-    const cleanupHours = parseInt(process.env.UPLOAD_CLEANUP_HOURS) || 24;
+    const cleanupMinutes = parseInt(process.env.UPLOAD_CLEANUP_MINUTES) || 15;
     
     const uploadInfo = {
         id: path.basename(req.file.filename, path.extname(req.file.filename)),
@@ -261,7 +274,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         size: req.file.size,
         mimetype: req.file.mimetype,
         uploadedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + cleanupHours * 60 * 60 * 1000).toISOString()
+        expiresAt: new Date(Date.now() + cleanupMinutes * 60 * 1000).toISOString()
     };
 
     data.uploads.push(uploadInfo);
@@ -355,8 +368,298 @@ async function cleanupExpiredUploads() {
     }
 }
 
-// Run cleanup every hour
-setInterval(cleanupExpiredUploads, 60 * 60 * 1000);
+// Run cleanup every 5 minutes for 15-minute TTL files
+setInterval(cleanupExpiredUploads, 5 * 60 * 1000);
+
+// ============================================
+// Local File Browser API
+// ============================================
+
+// Helper function to prevent directory traversal
+function isPathSafe(basePath, requestedPath) {
+    const resolvedPath = path.resolve(basePath, requestedPath);
+    return resolvedPath.startsWith(path.resolve(basePath));
+}
+
+// List files in directory
+app.get('/api/files', (req, res) => {
+    if (!HOME_STORAGE_PATH) {
+        return res.status(503).json({ 
+            error: 'File browser not configured. Set HOME_STORAGE_PATH in .env' 
+        });
+    }
+
+    if (!fs.existsSync(HOME_STORAGE_PATH)) {
+        return res.status(503).json({ 
+            error: 'Configured storage path does not exist' 
+        });
+    }
+
+    const relativePath = req.query.path || '';
+    
+    // Security check - prevent directory traversal
+    if (!isPathSafe(HOME_STORAGE_PATH, relativePath)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const fullPath = path.join(HOME_STORAGE_PATH, relativePath);
+
+    try {
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ error: 'Path not found' });
+        }
+
+        const stats = fs.statSync(fullPath);
+        if (!stats.isDirectory()) {
+            return res.status(400).json({ error: 'Path is not a directory' });
+        }
+
+        const entries = fs.readdirSync(fullPath, { withFileTypes: true });
+        const files = entries.map(entry => {
+            const entryPath = path.join(fullPath, entry.name);
+            let entryStats;
+            try {
+                entryStats = fs.statSync(entryPath);
+            } catch {
+                return null;
+            }
+            
+            return {
+                name: entry.name,
+                isDirectory: entry.isDirectory(),
+                size: entry.isDirectory() ? null : entryStats.size,
+                modifiedAt: entryStats.mtime.toISOString()
+            };
+        }).filter(Boolean);
+
+        res.json({
+            path: relativePath,
+            files: files.sort((a, b) => {
+                // Directories first, then alphabetical
+                if (a.isDirectory && !b.isDirectory) return -1;
+                if (!a.isDirectory && b.isDirectory) return 1;
+                return a.name.localeCompare(b.name);
+            })
+        });
+    } catch (err) {
+        console.error('File browser error:', err.message);
+        res.status(500).json({ error: 'Failed to list files' });
+    }
+});
+
+// Download file
+app.get('/api/files/download', (req, res) => {
+    if (!HOME_STORAGE_PATH) {
+        return res.status(503).json({ error: 'File browser not configured' });
+    }
+
+    const relativePath = req.query.path;
+    if (!relativePath) {
+        return res.status(400).json({ error: 'Path is required' });
+    }
+
+    if (!isPathSafe(HOME_STORAGE_PATH, relativePath)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const fullPath = path.join(HOME_STORAGE_PATH, relativePath);
+
+    try {
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+            return res.status(400).json({ error: 'Cannot download directories' });
+        }
+
+        res.download(fullPath);
+    } catch (err) {
+        console.error('File download error:', err.message);
+        res.status(500).json({ error: 'Failed to download file' });
+    }
+});
+
+// ============================================
+// Camera Wall API
+// ============================================
+
+// Get all cameras
+app.get('/api/cameras', (req, res) => {
+    const data = readJSON(CAMERAS_FILE) || { cameras: [] };
+    res.json(data.cameras);
+});
+
+// Add camera
+app.post('/api/cameras', (req, res) => {
+    const { name, url, type = 'http' } = req.body;
+    
+    if (!name || !url) {
+        return res.status(400).json({ error: 'Name and URL are required' });
+    }
+
+    const data = readJSON(CAMERAS_FILE) || { cameras: [] };
+    
+    const camera = {
+        id: uuidv4(),
+        name: name,
+        url: url,
+        type: type, // 'http', 'rtsp', 'mjpeg'
+        createdAt: new Date().toISOString()
+    };
+
+    data.cameras.push(camera);
+    
+    if (!writeJSON(CAMERAS_FILE, data)) {
+        return res.status(500).json({ error: 'Failed to save camera' });
+    }
+
+    res.status(201).json(camera);
+});
+
+// Delete camera
+app.delete('/api/cameras/:id', (req, res) => {
+    const { id } = req.params;
+    const data = readJSON(CAMERAS_FILE) || { cameras: [] };
+    
+    const index = data.cameras.findIndex(c => c.id === id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Camera not found' });
+    }
+
+    data.cameras.splice(index, 1);
+    
+    if (!writeJSON(CAMERAS_FILE, data)) {
+        return res.status(500).json({ error: 'Failed to delete camera' });
+    }
+
+    res.json({ message: 'Camera deleted successfully' });
+});
+
+// ============================================
+// Mind-Map Notes API
+// ============================================
+
+// Get all notes
+app.get('/api/notes', (req, res) => {
+    const data = readJSON(NOTES_FILE) || { notes: [] };
+    res.json(data.notes);
+});
+
+// Get single note by ID
+app.get('/api/notes/:id', (req, res) => {
+    const { id } = req.params;
+    const data = readJSON(NOTES_FILE) || { notes: [] };
+    
+    const note = data.notes.find(n => n.id === id);
+    if (!note) {
+        return res.status(404).json({ error: 'Note not found' });
+    }
+
+    res.json(note);
+});
+
+// Create note
+app.post('/api/notes', (req, res) => {
+    const { title, content, x = 0, y = 0, color = '#58a6ff', connections = [] } = req.body;
+    
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const data = readJSON(NOTES_FILE) || { notes: [] };
+    
+    const note = {
+        id: uuidv4(),
+        title: title,
+        content: content || '',
+        x: x,
+        y: y,
+        color: color,
+        connections: connections,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+
+    data.notes.push(note);
+    
+    if (!writeJSON(NOTES_FILE, data)) {
+        return res.status(500).json({ error: 'Failed to save note' });
+    }
+
+    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+    res.status(201).json({
+        ...note,
+        shareUrl: `${baseUrl}/note/${note.id}`
+    });
+});
+
+// Update note
+app.put('/api/notes/:id', (req, res) => {
+    const { id } = req.params;
+    const { title, content, x, y, color, connections } = req.body;
+    
+    const data = readJSON(NOTES_FILE) || { notes: [] };
+    
+    const index = data.notes.findIndex(n => n.id === id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Update only provided fields
+    if (title !== undefined) data.notes[index].title = title;
+    if (content !== undefined) data.notes[index].content = content;
+    if (x !== undefined) data.notes[index].x = x;
+    if (y !== undefined) data.notes[index].y = y;
+    if (color !== undefined) data.notes[index].color = color;
+    if (connections !== undefined) data.notes[index].connections = connections;
+    data.notes[index].updatedAt = new Date().toISOString();
+    
+    if (!writeJSON(NOTES_FILE, data)) {
+        return res.status(500).json({ error: 'Failed to update note' });
+    }
+
+    res.json(data.notes[index]);
+});
+
+// Delete note
+app.delete('/api/notes/:id', (req, res) => {
+    const { id } = req.params;
+    const data = readJSON(NOTES_FILE) || { notes: [] };
+    
+    const index = data.notes.findIndex(n => n.id === id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Remove this note from any connections
+    data.notes.forEach(note => {
+        note.connections = note.connections.filter(connId => connId !== id);
+    });
+
+    data.notes.splice(index, 1);
+    
+    if (!writeJSON(NOTES_FILE, data)) {
+        return res.status(500).json({ error: 'Failed to delete note' });
+    }
+
+    res.json({ message: 'Note deleted successfully' });
+});
+
+// Shareable note page route
+app.get('/note/:id', (req, res) => {
+    const { id } = req.params;
+    const data = readJSON(NOTES_FILE) || { notes: [] };
+    
+    const note = data.notes.find(n => n.id === id);
+    if (!note) {
+        return res.status(404).send('Note not found');
+    }
+
+    // Serve the main GUI with note context
+    res.sendFile(path.join(__dirname, 'public', 'GUI.html'));
+});
 
 // ============================================
 // Error Handling
@@ -393,7 +696,10 @@ app.listen(PORT, HOST, () => {
 ║  Features:                                             ║
 ║  - OpenAI Chat Console: POST /api/chat                 ║
 ║  - Link Shortener: POST /api/links, GET /s/:slug       ║
-║  - File Upload: POST /api/upload                       ║
+║  - 15-min Temp Upload: POST /api/upload                ║
+║  - File Browser: GET /api/files                        ║
+║  - Camera Wall: GET /api/cameras                       ║
+║  - Mind-Map Notes: GET /api/notes                      ║
 ╚════════════════════════════════════════════════════════╝
     `);
     
