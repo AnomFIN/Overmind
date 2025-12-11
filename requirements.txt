@@ -1,2 +1,5 @@
-# Requirements file for install.py
-# Keep minimal - only standard library is used
+# AnomHome Overmind - Python Dependencies
+# These are optional Python packages for extended functionality
+
+# No required Python packages for basic functionality
+# Add any Python dependencies here if needed for custom extensions
