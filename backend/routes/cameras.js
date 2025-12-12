@@ -1,204 +1,91 @@
-/**
- * Camera Wall Route
- * Manage IP camera streams
- */
+'use strict';
+// AnomFIN — the neural network of innovation.
 
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 const db = require('../utils/database');
 
 const CAMERAS_FILE = 'cameras.json';
 
-/**
- * POST /api/cameras
- * Add a new camera
- */
+function sanitizeCamera(payload) {
+    const allowed = ['name', 'rtspUrl', 'enabled', 'sensitivity', 'minMotionSeconds', 'cooldownSeconds', 'outputDir', 'audio'];
+    const result = {};
+    for (const key of allowed) {
+        if (payload[key] !== undefined) result[key] = payload[key];
+    }
+    return result;
+}
+
+router.get('/', async (req, res) => {
+    try {
+        const cameras = await db.readData(CAMERAS_FILE, []);
+        const statuses = (req.app.locals.motionRecorder?.getStatuses?.() || []);
+        const merged = cameras.map(cam => ({
+            ...cam,
+            status: statuses.find(s => s.id === cam.id) || null
+        }));
+        res.json(merged);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to list cameras' });
+    }
+});
+
 router.post('/', async (req, res) => {
     try {
-        const { name, url, type, username, password } = req.body;
-        
-        if (!name || !url) {
-            return res.status(400).json({ error: 'Name and URL are required' });
+        const clean = sanitizeCamera(req.body);
+        if (!clean.name || !clean.rtspUrl) {
+            return res.status(400).json({ error: 'name and rtspUrl required' });
         }
-        
-        // Validate URL: must be valid and use http or https
-        let parsedUrl;
-        try {
-            parsedUrl = new URL(url);
-        } catch (e) {
-            return res.status(400).json({ error: 'Invalid URL format' });
-        }
-        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-            return res.status(400).json({ error: 'URL must use http or https protocol' });
-        }
-        
+        const id = uuidv4();
         const camera = {
-            id: uuidv4(),
-            name,
-            url,
-            type: type || 'mjpeg', // mjpeg, hls, rtsp-proxy
-            username: username || null,
-            password: password || null,
-            enabled: true,
+            id,
+            name: clean.name,
+            rtspUrl: clean.rtspUrl,
+            enabled: clean.enabled !== false,
+            sensitivity: Number(clean.sensitivity) || 12,
+            minMotionSeconds: Number(clean.minMotionSeconds) || 2,
+            cooldownSeconds: Number(clean.cooldownSeconds) || 3,
+            outputDir: clean.outputDir || path.join('recordings', id),
+            audio: clean.audio === true,
             createdAt: new Date().toISOString()
         };
-        
-        await db.appendData(CAMERAS_FILE, camera);
-        
-        // Don't send password in response
-        const { password: _, ...safeCamera } = camera;
-        res.status(201).json({ success: true, camera: safeCamera });
-        
+        const cameras = await db.readData(CAMERAS_FILE, []);
+        cameras.push(camera);
+        await db.writeData(CAMERAS_FILE, cameras);
+        req.app.locals.motionRecorder?.refreshConfigs();
+        res.status(201).json(camera);
     } catch (err) {
-        console.error('[Cameras] Create error:', err.message);
         res.status(500).json({ error: 'Failed to add camera' });
     }
 });
 
-/**
- * GET /api/cameras
- * List all cameras
- */
-router.get('/', async (req, res) => {
+router.post('/:id/enable', async (req, res) => {
     try {
-        const cameras = await db.readData(CAMERAS_FILE);
-        // Remove passwords from response
-        const safeCameras = cameras.map(({ password, ...camera }) => camera);
-        res.json(safeCameras);
+        const updated = await db.updateData(CAMERAS_FILE, req.params.id, { enabled: true });
+        req.app.locals.motionRecorder?.refreshConfigs();
+        res.json(updated);
     } catch (err) {
-        console.error('[Cameras] List error:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve cameras' });
+        res.status(500).json({ error: 'Failed to enable camera' });
     }
 });
 
-/**
- * GET /api/cameras/:id
- * Get a specific camera
- */
-router.get('/:id', async (req, res) => {
+router.post('/:id/disable', async (req, res) => {
     try {
-        const camera = await db.findById(CAMERAS_FILE, req.params.id);
-        if (!camera) {
-            return res.status(404).json({ error: 'Camera not found' });
-        }
-        // Remove password from response
-        const { password, ...safeCamera } = camera;
-        res.json(safeCamera);
+        const updated = await db.updateData(CAMERAS_FILE, req.params.id, { enabled: false });
+        res.json(updated);
     } catch (err) {
-        console.error('[Cameras] Get error:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve camera' });
+        res.status(500).json({ error: 'Failed to disable camera' });
     }
 });
 
-/**
- * PUT /api/cameras/:id
- * Update a camera
- */
-router.put('/:id', async (req, res) => {
+router.post('/:id/test', async (req, res) => {
     try {
-        const { name, url, type, username, password, enabled } = req.body;
-        
-        const updates = {};
-        if (name !== undefined) updates.name = name;
-        if (url !== undefined) updates.url = url;
-        if (type !== undefined) updates.type = type;
-        if (username !== undefined) updates.username = username;
-        if (password !== undefined) updates.password = password;
-        if (enabled !== undefined) updates.enabled = enabled;
-        updates.updatedAt = new Date().toISOString();
-        
-        const camera = await db.updateData(CAMERAS_FILE, req.params.id, updates);
-        
-        if (!camera) {
-            return res.status(404).json({ error: 'Camera not found' });
-        }
-        
-        // Remove password from response
-        const { password: _, ...safeCamera } = camera;
-        res.json({ success: true, camera: safeCamera });
-        
+        const clip = await req.app.locals.motionRecorder.runTest(req.params.id);
+        res.json({ success: true, clip });
     } catch (err) {
-        console.error('[Cameras] Update error:', err.message);
-        res.status(500).json({ error: 'Failed to update camera' });
-    }
-});
-
-/**
- * DELETE /api/cameras/:id
- * Delete a camera
- */
-router.delete('/:id', async (req, res) => {
-    try {
-        const deleted = await db.deleteData(CAMERAS_FILE, req.params.id);
-        if (!deleted) {
-            return res.status(404).json({ error: 'Camera not found' });
-        }
-        res.json({ success: true, message: 'Camera deleted' });
-    } catch (err) {
-        console.error('[Cameras] Delete error:', err.message);
-        res.status(500).json({ error: 'Failed to delete camera' });
-    }
-});
-
-/**
- * GET /api/cameras/:id/stream
- * Proxy camera stream (for cameras requiring auth)
- */
-router.get('/:id/stream', async (req, res) => {
-    try {
-        const camera = await db.findById(CAMERAS_FILE, req.params.id);
-        
-        if (!camera) {
-            return res.status(404).json({ error: 'Camera not found' });
-        }
-        
-        if (!camera.enabled) {
-            return res.status(403).json({ error: 'Camera is disabled' });
-        }
-        
-        // For MJPEG streams, we can proxy directly
-        // For other types, return the URL for client-side handling
-        if (camera.type === 'mjpeg' && camera.username && camera.password) {
-            // Proxy authenticated MJPEG stream
-            const http = camera.url.startsWith('https') ? require('https') : require('http');
-            const url = new URL(camera.url);
-            
-            const auth = Buffer.from(`${camera.username}:${camera.password}`).toString('base64');
-            
-            const proxyReq = http.request({
-                hostname: url.hostname,
-                port: url.port || (url.protocol === 'https:' ? 443 : 80),
-                path: url.pathname + url.search,
-                method: 'GET',
-                headers: {
-                    'Authorization': `Basic ${auth}`
-                }
-            }, (proxyRes) => {
-                res.writeHead(proxyRes.statusCode, proxyRes.headers);
-                proxyRes.pipe(res);
-            });
-            
-            proxyReq.on('error', (err) => {
-                console.error('[Cameras] Stream proxy error:', err.message);
-                if (!res.headersSent) {
-                    res.status(502).json({ error: 'Failed to connect to camera' });
-                }
-            });
-            
-            req.on('close', () => {
-                proxyReq.destroy();
-            });
-            
-            proxyReq.end();
-        } else {
-            // Return URL for direct access
-            res.json({ url: camera.url, type: camera.type });
-        }
-        
-    } catch (err) {
-        console.error('[Cameras] Stream error:', err.message);
-        res.status(500).json({ error: 'Failed to get camera stream' });
+        res.status(500).json({ error: err.message });
     }
 });
 

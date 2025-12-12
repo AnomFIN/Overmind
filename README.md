@@ -8,7 +8,7 @@ It combines:
 - 🔗 A fast link shortener
 - 📁 15-minute temp file uploads
 - 🗂️ A simple local file browser
-- 📷 A camera wall
+- 📷 Motion-triggered camera recorder (local-first)
 - 🧩 A shareable mind-map note board
 
 All wrapped into a single, ultra-polished web UI served from your Linux box.
@@ -83,3 +83,21 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 git clone https://github.com/<your-org>/anomhome-overmind.git
 cd anomhome-overmind
 python3 install.py
+
+## Cameras: motion recorder
+- Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
+- Motion detection uses ffmpeg scene change heuristics with a 5s ring buffer to capture pre/post footage.
+- Recordings land under `recordings/<cameraId>/YYYY-MM-DD/HHMMSS__motion.mp4` and are indexed in `data/recordings.json`.
+- Use `/api/cameras/:id/test` to capture a 3s diagnostic clip.
+- Requires `ffmpeg` on the host; OpenCV is optional.
+
+## Public exposure with ngrok
+- Run `python3 tools/ngrok_helper.py` to set the auth token and expose port 3000 (or your custom port).
+- The helper saves config to `data/ngrok.json` and streams the tunnel logs.
+- Use the printed public URL for quick sharing; pair with the built-in link shortener for nicer URLs.
+
+## Why this design
+- Local-first: recordings stay on disk and JSON metadata avoids DB setup.
+- Resilient: ffmpeg segmenter auto-restarts on drops; concat keeps files portable.
+- Secure by default: sanitized paths, RTSP URLs stay server-side.
+- Minimal dependencies: vanilla Express + ffmpeg CLI + optional ngrok binary.
