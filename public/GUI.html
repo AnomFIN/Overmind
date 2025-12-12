@@ -3,1227 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AnomHome Overmind Dashboard</title>
-    <style>
-        :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --accent-primary: #58a6ff;
-            --accent-success: #3fb950;
-            --accent-warning: #d29922;
-            --accent-danger: #f85149;
-            --border-color: #30363d;
-            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        /* Header */
-        header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo svg {
-            width: 32px;
-            height: 32px;
-            fill: var(--accent-primary);
-        }
-
-        .logo h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            background: linear-gradient(135deg, var(--accent-primary), #a371f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header-status {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-success);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Main Content */
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-        }
-
-        /* Card Styles */
-        .card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .card-header {
-            background: var(--bg-tertiary);
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .card-title svg {
-            width: 20px;
-            height: 20px;
-            fill: var(--accent-primary);
-        }
-
-        .card-body {
-            padding: 1.25rem;
-        }
-
-        /* Form Elements */
-        input, textarea, select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-        }
-
-        input::placeholder, textarea::placeholder {
-            color: var(--text-secondary);
-        }
-
-        button {
-            padding: 0.75rem 1.25rem;
-            background: var(--accent-primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        button:hover {
-            background: #4090e0;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        button.secondary {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-        }
-
-        button.secondary:hover {
-            background: var(--border-color);
-        }
-
-        button.danger {
-            background: var(--accent-danger);
-        }
-
-        button.danger:hover {
-            background: #d73a39;
-        }
-
-        /* Chat Section */
-        .chat-messages {
-            height: 300px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .message {
-            margin-bottom: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            max-width: 85%;
-        }
-
-        .message.user {
-            background: var(--accent-primary);
-            color: white;
-            margin-left: auto;
-        }
-
-        .message.assistant {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-        }
-
-        .chat-input-group {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .chat-input-group input {
-            flex: 1;
-        }
-
-        /* Link Shortener */
-        .link-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .link-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .link-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-        }
-
-        .link-info {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .link-short {
-            font-weight: 500;
-            color: var(--accent-primary);
-        }
-
-        .link-original {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .link-clicks {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-left: 1rem;
-        }
-
-        /* File Upload */
-        .upload-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 2rem;
-            text-align: center;
-            transition: border-color 0.2s, background 0.2s;
-            cursor: pointer;
-            margin-bottom: 1rem;
-        }
-
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: var(--accent-primary);
-            background: rgba(88, 166, 255, 0.05);
-        }
-
-        .upload-zone svg {
-            width: 48px;
-            height: 48px;
-            fill: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .upload-zone p {
-            color: var(--text-secondary);
-        }
-
-        .upload-zone input {
-            display: none;
-        }
-
-        .upload-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .upload-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-        }
-
-        .upload-info {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .upload-name {
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .upload-meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-
-        /* Notification Toast */
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            padding: 1rem 1.5rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            transform: translateY(100px);
-            opacity: 0;
-            transition: transform 0.3s, opacity 0.3s;
-            z-index: 1000;
-        }
-
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .toast.success {
-            border-color: var(--accent-success);
-        }
-
-        .toast.error {
-            border-color: var(--accent-danger);
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--text-secondary);
-            border-radius: 50%;
-            border-top-color: var(--accent-primary);
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            main {
-                padding: 1rem;
-            }
-
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header-content {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .chat-messages {
-                height: 250px;
-            }
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
-        }
-    </style>
+    <title>AnomHome Overmind</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="header-content">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
             <div class="logo">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                </svg>
-                <h1>Overmind</h1>
+                <h1>🧠 Overmind</h1>
             </div>
-            <div class="header-status">
-                <span class="status-dot"></span>
-                <span>System Online</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main>
-        <div class="dashboard-grid">
-            <!-- OpenAI Chat Console -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                        </svg>
-                        AI Chat Console
-                    </span>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-panel="dashboard">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Dashboard</span>
+                </li>
+                <li class="nav-item" data-panel="chat">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">AI Chat</span>
+                </li>
+                <li class="nav-item" data-panel="links">
+                    <span class="nav-icon">🔗</span>
+                    <span class="nav-text">Link Shortener</span>
+                </li>
+                <li class="nav-item" data-panel="uploads">
+                    <span class="nav-icon">📤</span>
+                    <span class="nav-text">Temp Uploads</span>
+                </li>
+                <li class="nav-item" data-panel="files">
+                    <span class="nav-icon">📁</span>
+                    <span class="nav-text">File Browser</span>
+                </li>
+                <li class="nav-item" data-panel="cameras">
+                    <span class="nav-icon">📷</span>
+                    <span class="nav-text">Camera Wall</span>
+                </li>
+                <li class="nav-item" data-panel="notes">
+                    <span class="nav-icon">🗺️</span>
+                    <span class="nav-text">Mind Map</span>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="system-status" id="systemStatus">
+                    <span class="status-indicator online"></span>
+                    <span>System Online</span>
                 </div>
-                <div class="card-body">
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard Panel -->
+            <div class="panel active" id="panel-dashboard">
+                <header class="panel-header">
+                    <h2>Dashboard</h2>
+                </header>
+                <div class="panel-content">
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card" onclick="showPanel('chat')">
+                            <div class="card-icon">💬</div>
+                            <div class="card-title">AI Chat</div>
+                            <div class="card-desc">Chat with OpenAI</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('links')">
+                            <div class="card-icon">🔗</div>
+                            <div class="card-title">Link Shortener</div>
+                            <div class="card-desc" id="linksCount">0 links</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('uploads')">
+                            <div class="card-icon">📤</div>
+                            <div class="card-title">Temp Uploads</div>
+                            <div class="card-desc">15-min expiring files</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('files')">
+                            <div class="card-icon">📁</div>
+                            <div class="card-title">File Browser</div>
+                            <div class="card-desc">Browse local files</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('cameras')">
+                            <div class="card-icon">📷</div>
+                            <div class="card-title">Camera Wall</div>
+                            <div class="card-desc" id="camerasCount">0 cameras</div>
+                        </div>
+                        <div class="dashboard-card" onclick="showPanel('notes')">
+                            <div class="card-icon">🗺️</div>
+                            <div class="card-title">Mind Map</div>
+                            <div class="card-desc" id="notesCount">0 notes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="system-info">
+                        <h3>System Information</h3>
+                        <div id="systemInfo" class="info-grid">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Panel -->
+            <div class="panel" id="panel-chat">
+                <header class="panel-header">
+                    <h2>AI Chat Console</h2>
+                    <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
+                </header>
+                <div class="panel-content chat-panel">
                     <div class="chat-messages" id="chatMessages">
-                        <div class="message assistant">
-                            Welcome to Overmind! How can I assist you today?
+                        <div class="chat-welcome">
+                            <p>👋 Welcome to the AI Chat Console!</p>
+                            <p class="chat-status" id="chatStatus">Checking API status...</p>
                         </div>
                     </div>
-                    <div class="chat-input-group">
-                        <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="handleChatKeyPress(event)">
-                        <button onclick="sendChat()">Send</button>
+                    <form class="chat-input-form" onsubmit="sendMessage(event)">
+                        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Link Shortener Panel -->
+            <div class="panel" id="panel-links">
+                <header class="panel-header">
+                    <h2>Link Shortener</h2>
+                </header>
+                <div class="panel-content">
+                    <form class="form-inline" onsubmit="createLink(event)">
+                        <input type="url" id="linkUrl" placeholder="Enter URL to shorten..." required>
+                        <input type="text" id="linkCode" placeholder="Custom code (optional)" pattern="[a-zA-Z0-9]+" maxlength="20">
+                        <button type="submit" class="btn btn-primary">Shorten</button>
+                    </form>
+                    <div class="links-list" id="linksList">
+                        <p class="loading">Loading links...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Link Shortener -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
-                        </svg>
-                        Link Shortener
-                    </span>
-                    <button class="secondary" onclick="loadLinks()">Refresh</button>
-                </div>
-                <div class="card-body">
-                    <div class="link-input-group">
-                        <input type="url" id="linkUrl" placeholder="Enter URL to shorten...">
-                        <input type="text" id="linkSlug" placeholder="Custom slug (optional)">
-                        <button onclick="createLink()">Create Short Link</button>
+            <!-- Temp Uploads Panel -->
+            <div class="panel" id="panel-uploads">
+                <header class="panel-header">
+                    <h2>Temporary File Uploads</h2>
+                    <span class="header-note">Files expire after 15 minutes</span>
+                </header>
+                <div class="panel-content">
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag & drop files here or click to select</p>
+                        <input type="file" id="fileInput" multiple hidden>
                     </div>
-                    <div class="link-list" id="linkList">
-                        <!-- Links will be loaded here -->
+                    <div class="uploads-list" id="uploadsList">
+                        <p class="empty-message">No active uploads</p>
                     </div>
                 </div>
             </div>
 
-            <!-- File Upload -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                        </svg>
-                        15-min Temp Upload
-                    </span>
-                    <button class="secondary" onclick="loadUploads()">Refresh</button>
-                </div>
-                <div class="card-body">
-                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                        </svg>
-                        <p>Click or drag files here to upload (expires in 15 min)</p>
-                        <input type="file" id="fileInput" onchange="uploadFile(this.files[0])">
+            <!-- File Browser Panel -->
+            <div class="panel" id="panel-files">
+                <header class="panel-header">
+                    <h2>File Browser</h2>
+                    <div class="file-search">
+                        <input type="text" id="fileSearch" placeholder="Search files...">
+                        <button onclick="searchFiles()" class="btn btn-secondary">Search</button>
                     </div>
-                    <div class="upload-list" id="uploadList">
-                        <!-- Uploads will be loaded here -->
+                </header>
+                <div class="panel-content">
+                    <div class="breadcrumb" id="fileBreadcrumb">
+                        <span class="crumb" onclick="browsePath('')">Home</span>
+                    </div>
+                    <div class="files-grid" id="filesGrid">
+                        <p class="loading">Loading files...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Local File Browser -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-                        </svg>
-                        File Browser
-                    </span>
-                    <button class="secondary" onclick="loadFiles()">Refresh</button>
-                </div>
-                <div class="card-body">
-                    <div id="filePath" style="margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
-                        <span onclick="navigateToPath('')" style="cursor: pointer; color: var(--accent-primary);">🏠 Home</span>
-                        <span id="breadcrumbs"></span>
-                    </div>
-                    <div class="file-list" id="fileList" style="max-height: 250px; overflow-y: auto;">
-                        <!-- Files will be loaded here -->
+            <!-- Camera Wall Panel -->
+            <div class="panel" id="panel-cameras">
+                <header class="panel-header">
+                    <h2>Camera Wall</h2>
+                    <button class="btn btn-primary" onclick="showAddCameraModal()">+ Add Camera</button>
+                </header>
+                <div class="panel-content">
+                    <div class="camera-grid" id="cameraGrid">
+                        <p class="empty-message">No cameras configured</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Camera Wall -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-                        </svg>
-                        Camera Wall
-                    </span>
-                    <button class="secondary" onclick="loadCameras()">Refresh</button>
-                </div>
-                <div class="card-body">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" id="cameraName" placeholder="Camera name" style="flex: 1;">
-                        <input type="text" id="cameraUrl" placeholder="Stream URL" style="flex: 2;">
-                        <button onclick="addCamera()">Add</button>
+            <!-- Mind Map Panel -->
+            <div class="panel" id="panel-notes">
+                <header class="panel-header">
+                    <h2>Mind Map Notes</h2>
+                    <div class="notes-actions">
+                        <select id="noteSelect" onchange="loadNote(this.value)">
+                            <option value="">-- Select Note --</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="showCreateNoteModal()">+ New Note</button>
                     </div>
-                    <div class="camera-grid" id="cameraGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
-                        <!-- Cameras will be loaded here -->
+                </header>
+                <div class="panel-content mindmap-panel">
+                    <div class="mindmap-toolbar" id="mindmapToolbar" style="display: none;">
+                        <button class="btn btn-secondary" onclick="addNode()">+ Add Node</button>
+                        <button class="btn btn-secondary" onclick="toggleNotePublic()">
+                            <span id="publicToggle">Make Public</span>
+                        </button>
+                        <span class="share-url" id="shareUrl"></span>
+                        <button class="btn btn-danger" onclick="deleteCurrentNote()">Delete Note</button>
+                    </div>
+                    <div class="mindmap-container" id="mindmapContainer">
+                        <svg id="mindmapSvg"></svg>
+                        <div id="mindmapNodes"></div>
+                    </div>
+                    <div class="mindmap-empty" id="mindmapEmpty">
+                        <p>Select a note or create a new one to start mind mapping</p>
                     </div>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <!-- Mind-Map Notes -->
-            <div class="card" style="grid-column: span 2;">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                        Mind-Map Notes
-                    </span>
-                    <button class="secondary" onclick="loadNotes()">Refresh</button>
+    <!-- Modals -->
+    <div class="modal" id="addCameraModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Camera</h3>
+                <button class="close-btn" onclick="closeModal('addCameraModal')">&times;</button>
+            </div>
+            <form onsubmit="addCamera(event)">
+                <div class="form-group">
+                    <label>Camera Name</label>
+                    <input type="text" id="cameraName" required placeholder="e.g., Front Door">
                 </div>
-                <div class="card-body">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" id="noteTitle" placeholder="Note title" style="flex: 1;">
-                        <input type="color" id="noteColor" value="#58a6ff" style="width: 50px; padding: 0.25rem;">
-                        <button onclick="addNote()">Add Note</button>
-                    </div>
-                    <div class="notes-board" id="notesBoard" style="position: relative; height: 300px; background: var(--bg-tertiary); border-radius: 8px; overflow: auto;">
-                        <!-- Notes will be loaded here -->
-                    </div>
+                <div class="form-group">
+                    <label>Stream URL</label>
+                    <input type="url" id="cameraUrl" required placeholder="http://camera.local/stream">
                 </div>
+                <div class="form-group">
+                    <label>Stream Type</label>
+                    <select id="cameraType">
+                        <option value="mjpeg">MJPEG</option>
+                        <option value="hls">HLS</option>
+                        <option value="img">Static Image</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Username (optional)</label>
+                    <input type="text" id="cameraUser" placeholder="Username">
+                </div>
+                <div class="form-group">
+                    <label>Password (optional)</label>
+                    <input type="password" id="cameraPass" placeholder="Password">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addCameraModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Camera</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="createNoteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Note</h3>
+                <button class="close-btn" onclick="closeModal('createNoteModal')">&times;</button>
+            </div>
+            <form onsubmit="createNote(event)">
+                <div class="form-group">
+                    <label>Note Title</label>
+                    <input type="text" id="noteTitle" required placeholder="My Mind Map">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="notePublic"> Make publicly shareable
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createNoteModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="filePreviewModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="previewFileName">File Preview</h3>
+                <button class="close-btn" onclick="closeModal('filePreviewModal')">&times;</button>
+            </div>
+            <div class="file-preview" id="filePreviewContent">
+                Loading...
             </div>
         </div>
-    </main>
+    </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
-
-    <script>
-        // Toast notification
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + type + ' show';
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        // Format file size
-        function formatSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // Format date
-        function formatDate(dateString) {
-            return new Date(dateString).toLocaleString();
-        }
-
-        // ============================================
-        // Chat Functions
-        // ============================================
-        async function sendChat() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message) return;
-
-            const messagesDiv = document.getElementById('chatMessages');
-            
-            // Add user message
-            messagesDiv.innerHTML += `<div class="message user">${escapeHtml(message)}</div>`;
-            input.value = '';
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-            // Add loading indicator
-            const loadingId = 'loading-' + Date.now();
-            messagesDiv.innerHTML += `<div class="message assistant" id="${loadingId}"><span class="spinner"></span> Thinking...</div>`;
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
-                });
-
-                const data = await response.json();
-                document.getElementById(loadingId).remove();
-
-                if (data.error) {
-                    messagesDiv.innerHTML += `<div class="message assistant" style="border-color: var(--accent-danger);">${escapeHtml(data.error)}</div>`;
-                } else {
-                    messagesDiv.innerHTML += `<div class="message assistant">${escapeHtml(data.reply)}</div>`;
-                }
-            } catch (err) {
-                document.getElementById(loadingId).remove();
-                messagesDiv.innerHTML += `<div class="message assistant" style="border-color: var(--accent-danger);">Error: Failed to communicate with server</div>`;
-            }
-
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function handleChatKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendChat();
-            }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function escapeAttr(text) {
-            return String(text).replace(/[&<>"']/g, function(match) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;'
-                }[match];
-            });
-        }
-
-        // ============================================
-        // Link Shortener Functions
-        // ============================================
-        async function loadLinks() {
-            try {
-                const response = await fetch('/api/links');
-                const links = await response.json();
-                
-                const listDiv = document.getElementById('linkList');
-                listDiv.innerHTML = '';
-
-                Object.entries(links).forEach(([slug, info]) => {
-                    const escapedSlug = escapeAttr(slug);
-                    const shortUrl = `${window.location.origin}/s/${escapedSlug}`;
-                    listDiv.innerHTML += `
-                        <div class="link-item">
-                            <div class="link-info">
-                                <div class="link-short" onclick="copyToClipboard('${escapeAttr(shortUrl)}')">/s/${escapeHtml(slug)}</div>
-                                <div class="link-original">${escapeHtml(info.url)}</div>
-                            </div>
-                            <span class="link-clicks">${info.clicks} clicks</span>
-                            <button class="danger" onclick="deleteLink('${escapedSlug}')" style="margin-left: 0.5rem; padding: 0.5rem 0.75rem;">×</button>
-                        </div>
-                    `;
-                });
-
-                if (Object.keys(links).length === 0) {
-                    listDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No links yet</p>';
-                }
-            } catch (err) {
-                showToast('Failed to load links', 'error');
-            }
-        }
-
-        async function createLink() {
-            const urlInput = document.getElementById('linkUrl');
-            const slugInput = document.getElementById('linkSlug');
-            
-            const url = urlInput.value.trim();
-            if (!url) {
-                showToast('Please enter a URL', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/links', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        url: url,
-                        customSlug: slugInput.value.trim() || undefined
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Link created successfully!', 'success');
-                    urlInput.value = '';
-                    slugInput.value = '';
-                    loadLinks();
-                }
-            } catch (err) {
-                showToast('Failed to create link', 'error');
-            }
-        }
-
-        async function deleteLink(slug) {
-            if (!confirm('Delete this link?')) return;
-
-            try {
-                const response = await fetch(`/api/links/${slug}`, { method: 'DELETE' });
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Link deleted', 'success');
-                    loadLinks();
-                }
-            } catch (err) {
-                showToast('Failed to delete link', 'error');
-            }
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied to clipboard!', 'success');
-            });
-        }
-
-        // ============================================
-        // File Upload Functions
-        // ============================================
-        const uploadZone = document.getElementById('uploadZone');
-
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                uploadFile(files[0]);
-            }
-        });
-
-        async function uploadFile(file) {
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                showToast('Uploading...', 'info');
-                
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('File uploaded successfully!', 'success');
-                    loadUploads();
-                }
-            } catch (err) {
-                showToast('Failed to upload file', 'error');
-            }
-
-            document.getElementById('fileInput').value = '';
-        }
-
-        async function loadUploads() {
-            try {
-                const response = await fetch('/api/uploads');
-                const uploads = await response.json();
-                
-                const listDiv = document.getElementById('uploadList');
-                listDiv.innerHTML = '';
-
-                uploads.forEach(upload => {
-                    const escapedId = escapeAttr(upload.id);
-                    const escapedFilename = escapeAttr(upload.filename);
-                    listDiv.innerHTML += `
-                        <div class="upload-item">
-                            <div class="upload-info">
-                                <div class="upload-name">${escapeHtml(upload.originalName)}</div>
-                                <div class="upload-meta">${formatSize(upload.size)} • Expires: ${formatDate(upload.expiresAt)}</div>
-                            </div>
-                            <a href="/uploads/${escapedFilename}" target="_blank" style="margin-right: 0.5rem;">
-                                <button class="secondary" style="padding: 0.5rem 0.75rem;">↓</button>
-                            </a>
-                            <button class="danger" onclick="deleteUpload('${escapedId}')" style="padding: 0.5rem 0.75rem;">×</button>
-                        </div>
-                    `;
-                });
-
-                if (uploads.length === 0) {
-                    listDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No uploads yet</p>';
-                }
-            } catch (err) {
-                showToast('Failed to load uploads', 'error');
-            }
-        }
-
-        async function deleteUpload(id) {
-            if (!confirm('Delete this upload?')) return;
-
-            try {
-                const response = await fetch(`/api/uploads/${id}`, { method: 'DELETE' });
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Upload deleted', 'success');
-                    loadUploads();
-                }
-            } catch (err) {
-                showToast('Failed to delete upload', 'error');
-            }
-        }
-
-        // ============================================
-        // File Browser Functions
-        // ============================================
-        let currentFilePath = '';
-
-        async function loadFiles(filePath = '') {
-            currentFilePath = filePath;
-            try {
-                const response = await fetch(`/api/files?path=${encodeURIComponent(filePath)}`);
-                const data = await response.json();
-                
-                const listDiv = document.getElementById('fileList');
-                const breadcrumbs = document.getElementById('breadcrumbs');
-                
-                if (data.error) {
-                    listDiv.innerHTML = `<p style="color: var(--text-secondary); text-align: center;">${escapeHtml(data.error)}</p>`;
-                    breadcrumbs.innerHTML = '';
-                    return;
-                }
-                
-                // Update breadcrumbs
-                const parts = filePath.split('/').filter(Boolean);
-                breadcrumbs.innerHTML = parts.map((part, i) => {
-                    const path = parts.slice(0, i + 1).join('/');
-                    return ` / <span onclick="navigateToPath('${escapeAttr(path)}')" style="cursor: pointer; color: var(--accent-primary);">${escapeHtml(part)}</span>`;
-                }).join('');
-                
-                listDiv.innerHTML = '';
-                
-                // Add parent directory link
-                if (filePath) {
-                    const parentPath = parts.slice(0, -1).join('/');
-                    listDiv.innerHTML += `
-                        <div class="file-item" onclick="navigateToPath('${escapeAttr(parentPath)}')" style="padding: 0.5rem; cursor: pointer; border-radius: 4px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <span>📁</span>
-                            <span>..</span>
-                        </div>
-                    `;
-                }
-                
-                data.files.forEach(file => {
-                    const icon = file.isDirectory ? '📁' : '📄';
-                    const size = file.isDirectory ? '' : formatSize(file.size);
-                    const escapedName = escapeAttr(file.name);
-                    const fullPath = filePath ? `${filePath}/${file.name}` : file.name;
-                    
-                    if (file.isDirectory) {
-                        listDiv.innerHTML += `
-                            <div class="file-item" onclick="navigateToPath('${escapeAttr(fullPath)}')" style="padding: 0.5rem; cursor: pointer; border-radius: 4px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-tertiary);">
-                                <span>${icon}</span>
-                                <span style="flex: 1;">${escapeHtml(file.name)}</span>
-                            </div>
-                        `;
-                    } else {
-                        listDiv.innerHTML += `
-                            <div class="file-item" style="padding: 0.5rem; border-radius: 4px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-tertiary);">
-                                <span>${icon}</span>
-                                <span style="flex: 1;">${escapeHtml(file.name)}</span>
-                                <span style="font-size: 0.75rem; color: var(--text-secondary);">${size}</span>
-                                <a href="/api/files/download?path=${encodeURIComponent(fullPath)}" target="_blank">
-                                    <button class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">↓</button>
-                                </a>
-                            </div>
-                        `;
-                    }
-                });
-                
-                if (data.files.length === 0 && !filePath) {
-                    listDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Configure HOME_STORAGE_PATH in .env</p>';
-                } else if (data.files.length === 0) {
-                    listDiv.innerHTML += '<p style="color: var(--text-secondary); text-align: center;">Empty directory</p>';
-                }
-            } catch (err) {
-                document.getElementById('fileList').innerHTML = '<p style="color: var(--text-secondary); text-align: center;">File browser not configured</p>';
-            }
-        }
-
-        function navigateToPath(path) {
-            loadFiles(path);
-        }
-
-        // ============================================
-        // Camera Wall Functions
-        // ============================================
-        async function loadCameras() {
-            try {
-                const response = await fetch('/api/cameras');
-                const cameras = await response.json();
-                
-                const grid = document.getElementById('cameraGrid');
-                grid.innerHTML = '';
-                
-                cameras.forEach(camera => {
-                    const escapedId = escapeAttr(camera.id);
-                    grid.innerHTML += `
-                        <div class="camera-tile" style="background: var(--bg-tertiary); border-radius: 8px; overflow: hidden; position: relative;">
-                            <div style="aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center;">
-                                <img src="${escapeAttr(camera.url)}" alt="${escapeHtml(camera.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <div style="display: none; color: var(--text-secondary); font-size: 0.75rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">No Signal</div>
-                            </div>
-                            <div style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.85rem; font-weight: 500;">${escapeHtml(camera.name)}</span>
-                                <button class="danger" onclick="deleteCamera('${escapedId}')" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">×</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                if (cameras.length === 0) {
-                    grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1/-1;">No cameras configured</p>';
-                }
-            } catch (err) {
-                showToast('Failed to load cameras', 'error');
-            }
-        }
-
-        async function addCamera() {
-            const name = document.getElementById('cameraName').value.trim();
-            const url = document.getElementById('cameraUrl').value.trim();
-            
-            if (!name || !url) {
-                showToast('Name and URL are required', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/cameras', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, url })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Camera added!', 'success');
-                    document.getElementById('cameraName').value = '';
-                    document.getElementById('cameraUrl').value = '';
-                    loadCameras();
-                }
-            } catch (err) {
-                showToast('Failed to add camera', 'error');
-            }
-        }
-
-        async function deleteCamera(id) {
-            if (!confirm('Delete this camera?')) return;
-
-            try {
-                const response = await fetch(`/api/cameras/${id}`, { method: 'DELETE' });
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Camera deleted', 'success');
-                    loadCameras();
-                }
-            } catch (err) {
-                showToast('Failed to delete camera', 'error');
-            }
-        }
-
-        // ============================================
-        // Mind-Map Notes Functions
-        // ============================================
-        async function loadNotes() {
-            try {
-                const response = await fetch('/api/notes');
-                const notes = await response.json();
-                
-                const board = document.getElementById('notesBoard');
-                board.innerHTML = '';
-                
-                notes.forEach(note => {
-                    const escapedId = escapeAttr(note.id);
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'note-card';
-                    noteEl.style.cssText = `
-                        position: absolute;
-                        left: ${note.x}px;
-                        top: ${note.y}px;
-                        min-width: 120px;
-                        max-width: 200px;
-                        padding: 0.75rem;
-                        background: ${note.color}22;
-                        border: 2px solid ${note.color};
-                        border-radius: 8px;
-                        cursor: move;
-                    `;
-                    noteEl.innerHTML = `
-                        <div style="font-weight: 600; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                            <span>${escapeHtml(note.title)}</span>
-                            <button class="danger" onclick="deleteNote('${escapedId}')" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">×</button>
-                        </div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">${escapeHtml(note.content || '')}</div>
-                        <div style="font-size: 0.7rem; margin-top: 0.5rem;">
-                            <a href="/note/${escapedId}" target="_blank" style="color: var(--accent-primary);">Share</a>
-                        </div>
-                    `;
-                    
-                    // Make draggable
-                    noteEl.draggable = true;
-                    noteEl.dataset.noteId = note.id;
-                    noteEl.addEventListener('dragstart', handleNoteDragStart);
-                    noteEl.addEventListener('dragend', handleNoteDragEnd);
-                    
-                    board.appendChild(noteEl);
-                });
-                
-                if (notes.length === 0) {
-                    board.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding-top: 130px;">No notes yet. Add one above!</p>';
-                }
-            } catch (err) {
-                showToast('Failed to load notes', 'error');
-            }
-        }
-
-        let draggedNote = null;
-        let dragOffsetX = 0;
-        let dragOffsetY = 0;
-
-        function handleNoteDragStart(e) {
-            draggedNote = e.target;
-            const rect = draggedNote.getBoundingClientRect();
-            dragOffsetX = e.clientX - rect.left;
-            dragOffsetY = e.clientY - rect.top;
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function handleNoteDragEnd(e) {
-            if (!draggedNote) return;
-            
-            const board = document.getElementById('notesBoard');
-            const boardRect = board.getBoundingClientRect();
-            const noteRect = draggedNote.getBoundingClientRect();
-            
-            // Calculate position with bounds checking
-            const maxX = Math.max(0, board.scrollWidth - noteRect.width);
-            const maxY = Math.max(0, board.scrollHeight - noteRect.height);
-            
-            const x = Math.min(maxX, Math.max(0, e.clientX - boardRect.left - dragOffsetX + board.scrollLeft));
-            const y = Math.min(maxY, Math.max(0, e.clientY - boardRect.top - dragOffsetY + board.scrollTop));
-            
-            updateNotePosition(draggedNote.dataset.noteId, x, y);
-            draggedNote = null;
-        }
-
-        async function updateNotePosition(id, x, y) {
-            try {
-                await fetch(`/api/notes/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ x: Math.round(x), y: Math.round(y) })
-                });
-                loadNotes();
-            } catch (err) {
-                console.error('Failed to update note position');
-            }
-        }
-
-        async function addNote() {
-            const title = document.getElementById('noteTitle').value.trim();
-            const color = document.getElementById('noteColor').value;
-            
-            if (!title) {
-                showToast('Title is required', 'error');
-                return;
-            }
-
-            // Random position for new note
-            const x = Math.floor(Math.random() * 300) + 20;
-            const y = Math.floor(Math.random() * 150) + 20;
-
-            try {
-                const response = await fetch('/api/notes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, color, x, y })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Note added!', 'success');
-                    document.getElementById('noteTitle').value = '';
-                    loadNotes();
-                }
-            } catch (err) {
-                showToast('Failed to add note', 'error');
-            }
-        }
-
-        async function deleteNote(id) {
-            if (!confirm('Delete this note?')) return;
-
-            try {
-                const response = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-                const data = await response.json();
-
-                if (data.error) {
-                    showToast(data.error, 'error');
-                } else {
-                    showToast('Note deleted', 'success');
-                    loadNotes();
-                }
-            } catch (err) {
-                showToast('Failed to delete note', 'error');
-            }
-        }
-
-        // ============================================
-        // Initialize
-        // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            loadLinks();
-            loadUploads();
-            loadFiles();
-            loadCameras();
-            loadNotes();
-            
-            // Check if we're viewing a specific note
-            const noteMatch = window.location.pathname.match(/^\/note\/(.+)$/);
-            if (noteMatch) {
-                // Scroll to notes section
-                setTimeout(() => {
-                    document.querySelector('.notes-board')?.scrollIntoView({ behavior: 'smooth' });
-                }, 500);
-            }
-        });
-    </script>
+    <script src="js/app.js"></script>
 </body>
 </html>

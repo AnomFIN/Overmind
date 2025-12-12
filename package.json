@@ -1,28 +1,30 @@
 {
-  "name": "overmind",
+  "name": "anomhome-overmind",
   "version": "1.0.0",
   "description": "AnomHome Overmind: A self-hosted home dashboard for Linux",
-  "main": "server.js",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "test": "node --test backend/tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "keywords": [
     "dashboard",
     "self-hosted",
-    "home",
-    "nodejs",
-    "express"
+    "home-automation",
+    "openai",
+    "file-browser",
+    "mind-map"
   ],
   "author": "AnomFIN",
   "license": "MIT",
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "dependencies": {
-    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
     "multer": "^2.0.2",
-    "dotenv": "^16.3.1",
-    "uuid": "^9.0.0"
+    "uuid": "^10.0.0"
   }
 }

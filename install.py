@@ -1,531 +1,361 @@
 #!/usr/bin/env python3
 """
-install.py – smart installer for AnomHome Overmind
-
-Requirements:
-- Python 3.10+
-- Node.js 20+
-- Must NOT crash with an unreadable traceback.
-- Must:
-  - create a virtual environment (.venv) if needed
-  - install Python dependencies from requirements.txt (if it exists)
-  - run `npm install`
-  - detect common errors and print clear, human-friendly messages
-  - offer to retry failed steps
-
-Usage:
-    python install.py [--skip-npm] [--skip-venv] [--help]
+AnomHome Overmind Installation Script
+Sets up virtual environment, Python and Node.js dependencies.
+Handles errors gracefully and provides clear feedback.
 """
 
-import os
-import sys
 import subprocess
+import sys
+import os
 import shutil
-import argparse
+import json
 from pathlib import Path
 
 
-class Colors:
-    """ANSI color codes for terminal output."""
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    END = '\033[0m'
-    BOLD = '\033[1m'
+def print_banner():
+    """Print installation banner."""
+    banner = """
+╔══════════════════════════════════════════════════════════════╗
+║           AnomHome Overmind - Installation Script            ║
+║      Self-hosted home dashboard for Linux                    ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+    print(banner)
 
 
-def print_header():
-    """Print the installation header."""
-    print(f"""
-{Colors.BLUE}{Colors.BOLD}
-╔════════════════════════════════════════════════════════╗
-║           AnomHome Overmind Installer                  ║
-║                                                        ║
-║  A self-hosted home dashboard for Linux                ║
-╚════════════════════════════════════════════════════════╝
-{Colors.END}
-""")
-
-
-def print_step(step, message):
+def print_step(step_num, message):
     """Print a step message."""
-    print(f"{Colors.BLUE}[{step}]{Colors.END} {message}")
+    print(f"\n[Step {step_num}] {message}")
+    print("-" * 60)
 
 
 def print_success(message):
-    """Print a success message."""
-    print(f"{Colors.GREEN}✓{Colors.END} {message}")
-
-
-def print_warning(message):
-    """Print a warning message."""
-    print(f"{Colors.YELLOW}⚠{Colors.END} {message}")
+    """Print success message."""
+    print(f"✓ {message}")
 
 
 def print_error(message):
-    """Print an error message."""
-    print(f"{Colors.RED}✗ Error:{Colors.END} {message}")
+    """Print error message."""
+    print(f"✗ ERROR: {message}", file=sys.stderr)
 
 
-def ask_retry(action_name):
-    """Ask user if they want to retry a failed action.
-    
-    Returns:
-        bool: True if user wants to retry, False otherwise
-    """
+def print_warning(message):
+    """Print warning message."""
+    print(f"⚠ WARNING: {message}")
+
+
+def run_command(cmd, description, cwd=None, capture_output=False):
+    """Run a shell command with error handling."""
     try:
-        response = input(f"\n{Colors.YELLOW}Would you like to retry {action_name}? [y/N]: {Colors.END}").strip().lower()
-        return response in ('y', 'yes')
-    except (EOFError, KeyboardInterrupt):
-        print()
-        return False
+        result = subprocess.run(
+            cmd,
+            shell=isinstance(cmd, str),
+            cwd=cwd,
+            capture_output=capture_output,
+            text=True,
+            check=True
+        )
+        print_success(description)
+        return result
+    except subprocess.CalledProcessError as e:
+        print_error(f"{description} failed")
+        if e.stdout:
+            print(f"stdout: {e.stdout}")
+        if e.stderr:
+            print(f"stderr: {e.stderr}")
+        return None
+    except FileNotFoundError as e:
+        print_error(f"Command not found: {e.filename}")
+        return None
 
 
 def check_python_version():
-    """Check if Python version meets requirements.
-    
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
+    """Check if Python version is 3.8 or higher."""
     version = sys.version_info
-    version_str = f"{version.major}.{version.minor}.{version.micro}"
-    
-    if version.major >= 3 and version.minor >= 10:
-        return (True, f"Python version {version_str} detected")
-    elif version.major >= 3 and version.minor >= 6:
-        return (True, f"Python version {version_str} detected (3.10+ recommended)")
-    else:
-        return (False, f"Python {version_str} is below minimum (3.6+ required, 3.10+ recommended). "
-                       f"Install Python from https://www.python.org/downloads/")
+    if version.major < 3 or (version.major == 3 and version.minor < 8):
+        print_error(f"Python 3.8+ required. Found: {version.major}.{version.minor}")
+        return False
+    print_success(f"Python version: {version.major}.{version.minor}.{version.micro}")
+    return True
 
 
 def check_node_version():
-    """Check if Node.js is installed and meets minimum version requirements.
-    
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
+    """Check if Node.js 20+ is installed."""
     try:
         result = subprocess.run(
-            ['node', '--version'],
+            ["node", "--version"],
             capture_output=True,
             text=True,
             check=True
         )
         version_str = result.stdout.strip().lstrip('v')
         major_version = int(version_str.split('.')[0])
-        
-        if major_version >= 20:
-            return (True, f"Node.js version {version_str} detected")
+        if major_version < 20:
+            print_warning(f"Node.js 20+ recommended. Found: {version_str}")
+            print_warning("Some features may not work correctly.")
         else:
-            return (False, f"Node.js version {version_str} is below minimum (20.x required). "
-                          f"Install Node.js 20+ from https://nodejs.org/en/download")
-    except subprocess.CalledProcessError:
-        return (False, "Node.js returned an error. Try reinstalling from https://nodejs.org/en/download")
-    except FileNotFoundError:
-        return (False, "Node.js 20+ not found. Install Node from https://nodejs.org/en/download "
-                       "and re-run python install.py")
+            print_success(f"Node.js version: {version_str}")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print_error("Node.js not found. Please install Node.js 20+")
+        print("  Install from: https://nodejs.org/")
+        return False
+    except (ValueError, IndexError):
+        print_warning("Could not parse Node.js version")
+        return True
 
 
 def check_npm():
-    """Check if npm is installed.
-    
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
+    """Check if npm is installed."""
     try:
         result = subprocess.run(
-            ['npm', '--version'],
+            ["npm", "--version"],
             capture_output=True,
             text=True,
             check=True
         )
-        return (True, f"npm version {result.stdout.strip()} detected")
-    except subprocess.CalledProcessError:
-        return (False, "npm returned an error. Try reinstalling Node.js from https://nodejs.org/en/download")
-    except FileNotFoundError:
-        return (False, "npm not found. npm comes bundled with Node.js. "
-                       "Install Node.js from https://nodejs.org/en/download")
+        print_success(f"npm version: {result.stdout.strip()}")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print_error("npm not found. Please install Node.js with npm")
+        return False
 
 
-def run_npm_install(project_dir):
-    """Install Node.js dependencies using npm.
+def create_venv(project_dir):
+    """Create Python virtual environment."""
+    venv_path = project_dir / "venv"
     
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
-    package_json = os.path.join(project_dir, 'package.json')
-    
-    if not os.path.exists(package_json):
-        return (False, "package.json not found in project directory")
-    
-    try:
-        result = subprocess.run(
-            ['npm', 'install'],
-            cwd=project_dir,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return (True, "Node.js dependencies installed successfully")
-    except subprocess.CalledProcessError as e:
-        error_msg = "npm install failed"
-        if 'ENOENT' in str(e.stderr):
-            error_msg += ". A required file or directory was not found"
-        elif 'EACCES' in str(e.stderr):
-            error_msg += ". Permission denied - try running with appropriate permissions"
-        elif 'ETIMEDOUT' in str(e.stderr) or 'network' in str(e.stderr).lower():
-            error_msg += ". Network issue - check your internet connection"
-        else:
-            error_msg += f". {e.stderr[:200] if e.stderr else 'Unknown error'}"
-        return (False, error_msg)
-    except FileNotFoundError:
-        return (False, "npm command not found. Install Node.js from https://nodejs.org/en/download")
-
-
-def run_pip_install(project_dir, venv_path=None):
-    """Install Python dependencies from requirements.txt if it exists.
-    
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
-    requirements_file = os.path.join(project_dir, 'requirements.txt')
-    
-    if not os.path.exists(requirements_file):
-        return (True, "No requirements.txt found, skipping Python dependencies")
-    
-    # Determine pip command
-    if venv_path and os.path.exists(venv_path):
-        if sys.platform == 'win32':
-            pip_cmd = os.path.join(venv_path, 'Scripts', 'pip')
-        else:
-            pip_cmd = os.path.join(venv_path, 'bin', 'pip')
-    else:
-        pip_cmd = 'pip'
-    
-    try:
-        result = subprocess.run(
-            [pip_cmd, 'install', '-r', requirements_file],
-            cwd=project_dir,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return (True, "Python dependencies installed successfully")
-    except subprocess.CalledProcessError as e:
-        error_msg = "pip install failed"
-        if 'network' in str(e.stderr).lower() or 'connection' in str(e.stderr).lower():
-            error_msg += ". Network issue - check your internet connection"
-        else:
-            error_msg += f". {e.stderr[:200] if e.stderr else 'Unknown error'}"
-        return (False, error_msg)
-    except FileNotFoundError:
-        return (False, f"pip not found at {pip_cmd}")
-
-
-def create_or_use_venv(project_dir):
-    """Create or use existing Python virtual environment.
-    
-    Returns:
-        tuple: (ok: bool, message: str, venv_path: str or None)
-    """
-    venv_path = os.path.join(project_dir, '.venv')
-    
-    if os.path.exists(venv_path):
-        # Check if it's a valid venv
-        if sys.platform == 'win32':
-            python_path = os.path.join(venv_path, 'Scripts', 'python.exe')
-        else:
-            python_path = os.path.join(venv_path, 'bin', 'python')
-        
-        if os.path.exists(python_path):
-            return (True, "Using existing virtual environment", venv_path)
-        else:
-            # Invalid venv, remove and recreate
+    if venv_path.exists():
+        print_warning("Virtual environment already exists")
+        response = input("Do you want to recreate it? [y/N]: ").strip().lower()
+        if response == 'y':
             try:
                 shutil.rmtree(venv_path)
+                print_success("Removed existing virtual environment")
             except OSError as e:
-                return (False, f"Failed to remove invalid venv: {e}", None)
+                print_error(f"Failed to remove existing venv: {e}")
+                return None
+        else:
+            print_success("Using existing virtual environment")
+            return venv_path
     
     try:
         import venv
         venv.create(venv_path, with_pip=True)
-        return (True, "Python virtual environment created", venv_path)
+        print_success(f"Created virtual environment at {venv_path}")
+        return venv_path
     except Exception as e:
-        return (False, f"Failed to create virtual environment: {e}", None)
+        print_error(f"Failed to create virtual environment: {e}")
+        return None
 
 
-def create_env_file(project_dir):
-    """Create .env file from .env.example if it doesn't exist.
+def get_venv_python(venv_path):
+    """Get the Python executable path in the virtual environment."""
+    if sys.platform == "win32":
+        return venv_path / "Scripts" / "python.exe"
+    return venv_path / "bin" / "python"
+
+
+def install_python_deps(venv_path, project_dir):
+    """Install Python dependencies in the virtual environment."""
+    python_path = get_venv_python(venv_path)
+    requirements_path = project_dir / "requirements.txt"
     
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
-    env_example = os.path.join(project_dir, '.env.example')
-    env_file = os.path.join(project_dir, '.env')
+    if not requirements_path.exists():
+        print_warning("No requirements.txt found, skipping Python dependencies")
+        return True
     
-    if os.path.exists(env_file):
-        return (True, ".env file already exists")
+    result = run_command(
+        [str(python_path), "-m", "pip", "install", "-r", str(requirements_path)],
+        "Installed Python dependencies"
+    )
+    return result is not None
+
+
+def install_node_deps(project_dir):
+    """Install Node.js dependencies."""
+    package_json = project_dir / "package.json"
     
-    if not os.path.exists(env_example):
-        default_env = """# AnomHome Overmind Configuration
-PORT=3000
-HOST=0.0.0.0
-BASE_URL=http://localhost:3000
-
-OPENAI_API_KEY=your_openai_api_key_here
-
-MAX_FILE_SIZE_MB=50
-UPLOAD_CLEANUP_MINUTES=15
-TEMP_UPLOAD_DIR=./tmp_uploads
-
-HOME_STORAGE_PATH=/path/to/your/files
-"""
-        try:
-            with open(env_file, 'w') as f:
-                f.write(default_env)
-            return (True, ".env file created with defaults")
-        except IOError as e:
-            return (False, f"Failed to create .env file: {e}")
+    if not package_json.exists():
+        print_error("package.json not found")
+        return False
     
-    try:
-        shutil.copy(env_example, env_file)
-        return (True, ".env file created from .env.example")
-    except IOError as e:
-        return (False, f"Failed to copy .env.example: {e}")
+    result = run_command(
+        ["npm", "install"],
+        "Installed Node.js dependencies",
+        cwd=str(project_dir)
+    )
+    return result is not None
 
 
 def create_directories(project_dir):
-    """Create required directories if they don't exist.
+    """Create required directories."""
+    directories = [
+        "backend/data",
+        "backend/routes",
+        "backend/utils",
+        "public/css",
+        "public/js",
+        "uploads"
+    ]
     
-    Returns:
-        tuple: (ok: bool, message: str)
-    """
-    directories = ['data', 'tmp_uploads', 'public']
-    created = []
+    for dir_path in directories:
+        full_path = project_dir / dir_path
+        try:
+            full_path.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            print_error(f"Failed to create directory {dir_path}: {e}")
+            return False
     
-    for dir_name in directories:
-        dir_path = os.path.join(project_dir, dir_name)
-        if not os.path.exists(dir_path):
+    print_success("Created required directories")
+    return True
+
+
+def create_env_example(project_dir):
+    """Create .env.example file if it doesn't exist."""
+    env_example = project_dir / ".env.example"
+    
+    if env_example.exists():
+        print_warning(".env.example already exists")
+        return True
+    
+    env_content = """# AnomHome Overmind Configuration
+# Copy this file to .env and fill in your values
+
+# Server Configuration
+PORT=3000
+HOST=0.0.0.0
+
+# OpenAI Configuration (required for AI chat)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# File Browser Configuration
+# Root directory for file browser (defaults to home directory)
+FILE_BROWSER_ROOT=
+
+# Upload Configuration
+# Maximum file size in MB (default: 100)
+MAX_UPLOAD_SIZE=100
+
+# Security
+# Set a secret key for session management
+SECRET_KEY=your_secret_key_here
+"""
+    
+    try:
+        env_example.write_text(env_content)
+        print_success("Created .env.example")
+        return True
+    except OSError as e:
+        print_error(f"Failed to create .env.example: {e}")
+        return False
+
+
+def initialize_data_files(project_dir):
+    """Initialize JSON data files if they don't exist."""
+    data_dir = project_dir / "backend" / "data"
+    
+    data_files = {
+        "links.json": [],
+        "notes.json": [],
+        "cameras.json": []
+    }
+    
+    for filename, default_content in data_files.items():
+        file_path = data_dir / filename
+        if not file_path.exists():
             try:
-                os.makedirs(dir_path)
-                created.append(dir_name)
+                with open(file_path, 'w') as f:
+                    json.dump(default_content, f, indent=2)
             except OSError as e:
-                return (False, f"Failed to create {dir_name}/: {e}")
+                print_error(f"Failed to create {filename}: {e}")
+                return False
     
-    if created:
-        return (True, f"Created directories: {', '.join(created)}")
-    return (True, "All required directories already exist")
+    print_success("Initialized data files")
+    return True
 
 
-def run_step_with_retry(step_name, step_func, *args, max_retries=3):
-    """Run a step function with retry capability.
-    
-    Args:
-        step_name: Human-readable name of the step
-        step_func: Function to call (should return tuple)
-        *args: Arguments to pass to step_func
-        max_retries: Maximum number of retry attempts
-    
-    Returns:
-        tuple: Final (ok, message) result
-    """
-    attempts = 0
-    while attempts < max_retries:
-        result = step_func(*args)
-        
-        # Handle functions returning 2 or 3 values
-        if len(result) == 2:
-            ok, message = result
-        else:
-            ok, message = result[0], result[1]
-        
-        if ok:
-            return result
-        
-        print_error(message)
-        attempts += 1
-        
-        if attempts < max_retries:
-            if ask_retry(step_name):
-                print(f"\n{Colors.BLUE}Retrying {step_name}...{Colors.END}\n")
-                continue
-        
-        return result
-    
-    return result
+def print_completion_message(project_dir):
+    """Print installation completion message."""
+    print("\n" + "=" * 60)
+    print("✓ Installation completed successfully!")
+    print("=" * 60)
+    print("\nNext steps:")
+    print(f"  1. Copy .env.example to .env and configure your settings:")
+    print(f"     cp .env.example .env")
+    print(f"  2. Edit .env and add your OpenAI API key (optional)")
+    print(f"  3. Start the server:")
+    print(f"     npm start")
+    print(f"  4. Open your browser to http://localhost:3000")
+    print("\nFor development with auto-reload:")
+    print(f"  npm run dev")
+    print("\n" + "=" * 60)
 
 
 def main():
     """Main installation function."""
-    parser = argparse.ArgumentParser(
-        description='AnomHome Overmind Installation Script',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-    python install.py              # Full installation
-    python install.py --skip-npm   # Skip npm dependency installation
-    python install.py --skip-venv  # Skip virtual environment setup
-        """
-    )
-    parser.add_argument(
-        '--skip-npm',
-        action='store_true',
-        help='Skip npm dependency installation'
-    )
-    parser.add_argument(
-        '--skip-venv',
-        action='store_true',
-        help='Skip Python virtual environment setup'
-    )
+    print_banner()
     
-    args = parser.parse_args()
-    
-    print_header()
-    
-    # Get project directory (directory containing this script)
-    project_dir = os.path.dirname(os.path.abspath(__file__))
-    print(f"Project directory: {project_dir}\n")
-    
-    # Track overall success
-    all_ok = True
-    venv_path = None
+    # Get project directory
+    project_dir = Path(__file__).parent.resolve()
+    print(f"Project directory: {project_dir}")
     
     # Step 1: Check prerequisites
-    print(f"{Colors.BOLD}Checking prerequisites...{Colors.END}\n")
+    print_step(1, "Checking prerequisites")
     
-    # Check Python
-    ok, message = check_python_version()
-    if ok:
-        print_success(message)
-    else:
-        print_error(message)
-        all_ok = False
-    
-    # Check Node.js (if not skipping npm)
-    if not args.skip_npm:
-        ok, message = check_node_version()
-        if ok:
-            print_success(message)
-        else:
-            print_error(message)
-            all_ok = False
-        
-        ok, message = check_npm()
-        if ok:
-            print_success(message)
-        else:
-            print_error(message)
-            all_ok = False
-    
-    if not all_ok:
-        print_error("\nPrerequisite checks failed. Please fix the issues above and re-run python install.py")
+    if not check_python_version():
         sys.exit(1)
     
-    print()
+    if not check_node_version():
+        sys.exit(1)
+    
+    if not check_npm():
+        sys.exit(1)
     
     # Step 2: Create directories
-    print(f"{Colors.BOLD}Setting up project structure...{Colors.END}\n")
-    
-    ok, message = create_directories(project_dir)
-    if ok:
-        print_success(message)
-    else:
-        print_error(message)
+    print_step(2, "Creating directories")
+    if not create_directories(project_dir):
         sys.exit(1)
     
-    print()
+    # Step 3: Create virtual environment
+    print_step(3, "Setting up Python virtual environment")
+    venv_path = create_venv(project_dir)
+    if venv_path is None:
+        print_warning("Continuing without virtual environment")
     
-    # Step 3: Setup virtual environment (optional)
-    if not args.skip_venv:
-        print(f"{Colors.BOLD}Setting up Python environment...{Colors.END}\n")
-        
-        result = run_step_with_retry("virtual environment setup", create_or_use_venv, project_dir)
-        ok, message = result[0], result[1]
-        if len(result) > 2:
-            venv_path = result[2]
-        
-        if ok:
-            print_success(message)
-        else:
-            print_warning(f"Virtual environment setup failed (non-critical): {message}")
-        
-        # Install Python requirements if they exist
-        if venv_path:
-            ok, message = run_pip_install(project_dir, venv_path)
-            if ok:
-                print_success(message)
-            else:
-                print_warning(f"Python dependencies: {message}")
-        
-        print()
-    
-    # Step 4: Install npm dependencies
-    if not args.skip_npm:
-        print(f"{Colors.BOLD}Installing Node.js dependencies...{Colors.END}\n")
-        
-        result = run_step_with_retry("npm install", run_npm_install, project_dir)
-        ok, message = result
-        
-        if ok:
-            print_success(message)
-        else:
-            print_error(f"npm install failed: {message}")
-            print(f"\n{Colors.YELLOW}You can try running 'npm install' manually or re-run this script.{Colors.END}")
-            sys.exit(1)
-        
-        print()
-    
-    # Step 5: Create .env file
-    print(f"{Colors.BOLD}Configuring environment...{Colors.END}\n")
-    
-    ok, message = create_env_file(project_dir)
-    if ok:
-        print_success(message)
+    # Step 4: Install Python dependencies
+    print_step(4, "Installing Python dependencies")
+    if venv_path:
+        install_python_deps(venv_path, project_dir)
     else:
-        print_warning(f"Environment configuration: {message}")
+        print_warning("Skipping Python dependencies (no venv)")
     
-    print()
+    # Step 5: Install Node.js dependencies
+    print_step(5, "Installing Node.js dependencies")
+    if not install_node_deps(project_dir):
+        print_error("Failed to install Node.js dependencies")
+        sys.exit(1)
+    
+    # Step 6: Create configuration files
+    print_step(6, "Creating configuration files")
+    create_env_example(project_dir)
+    
+    # Step 7: Initialize data files
+    print_step(7, "Initializing data files")
+    if not initialize_data_files(project_dir):
+        print_warning("Some data files could not be initialized")
     
     # Print completion message
-    print(f"""
-{Colors.GREEN}{Colors.BOLD}
-╔════════════════════════════════════════════════════════╗
-║           Installation Complete!                       ║
-╚════════════════════════════════════════════════════════╝
-{Colors.END}
-
-{Colors.BOLD}Next steps:{Colors.END}
-
-1. Configure your settings in {Colors.BLUE}.env{Colors.END}:
-   - Set your OPENAI_API_KEY for AI chat functionality
-   - Set HOME_STORAGE_PATH for the file browser
-   - Adjust PORT, UPLOAD_CLEANUP_MINUTES, etc. as needed
-
-2. Start the server:
-   {Colors.GREEN}npm start{Colors.END}
-
-3. Open your browser and navigate to:
-   {Colors.BLUE}http://localhost:3000{Colors.END}
-
-{Colors.BOLD}Available features:{Colors.END}
-- 🧠 AI Chat Console (requires OpenAI API key)
-- 🔗 Link Shortener
-- 📁 15-minute Temp File Upload
-- 🗂️ Local File Browser
-- 📷 Camera Wall
-- 🧩 Mind-Map Notes
-
-{Colors.BOLD}iPhone Home Screen:{Colors.END}
-- Open the dashboard URL in Safari
-- Tap "Share" → "Add to Home Screen"
-- The app will feel like a full-screen web app on iOS
-
-For more information, see README.md
-""")
+    print_completion_message(project_dir)
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nInstallation cancelled by user")
+        sys.exit(130)
+    except Exception as e:
+        print_error(f"Unexpected error: {e}")
+        sys.exit(1)
