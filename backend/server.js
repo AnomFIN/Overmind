@@ -35,6 +35,8 @@ const uploadsRoutes = require('./routes/uploads');
 const filesRoutes = require('./routes/files');
 const camerasRoutes = require('./routes/cameras');
 const notesRoutes = require('./routes/notes');
+const recordingsRoutes = require('./routes/recordings');
+const MotionRecorderService = require('./services/motionRecorder');
 
 // Import utilities
 const { startCleanup } = require('./utils/cleanup');
@@ -46,10 +48,35 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Motion recorder bootstrap
+const motionRecorder = new MotionRecorderService({
+    onRecordingFinalized: async ({ cameraId, filePath, startedAt }) => {
+        const { writeData, readData } = require('./utils/database');
+        const { buildRecordingId } = require('./routes/recordings');
+        const recordings = await readData('recordings.json', []);
+        const stat = fs.statSync(filePath);
+        recordings.push({
+            id: buildRecordingId(cameraId, filePath),
+            cameraId,
+            filePath,
+            date: startedAt.toISOString().slice(0, 10),
+            size: stat.size,
+            createdAt: startedAt.toISOString()
+        });
+        await writeData('recordings.json', recordings);
+    },
+    logger: console
+});
+motionRecorder.refreshConfigs();
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use((req, res, next) => {
+    req.app.locals.motionRecorder = motionRecorder;
+    next();
+});
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -61,6 +88,7 @@ app.use('/api/uploads', uploadsRoutes);
 app.use('/api/files', filesRoutes);
 app.use('/api/cameras', camerasRoutes);
 app.use('/api/notes', notesRoutes);
+app.use('/api/recordings', recordingsRoutes.router);
 
 // Short link redirect
 app.get('/s/:code', async (req, res) => {
