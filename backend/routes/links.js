@@ -36,6 +36,14 @@ function isValidUrl(string) {
 }
 
 /**
+ * Validate custom code format
+ */
+function isValidCustomCode(code) {
+    // Only alphanumeric, hyphens, underscores, 3-50 characters
+    return /^[a-zA-Z0-9_-]{3,50}$/.test(code);
+}
+
+/**
  * POST /api/links
  * Create a new short link
  */
@@ -51,6 +59,13 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Invalid URL format' });
         }
         
+        // Validate custom code if provided
+        if (customCode && !isValidCustomCode(customCode)) {
+            return res.status(400).json({ 
+                error: 'Invalid custom code format. Use only alphanumeric characters, hyphens, and underscores (3-50 characters)' 
+            });
+        }
+        
         const links = await db.readData(LINKS_FILE);
         
         // Generate or use custom code
@@ -58,6 +73,9 @@ router.post('/', async (req, res) => {
         
         // Ensure code is unique
         while (links.find(l => l.code === code)) {
+            if (customCode) {
+                return res.status(409).json({ error: 'Custom code already exists' });
+            }
             code = generateShortCode();
         }
         

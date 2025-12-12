@@ -24,6 +24,13 @@ function generateShareCode() {
 }
 
 /**
+ * Validate hex color format
+ */
+function isValidHexColor(color) {
+    return /^#[0-9A-Fa-f]{6}$/.test(color);
+}
+
+/**
  * POST /api/notes
  * Create a new note/mind-map
  */
@@ -205,6 +212,13 @@ router.post('/:id/nodes', async (req, res) => {
         
         if (!text) {
             return res.status(400).json({ error: 'Node text is required' });
+        }
+        
+        // Validate color format if provided
+        if (color && !isValidHexColor(color)) {
+            return res.status(400).json({ 
+                error: 'Invalid color format. Use hex color format like #4a90d9' 
+            });
         }
         
         const note = await db.findById(NOTES_FILE, req.params.id);
