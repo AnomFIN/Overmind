@@ -24,7 +24,7 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 
 - **Link shortener**
   - Create short codes for any URL.
-  - JSON-based storage with optional expiry.
+- JSON-based storage with optional expiry.
   - Redirect endpoint and basic click stats.
 
 - **15-minute temp uploads**

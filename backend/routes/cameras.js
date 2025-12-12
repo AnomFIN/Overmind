@@ -22,6 +22,17 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Name and URL are required' });
         }
         
+        // Validate URL: must be valid and use http or https
+        let parsedUrl;
+        try {
+            parsedUrl = new URL(url);
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid URL format' });
+        }
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+            return res.status(400).json({ error: 'URL must use http or https protocol' });
+        }
+        
         const camera = {
             id: uuidv4(),
             name,
