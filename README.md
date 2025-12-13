@@ -147,13 +147,24 @@ Both cleanup operations run automatically every 60 seconds and can be triggered 
 
 ### Admin API Endpoints
 
-The following admin endpoints are available for the TUI (localhost only):
+The following admin endpoints are available for the TUI:
 
 - `GET /api/admin/metrics` - System and application metrics
 - `GET /api/admin/uploads` - Upload directory information
 - `POST /api/admin/cleanup` - Trigger manual cleanup
 
-**Security Note**: Admin endpoints should only be accessible from localhost. Use proper authentication if exposing publicly.
+### Security
+
+Admin endpoints are **restricted to localhost only** by default. Any requests from non-localhost IPs will be rejected with a 403 error.
+
+**For production deployments**, consider these additional security measures:
+- Add rate limiting (e.g., using `express-rate-limit`)
+- Implement authentication tokens for admin access
+- Use HTTPS with client certificates
+- Run behind a reverse proxy with IP whitelisting
+- Monitor access logs for suspicious activity
+
+**Important**: Never expose admin endpoints to the public internet without proper authentication and encryption.
 
 ## Why this design
 - Local-first: recordings stay on disk and JSON metadata avoids DB setup.

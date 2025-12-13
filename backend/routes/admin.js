@@ -1,6 +1,13 @@
 /**
  * Admin API Routes
  * Server management endpoints for palvelin.py TUI
+ * 
+ * SECURITY NOTE: These endpoints are designed for localhost access only.
+ * For production deployments:
+ * 1. Add IP whitelist middleware to restrict access to 127.0.0.1
+ * 2. Implement rate limiting (e.g., express-rate-limit)
+ * 3. Add authentication for any non-localhost access
+ * 4. Consider using HTTPS with client certificates
  */
 
 const express = require('express');
@@ -76,6 +83,30 @@ setInterval(() => {
     
     metrics.onlineNow = metrics.activeSessions.size;
 }, 60 * 1000); // Check every minute
+
+/**
+ * Middleware to restrict admin endpoints to localhost
+ * This provides basic protection against unauthorized access
+ */
+function localhostOnly(req, res, next) {
+    const clientIp = req.ip || req.connection.remoteAddress;
+    const isLocalhost = clientIp === '127.0.0.1' || 
+                       clientIp === '::1' || 
+                       clientIp === '::ffff:127.0.0.1' ||
+                       clientIp === 'localhost';
+    
+    if (!isLocalhost) {
+        console.warn(`[Admin] Rejected non-localhost request from ${clientIp}`);
+        return res.status(403).json({ 
+            error: 'Admin endpoints are only accessible from localhost' 
+        });
+    }
+    
+    next();
+}
+
+// Apply localhost restriction to all admin routes
+router.use(localhostOnly);
 
 /**
  * GET /api/admin/metrics
