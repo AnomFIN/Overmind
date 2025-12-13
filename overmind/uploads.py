@@ -6,9 +6,13 @@ Handles 15-minute TTL expiry and 5GB capacity enforcement with LRU cleanup.
 import os
 import json
 import time
+import logging
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from datetime import datetime, timedelta
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 class UploadManager:
@@ -58,7 +62,7 @@ class UploadManager:
                         "mimetype": metadata.get("mimetype", "application/octet-stream")
                     })
                 except (OSError, PermissionError) as e:
-                    print(f"[Upload Manager] Error reading file {file_path}: {e}")
+                    logger.error(f"Error reading file {file_path}: {e}")
         
         return files
     
@@ -104,10 +108,10 @@ class UploadManager:
                     
                     files_deleted += 1
                     bytes_freed += size
-                    print(f"[Cleanup TTL] Removed expired file: {file_info['name']} ({self._format_bytes(size)})")
+                    logger.info(f"[TTL] Removed expired file: {file_info['name']} ({self._format_bytes(size)})")
                     
                 except Exception as e:
-                    print(f"[Cleanup TTL] Error deleting {file_info['name']}: {e}")
+                    logger.error(f"[TTL] Error deleting {file_info['name']}: {e}")
         
         return files_deleted, bytes_freed
     
@@ -147,10 +151,10 @@ class UploadManager:
                 files_deleted += 1
                 bytes_freed += size
                 total_size -= size
-                print(f"[Cleanup Cap] Removed oldest file: {file_info['name']} ({self._format_bytes(size)})")
+                logger.info(f"[Cap] Removed oldest file: {file_info['name']} ({self._format_bytes(size)})")
                 
             except Exception as e:
-                print(f"[Cleanup Cap] Error deleting {file_info['name']}: {e}")
+                logger.error(f"[Cap] Error deleting {file_info['name']}: {e}")
         
         return files_deleted, bytes_freed
     
@@ -160,7 +164,7 @@ class UploadManager:
         Returns:
             Dictionary with cleanup statistics
         """
-        print("[Cleanup] Starting cleanup process...")
+        logger.info("Starting cleanup process...")
         
         # Phase 1: Remove expired files
         ttl_files, ttl_bytes = self.cleanup_expired()
@@ -186,7 +190,7 @@ class UploadManager:
             }
         }
         
-        print(f"[Cleanup] Completed: {total_files} files deleted, {self._format_bytes(total_bytes)} freed")
+        logger.info(f"Cleanup completed: {total_files} files deleted, {self._format_bytes(total_bytes)} freed")
         
         return result
     

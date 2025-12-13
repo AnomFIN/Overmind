@@ -417,14 +417,20 @@ class PalvelinApp(App):
     
     def action_view_logs(self):
         """View service logs"""
+        import tempfile
+        
         logs = self.service_controller.get_logs(50)
         if logs:
             # Create a temporary file to view logs
-            log_file = Path("/tmp/overmind_logs.txt")
-            log_file.write_text(logs)
-            self.show_message("Logs saved to /tmp/overmind_logs.txt")
-            # Could open in less or another viewer
-            subprocess.run(["less", str(log_file)])
+            try:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='_overmind_logs.txt', delete=False) as f:
+                    log_file = Path(f.name)
+                    f.write(logs)
+                self.show_message(f"Logs saved to {log_file}")
+                # Could open in less or another viewer
+                subprocess.run(["less", str(log_file)])
+            except Exception as e:
+                self.show_message(f"Error saving logs: {str(e)}", error=True)
         else:
             self.show_message("Logs not available - systemctl not configured", error=True)
 

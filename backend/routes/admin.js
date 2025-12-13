@@ -8,6 +8,7 @@ const router = express.Router();
 const os = require('os');
 const path = require('path');
 const fs = require('fs').promises;
+const crypto = require('crypto');
 
 // In-memory metrics tracking
 let metrics = {
@@ -18,6 +19,9 @@ let metrics = {
     recentRequests: [], // timestamps of recent requests for RPS calculation
     activeSessions: new Set(), // track unique session IDs
 };
+
+// Session tracking with secure IDs
+const sessionTimeouts = new Map();
 
 // Middleware to track requests and sessions
 function trackRequest(req, res, next) {
@@ -31,9 +35,14 @@ function trackRequest(req, res, next) {
     const fiveMinutesAgo = now - 5 * 60 * 1000;
     metrics.recentRequests = metrics.recentRequests.filter(t => t > fiveMinutesAgo);
     
-    // Track session (use IP + User-Agent as simple session ID)
-    const sessionId = `${req.ip}_${req.get('user-agent')}`;
+    // Use a hash of IP + User-Agent for session tracking (more secure than plain text)
+    // Note: This is for simple monitoring, not authentication
+    const sessionData = `${req.ip || 'unknown'}_${req.get('user-agent') || 'unknown'}`;
+    const sessionId = crypto.createHash('sha256').update(sessionData).digest('hex');
+    
+    // Track session
     metrics.activeSessions.add(sessionId);
+    sessionTimeouts.set(sessionId, now);
     
     // Update online count and peak
     metrics.onlineNow = metrics.activeSessions.size;
@@ -52,7 +61,6 @@ function trackRequest(req, res, next) {
 }
 
 // Clean up stale sessions periodically (sessions older than 5 minutes)
-const sessionTimeouts = new Map();
 setInterval(() => {
     const now = Date.now();
     const timeout = 5 * 60 * 1000; // 5 minutes
