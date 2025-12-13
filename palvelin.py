@@ -426,9 +426,17 @@ class PalvelinApp(App):
                 with tempfile.NamedTemporaryFile(mode='w', suffix='_overmind_logs.txt', delete=False) as f:
                     log_file = Path(f.name)
                     f.write(logs)
+                
                 self.show_message(f"Logs saved to {log_file}")
-                # Could open in less or another viewer
+                # Open in less viewer
                 subprocess.run(["less", str(log_file)])
+                
+                # Clean up the temporary file after viewing
+                try:
+                    log_file.unlink()
+                except Exception:
+                    pass  # Best effort cleanup
+                    
             except Exception as e:
                 self.show_message(f"Error saving logs: {str(e)}", error=True)
         else:

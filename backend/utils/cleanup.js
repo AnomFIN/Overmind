@@ -25,7 +25,9 @@ async function ensureUploadDir() {
 }
 
 /**
- * Clean up old files (TTL-based)
+ * Clean up old files - performs TTL expiry and capacity enforcement
+ * Phase 1: Remove files older than 15 minutes (TTL)
+ * Phase 2: Remove oldest files if total size exceeds 5GB (capacity cap)
  */
 async function cleanupOldFiles() {
     try {

@@ -35,9 +35,11 @@ function trackRequest(req, res, next) {
     const fiveMinutesAgo = now - 5 * 60 * 1000;
     metrics.recentRequests = metrics.recentRequests.filter(t => t > fiveMinutesAgo);
     
-    // Use a hash of IP + User-Agent for session tracking (more secure than plain text)
-    // Note: This is for simple monitoring, not authentication
-    const sessionData = `${req.ip || 'unknown'}_${req.get('user-agent') || 'unknown'}`;
+    // Use a hash of IP + User-Agent + Accept-Language for session tracking
+    // This improves uniqueness while still being stateless
+    // Note: This is for simple monitoring, not authentication or security
+    const acceptLang = req.get('accept-language') || '';
+    const sessionData = `${req.ip || 'unknown'}_${req.get('user-agent') || 'unknown'}_${acceptLang}`;
     const sessionId = crypto.createHash('sha256').update(sessionData).digest('hex');
     
     // Track session
