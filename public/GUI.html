@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AnomHome Overmind</title>
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 </head>
@@ -46,8 +50,10 @@
             </ul>
             <div class="sidebar-footer">
                 <div class="system-status" id="systemStatus">
-                    <span class="status-indicator online"></span>
-                    <span>System Online</span>
+                    <div class="status-pill status-pill-online">
+                        <span class="status-indicator"></span>
+                        <span>Online</span>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -116,7 +122,9 @@
                         </div>
                     </div>
                     <form class="chat-input-form" onsubmit="sendMessage(event)">
-                        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        <div class="input-led-wrapper" style="flex-grow: 1;">
+                            <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        </div>
                         <button type="submit" class="btn btn-primary">Send</button>
                     </form>
                 </div>
@@ -129,8 +137,12 @@
                 </header>
                 <div class="panel-content">
                     <form class="form-inline" onsubmit="createLink(event)">
-                        <input type="url" id="linkUrl" placeholder="Enter URL to shorten..." required>
-                        <input type="text" id="linkCode" placeholder="Custom code (optional)" pattern="[a-zA-Z0-9]+" maxlength="20">
+                        <div class="input-led-wrapper">
+                            <input type="url" id="linkUrl" placeholder="Enter URL to shorten..." required>
+                        </div>
+                        <div class="input-led-wrapper">
+                            <input type="text" id="linkCode" placeholder="Custom code (optional)" pattern="[a-zA-Z0-9]+" maxlength="20">
+                        </div>
                         <button type="submit" class="btn btn-primary">Shorten</button>
                     </form>
                     <div class="links-list" id="linksList">
@@ -162,7 +174,9 @@
                 <header class="panel-header">
                     <h2>File Browser</h2>
                     <div class="file-search">
-                        <input type="text" id="fileSearch" placeholder="Search files...">
+                        <div class="input-led-wrapper">
+                            <input type="text" id="fileSearch" placeholder="Search files...">
+                        </div>
                         <button onclick="searchFiles()" class="btn btn-secondary">Search</button>
                     </div>
                 </header>
@@ -231,11 +245,15 @@
             <form onsubmit="addCamera(event)">
                 <div class="form-group">
                     <label>Camera Name</label>
-                    <input type="text" id="cameraName" required placeholder="e.g., Front Door">
+                    <div class="input-led-wrapper">
+                        <input type="text" id="cameraName" required placeholder="e.g., Front Door">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Stream URL</label>
-                    <input type="url" id="cameraUrl" required placeholder="http://camera.local/stream">
+                    <div class="input-led-wrapper">
+                        <input type="url" id="cameraUrl" required placeholder="http://camera.local/stream">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Stream Type</label>
@@ -247,11 +265,15 @@
                 </div>
                 <div class="form-group">
                     <label>Username (optional)</label>
-                    <input type="text" id="cameraUser" placeholder="Username">
+                    <div class="input-led-wrapper">
+                        <input type="text" id="cameraUser" placeholder="Username">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Password (optional)</label>
-                    <input type="password" id="cameraPass" placeholder="Password">
+                    <div class="input-led-wrapper password-wrapper">
+                        <input type="password" id="cameraPass" placeholder="Password" data-toggleable>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('addCameraModal')">Cancel</button>
@@ -270,7 +292,9 @@
             <form onsubmit="createNote(event)">
                 <div class="form-group">
                     <label>Note Title</label>
-                    <input type="text" id="noteTitle" required placeholder="My Mind Map">
+                    <div class="input-led-wrapper">
+                        <input type="text" id="noteTitle" required placeholder="My Mind Map">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>
@@ -298,5 +322,6 @@
     </div>
 
     <script src="js/app.js"></script>
+    <script src="js/ui-magic.js"></script>
 </body>
 </html>
