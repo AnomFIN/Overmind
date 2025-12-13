@@ -5,6 +5,10 @@
  * LED inputs, toasts, keypress feedback, and micro-interactions
  */
 
+// ==================== Constants ====================
+
+const KEYPRESS_THROTTLE_MS = 120;
+
 // ==================== LED Input Keypress Feedback ====================
 
 let keypressThrottle = {};
@@ -27,15 +31,15 @@ function initLEDInputs() {
             const now = Date.now();
             const inputId = input.id || input.name || 'unknown';
             
-            // Throttle: only shake once per 120ms
-            if (!keypressThrottle[inputId] || now - keypressThrottle[inputId] > 120) {
+            // Throttle: only shake once per KEYPRESS_THROTTLE_MS
+            if (!keypressThrottle[inputId] || now - keypressThrottle[inputId] > KEYPRESS_THROTTLE_MS) {
                 wrapper.classList.add('shake');
                 keypressThrottle[inputId] = now;
                 
                 // Remove shake class after animation
                 setTimeout(() => {
                     wrapper.classList.remove('shake');
-                }, 120);
+                }, KEYPRESS_THROTTLE_MS);
             }
         });
         
@@ -114,7 +118,7 @@ function validateInput(input, rules = {}) {
     if (rules.url && value) {
         try {
             new URL(value);
-        } catch {
+        } catch (error) {
             setInputState(wrapper, 'error');
             return false;
         }
