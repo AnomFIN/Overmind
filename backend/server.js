@@ -36,6 +36,7 @@ const filesRoutes = require('./routes/files');
 const camerasRoutes = require('./routes/cameras');
 const notesRoutes = require('./routes/notes');
 const recordingsRoutes = require('./routes/recordings');
+const adminRoutes = require('./routes/admin');
 const MotionRecorderService = require('./services/motionRecorder');
 
 // Import utilities
@@ -78,6 +79,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// Track requests for admin metrics
+app.use(adminRoutes.trackRequest);
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -89,6 +93,7 @@ app.use('/api/files', filesRoutes);
 app.use('/api/cameras', camerasRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/recordings', recordingsRoutes.router);
+app.use('/api/admin', adminRoutes.router);
 
 // Short link redirect
 app.get('/s/:code', async (req, res) => {

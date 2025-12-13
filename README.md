@@ -96,6 +96,65 @@ python3 install.py
 - The helper saves config to `data/ngrok.json` and streams the tunnel logs.
 - Use the printed public URL for quick sharing; pair with the built-in link shortener for nicer URLs.
 
+## Server Console (palvelin.py)
+
+**palvelin.py** is a terminal-based GUI (TUI) for managing the Overmind server. It provides real-time monitoring and control capabilities.
+
+### Features
+
+- **Status Dashboard**: View service status, uptime, and version information
+- **Resource Monitoring**: Real-time CPU, RAM, disk usage, and load averages
+- **Online Visitors**: Track active sessions, peak visitors, and requests per minute
+- **Uploads Management**: Monitor upload directory size, file count, and expiring files
+- **Automatic Cleanup**: 
+  - **TTL Policy**: Files automatically expire after 15 minutes
+  - **Capacity Cap**: 5 GB maximum - oldest files deleted first when limit reached
+- **Service Control**: Start, stop, and restart the Overmind service (requires systemctl)
+
+### Installation
+
+Install Python dependencies for the TUI:
+
+```bash
+pip3 install -r requirements.txt
+```
+
+### Usage
+
+Start the server management console:
+
+```bash
+python3 palvelin.py
+```
+
+### Keyboard Shortcuts
+
+- **S** - Start service (requires systemctl)
+- **T** - Stop service (requires systemctl)
+- **R** - Restart service (requires systemctl)
+- **C** - Run cleanup now (removes expired and over-capacity files)
+- **L** - View service logs (requires systemctl/journalctl)
+- **Q** - Quit the console
+
+### Upload Retention Policy
+
+The system manages uploads with a dual approach:
+
+1. **15-Minute TTL**: All uploads expire 15 minutes after creation
+2. **5 GB Capacity Cap**: When total uploads exceed 5 GB, oldest files are deleted first (LRU)
+
+Both cleanup operations run automatically every 60 seconds and can be triggered manually with **C** key.
+
+### Admin API Endpoints
+
+The following admin endpoints are available for the TUI (localhost only):
+
+- `GET /api/admin/metrics` - System and application metrics
+- `GET /api/admin/uploads` - Upload directory information
+- `POST /api/admin/cleanup` - Trigger manual cleanup
+
+**Security Note**: Admin endpoints should only be accessible from localhost. Use proper authentication if exposing publicly.
+
 ## Why this design
 - Local-first: recordings stay on disk and JSON metadata avoids DB setup.
 - Resilient: ffmpeg segmenter auto-restarts on drops; concat keeps files portable.
