@@ -258,6 +258,11 @@ function calculatePasswordStrength(password) {
 function initPasswordStrength(passwordInput) {
     const wrapper = passwordInput.closest('.input-led-wrapper') || passwordInput.parentElement;
     
+    // Ensure wrapper exists before proceeding
+    if (!wrapper || !wrapper.parentElement) {
+        console.warn('initPasswordStrength: Could not find expected wrapper for password input', passwordInput);
+        return;
+    }
     // Create strength meter if it doesn't exist
     let strengthMeter = wrapper.parentElement.querySelector('.password-strength');
     if (!strengthMeter) {
