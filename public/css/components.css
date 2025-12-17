@@ -140,8 +140,8 @@ input.led::before {
 /* Keypress shake animation */
 @keyframes input-shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
+  25% { transform: translateX(calc(-1 * var(--shake-distance))); }
+  75% { transform: translateX(var(--shake-distance)); }
 }
 
 .input-led-wrapper.shake {
