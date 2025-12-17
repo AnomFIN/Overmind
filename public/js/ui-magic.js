@@ -182,11 +182,6 @@ function showToast(options = {}) {
         <button class="toast-close" type="button">&times;</button>
     `;
     
-    // Attach close event listener securely
-    const closeBtn = toast.querySelector('.toast-close');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => closeToast(toastId));
-    }
     toastContainer.appendChild(toast);
     
     // Attach close event listener securely
