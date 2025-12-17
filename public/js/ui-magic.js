@@ -179,9 +179,14 @@ function showToast(options = {}) {
             ${title ? `<div class="toast-title">${title}</div>` : ''}
             ${message ? `<div class="toast-message">${message}</div>` : ''}
         </div>
-        <button class="toast-close" onclick="closeToast('${toastId}')">&times;</button>
+        <button class="toast-close" type="button">&times;</button>
     `;
     
+    // Attach close event listener securely
+    const closeBtn = toast.querySelector('.toast-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => closeToast(toastId));
+    }
     toastContainer.appendChild(toast);
     
     // Auto-remove after duration
