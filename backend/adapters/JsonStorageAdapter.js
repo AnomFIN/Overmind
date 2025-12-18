@@ -8,6 +8,9 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const StorageAdapter = require('./StorageAdapter');
 
+// Configuration constants
+const MAX_AUDIT_LOGS = 10000; // Maximum number of audit logs to keep
+
 class JsonStorageAdapter extends StorageAdapter {
     constructor(dataDir = null) {
         super();
@@ -577,9 +580,9 @@ class JsonStorageAdapter extends StorageAdapter {
         };
         logs.push(log);
         
-        // Keep only last 10000 logs to prevent file from growing too large
-        if (logs.length > 10000) {
-            logs.splice(0, logs.length - 10000);
+        // Keep only last MAX_AUDIT_LOGS to prevent file from growing too large
+        if (logs.length > MAX_AUDIT_LOGS) {
+            logs.splice(0, logs.length - MAX_AUDIT_LOGS);
         }
         
         await this.writeFile('audit_logs.json', logs);

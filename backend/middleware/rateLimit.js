@@ -41,10 +41,12 @@ class RateLimiter {
             const validRequests = requests.filter(time => now - time < windowMs);
             
             if (validRequests.length >= max) {
+                const retryAfter = Math.ceil((validRequests[0] + windowMs - now) / 1000);
+                res.setHeader('Retry-After', retryAfter);
                 return res.status(429).json({
                     error: 'Rate limit exceeded',
                     message,
-                    retryAfter: Math.ceil((validRequests[0] + windowMs - now) / 1000)
+                    retryAfter
                 });
             }
 

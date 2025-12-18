@@ -15,26 +15,24 @@ class AuthService {
      * In production, consider using argon2 or bcrypt
      */
     async hashPassword(password) {
-        return new Promise((resolve, reject) => {
-            const salt = crypto.randomBytes(16).toString('hex');
-            crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
-                if (err) reject(err);
-                resolve(salt + ':' + derivedKey.toString('hex'));
-            });
-        });
+        const util = require('util');
+        const pbkdf2 = util.promisify(crypto.pbkdf2);
+        
+        const salt = crypto.randomBytes(16).toString('hex');
+        const derivedKey = await pbkdf2(password, salt, 100000, 64, 'sha512');
+        return salt + ':' + derivedKey.toString('hex');
     }
 
     /**
      * Verify password against hash
      */
     async verifyPassword(password, hash) {
-        return new Promise((resolve, reject) => {
-            const [salt, key] = hash.split(':');
-            crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
-                if (err) reject(err);
-                resolve(key === derivedKey.toString('hex'));
-            });
-        });
+        const util = require('util');
+        const pbkdf2 = util.promisify(crypto.pbkdf2);
+        
+        const [salt, key] = hash.split(':');
+        const derivedKey = await pbkdf2(password, salt, 100000, 64, 'sha512');
+        return key === derivedKey.toString('hex');
     }
 
     /**

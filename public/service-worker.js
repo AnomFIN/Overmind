@@ -190,7 +190,14 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
     console.log('[ServiceWorker] Push notification received');
     
-    const data = event.data ? event.data.json() : {};
+    let data = {};
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch (e) {
+        console.error('[ServiceWorker] Failed to parse push data:', e);
+        data = { title: 'Overmind', body: 'You have a new notification' };
+    }
+    
     const title = data.title || 'Overmind';
     const options = {
         body: data.body || 'You have a new notification',
