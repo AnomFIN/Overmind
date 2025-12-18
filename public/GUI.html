@@ -270,6 +270,18 @@
                     <div class="mindmap-container" id="mindmapContainer">
                         <svg id="mindmapSvg"></svg>
                         <div id="mindmapNodes"></div>
+                        <!-- Zoom Controls -->
+                        <div class="mindmap-zoom-controls">
+                            <button onclick="zoomInMindmap()" title="Zoom In" aria-label="Zoom In">
+                                <span style="font-size: 18px;">+</span>
+                            </button>
+                            <button onclick="resetZoomMindmap()" title="Fit to Screen" aria-label="Fit to Screen">
+                                <span style="font-size: 14px;">⊡</span>
+                            </button>
+                            <button onclick="zoomOutMindmap()" title="Zoom Out" aria-label="Zoom Out">
+                                <span style="font-size: 18px;">−</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="mindmap-empty" id="mindmapEmpty">
                         <p>Select a note or create a new one to start mind mapping</p>
