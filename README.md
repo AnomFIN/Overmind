@@ -1,21 +1,46 @@
 # AnomHome Overmind
 
+**Version 1.01** - Enterprise-grade authentication, settings management, and mobile optimization
+
 **AnomHome Overmind** is a self-hosted, Linux-first personal dashboard that keeps everything on your own machine.
 
 It combines:
 
-- 🧠 An OpenAI console
-- 🔗 A fast link shortener
-- 📁 15-minute temp file uploads
-- 🗂️ A simple local file browser
-- 📷 Motion-triggered camera recorder (local-first)
-- 🧩 A shareable mind-map note board
+- 🔐 **User Authentication** - Secure login with bcrypt password hashing
+- ⚙️ **Settings Management** - AI personas, branding, camera sources (Admin only)
+- 🧠 **OpenAI Console** - Configurable AI personas with custom system prompts
+- 🔗 **Link Shortener** - Fast URL shortening with click tracking
+- 📁 **15-Minute Temp Uploads** - Anonymous file sharing with auto-expiry
+- 🗂️ **Local File Browser** - Safe read-only access to local files
+- 📷 **Camera Wall** - Motion-triggered recording and live streaming
+- 🗺️ **Mobile-Optimized MindMap** - Touch-enabled, zoomable mind mapping
 
 All wrapped into a single, ultra-polished web UI served from your Linux box.
 
 ---
 
-## Features (MVP)
+## What's New in v1.01
+
+### 🔐 Authentication & Security
+- **User Management**: Register/login with username or email
+- **Role-Based Access**: Admin and user roles with granular permissions
+- **Secure Sessions**: httpOnly cookies with bcrypt password hashing (12 rounds)
+- **Rate Limiting**: Protection against brute-force attacks
+- **Default Admin**: Auto-created on first startup (username: `admin`, password: `admin123`)
+
+### ⚙️ Admin Settings
+- **AI Personas**: Create and manage AI personality profiles with custom system prompts
+- **Branding**: Customize logo, background, app name, and primary color
+- **Camera Sources**: Add and manage HTTP/HTTPS camera endpoints
+
+### 📱 Mobile Experience
+- **Responsive MindMap**: Works perfectly on mobile devices (tested on iPhone 390px width)
+- **Touch Controls**: Pinch-to-zoom and pan gestures
+- **Zoom Buttons**: +, -, and "Fit to Screen" controls
+
+---
+
+## Features
 
 - **OpenAI console**
   - Chat interface backed by OpenAI API.
@@ -74,10 +99,75 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 
 - Linux machine (Ubuntu or similar)
 - Node.js **20 LTS**
-- Python **3.10+**
 - npm
 
-### Clone and install
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/AnomFIN/Overmind.git
+cd Overmind
+
+# Install dependencies
+npm install
+
+# (Optional) Configure environment variables
+cp .env.example .env
+# Edit .env with your OpenAI API key and other settings
+
+# Start the server
+npm start
+```
+
+The server will start at `http://localhost:3000`
+
+### First Login
+
+1. Navigate to `http://localhost:3000`
+2. You'll be redirected to the login page
+3. Login with the default admin credentials:
+   - **Username**: `admin`
+   - **Password**: `admin123`
+4. **⚠️ IMPORTANT**: Change the default password immediately in Settings!
+
+### Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
+```bash
+# Server Configuration
+PORT=3000
+HOST=0.0.0.0
+NODE_ENV=development  # Set to 'production' in production
+
+# OpenAI Configuration (required for AI chat)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Admin User (optional - overrides defaults)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123  # Change this!
+ADMIN_EMAIL=admin@overmind.local
+
+# File Browser (optional)
+FILE_BROWSER_ROOT=/path/to/browse
+
+# Security (optional - auto-generated if not provided)
+SECRET_KEY=your_random_secret_key
+```
+
+### Production Deployment
+
+For production environments:
+
+1. Set `NODE_ENV=production` in your `.env`
+2. Change the default admin password
+3. Use HTTPS (configure via reverse proxy like nginx)
+4. Set a strong `SECRET_KEY`
+5. Configure CORS if needed with `CORS_ORIGIN`
+
+---
+
+## Clone and install
 
 ```bash
 git clone https://github.com/<your-org>/anomhome-overmind.git
