@@ -227,14 +227,15 @@ async function createLink(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            toast.error(data.error, 'Link Creation Failed');
         } else {
             document.getElementById('linkUrl').value = '';
             document.getElementById('linkCode').value = '';
+            toast.success(`Link created: ${data.shortUrl}`, 'Success');
             loadLinks();
         }
     } catch (err) {
-        alert('Failed to create link: ' + err.message);
+        toast.error(err.message, 'Failed to Create Link');
     }
 }
 
@@ -243,9 +244,10 @@ async function deleteLink(id) {
     
     try {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
+        toast.success('Link deleted successfully', 'Link Deleted');
         loadLinks();
     } catch (err) {
-        alert('Failed to delete link: ' + err.message);
+        toast.error(err.message, 'Failed to Delete Link');
     }
 }
 
@@ -297,12 +299,13 @@ async function uploadFile(file) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            toast.error(data.error, 'Upload Failed');
         } else {
+            toast.success(`File uploaded: ${data.file.originalName}`, 'Upload Complete');
             addUploadToList(data.file);
         }
     } catch (err) {
-        alert('Upload failed: ' + err.message);
+        toast.error(err.message, 'Upload Failed');
     }
 }
 
@@ -350,8 +353,9 @@ async function deleteUpload(filename) {
         await fetch(`${API_BASE}/uploads/${filename}`, { method: 'DELETE' });
         const el = document.getElementById(`upload-${filename}`);
         if (el) el.remove();
+        toast.success('File deleted', 'File Deleted');
     } catch (err) {
-        alert('Failed to delete file: ' + err.message);
+        toast.error(err.message, 'Failed to Delete File');
     }
 }
 
@@ -547,7 +551,7 @@ async function addCamera(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            toast.error(data.error, 'Camera Addition Failed');
         } else {
             closeModal('addCameraModal');
             // Reset form
@@ -556,10 +560,11 @@ async function addCamera(e) {
             document.getElementById('cameraType').value = 'mjpeg';
             document.getElementById('cameraUser').value = '';
             document.getElementById('cameraPass').value = '';
+            toast.success(`Camera added: ${name}`, 'Camera Added');
             loadCameras();
         }
     } catch (err) {
-        alert('Failed to add camera: ' + err.message);
+        toast.error(err.message, 'Failed to Add Camera');
     }
 }
 
@@ -568,9 +573,10 @@ async function deleteCamera(id) {
     
     try {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
+        toast.success('Camera deleted', 'Camera Deleted');
         loadCameras();
     } catch (err) {
-        alert('Failed to delete camera: ' + err.message);
+        toast.error(err.message, 'Failed to Delete Camera');
     }
 }
 
@@ -614,7 +620,7 @@ async function createNote(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            toast.error(data.error, 'Error');
         } else {
             closeModal('createNoteModal');
             document.getElementById('noteTitle').value = '';
@@ -641,7 +647,7 @@ async function loadNote(id) {
         const note = await response.json();
         
         if (note.error) {
-            alert(note.error);
+            toast.error(note.error, 'Note Error');
             return;
         }
         
@@ -789,7 +795,7 @@ async function addNode() {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            toast.error(data.error, 'Error');
         } else {
             currentNote.nodes.push(data.node);
             if (data.connection) {
@@ -865,7 +871,7 @@ async function toggleNotePublic() {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            toast.error(data.error, 'Error');
         } else {
             currentNote.isPublic = newPublic;
             currentNote.shareCode = data.note.shareCode;
@@ -918,7 +924,7 @@ async function loadSharedNote(code) {
         const note = await response.json();
         
         if (note.error) {
-            alert('Shared note not found');
+            toast.error('Shared note not found', 'Not Found');
             return;
         }
         
