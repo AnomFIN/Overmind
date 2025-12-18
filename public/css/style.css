@@ -897,3 +897,107 @@
         padding: 0;
     }
 }
+
+/* Settings styles */
+.settings-tabs {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+.settings-tab {
+    padding: var(--space-md) var(--space-lg);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-colors);
+}
+
+.settings-tab:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-secondary);
+}
+
+.settings-tab.active {
+    color: var(--color-accent-primary);
+    border-bottom-color: var(--color-accent-primary);
+}
+
+.settings-list {
+    max-width: 900px;
+}
+
+.settings-item {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Toast animations */
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+/* Admin-only elements */
+.admin-only {
+    display: none;
+}
+
+body.is-admin .admin-only {
+    display: block !important;
+}
+
+/* Responsive settings */
+@media (max-width: 768px) {
+    .settings-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .settings-tab {
+        white-space: nowrap;
+        padding: var(--space-sm) var(--space-md);
+        font-size: var(--font-size-sm);
+    }
+    
+    .settings-item {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+    
+    .settings-item > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: var(--space-sm);
+    }
+    
+    .settings-item > div:last-child button {
+        flex: 1;
+    }
+}
