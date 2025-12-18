@@ -1,0 +1,625 @@
+/**
+ * JSON Storage Adapter
+ * File-based storage implementation using JSON files
+ */
+
+const fs = require('fs').promises;
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const StorageAdapter = require('./StorageAdapter');
+
+// Configuration constants
+const MAX_AUDIT_LOGS = 10000; // Maximum number of audit logs to keep
+
+class JsonStorageAdapter extends StorageAdapter {
+    constructor(dataDir = null) {
+        super();
+        this.dataDir = dataDir || path.join(__dirname, '..', '..', 'data');
+    }
+
+    async init() {
+        // Ensure data directory exists
+        await fs.mkdir(this.dataDir, { recursive: true });
+        
+        // Initialize data files if they don't exist
+        const files = [
+            'users.json',
+            'sessions.json',
+            'friends.json',
+            'friend_requests.json',
+            'chat_threads.json',
+            'chat_messages.json',
+            'mindmaps.json',
+            'mindmap_nodes.json',
+            'mindmap_edges.json',
+            'shortlinks.json',
+            'uploads.json',
+            'audit_logs.json'
+        ];
+
+        for (const file of files) {
+            const filepath = path.join(this.dataDir, file);
+            try {
+                await fs.access(filepath);
+            } catch {
+                await fs.writeFile(filepath, JSON.stringify([]), 'utf8');
+            }
+        }
+    }
+
+    async readFile(filename) {
+        const filepath = path.join(this.dataDir, filename);
+        try {
+            const data = await fs.readFile(filepath, 'utf8');
+            return JSON.parse(data);
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                return [];
+            }
+            throw err;
+        }
+    }
+
+    async writeFile(filename, data) {
+        const filepath = path.join(this.dataDir, filename);
+        await fs.writeFile(filepath, JSON.stringify(data, null, 2), 'utf8');
+    }
+
+    // User operations
+    async createUser(userData) {
+        const users = await this.readFile('users.json');
+        const user = {
+            id: uuidv4(),
+            email: userData.email,
+            passwordHash: userData.passwordHash,
+            displayName: userData.displayName || userData.email.split('@')[0],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...userData
+        };
+        delete user.password; // Remove plain password if accidentally passed
+        users.push(user);
+        await this.writeFile('users.json', users);
+        return user;
+    }
+
+    async getUserById(userId) {
+        const users = await this.readFile('users.json');
+        return users.find(u => u.id === userId) || null;
+    }
+
+    async getUserByEmail(email) {
+        const users = await this.readFile('users.json');
+        return users.find(u => u.email === email) || null;
+    }
+
+    async updateUser(userId, updates) {
+        const users = await this.readFile('users.json');
+        const index = users.findIndex(u => u.id === userId);
+        if (index === -1) return null;
+        
+        users[index] = {
+            ...users[index],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        await this.writeFile('users.json', users);
+        return users[index];
+    }
+
+    async deleteUser(userId) {
+        const users = await this.readFile('users.json');
+        const index = users.findIndex(u => u.id === userId);
+        if (index === -1) return false;
+        
+        users.splice(index, 1);
+        await this.writeFile('users.json', users);
+        return true;
+    }
+
+    // Session operations
+    async createSession(sessionData) {
+        const sessions = await this.readFile('sessions.json');
+        const session = {
+            id: uuidv4(),
+            userId: sessionData.userId,
+            token: sessionData.token || uuidv4(),
+            expiresAt: sessionData.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            createdAt: new Date().toISOString(),
+            ...sessionData
+        };
+        sessions.push(session);
+        await this.writeFile('sessions.json', sessions);
+        return session;
+    }
+
+    async getSession(sessionId) {
+        const sessions = await this.readFile('sessions.json');
+        const session = sessions.find(s => s.id === sessionId || s.token === sessionId);
+        
+        if (!session) return null;
+        
+        // Check if session is expired
+        if (new Date(session.expiresAt) < new Date()) {
+            await this.deleteSession(session.id);
+            return null;
+        }
+        
+        return session;
+    }
+
+    async deleteSession(sessionId) {
+        const sessions = await this.readFile('sessions.json');
+        const index = sessions.findIndex(s => s.id === sessionId || s.token === sessionId);
+        if (index === -1) return false;
+        
+        sessions.splice(index, 1);
+        await this.writeFile('sessions.json', sessions);
+        return true;
+    }
+
+    async deleteUserSessions(userId) {
+        const sessions = await this.readFile('sessions.json');
+        const filtered = sessions.filter(s => s.userId !== userId);
+        await this.writeFile('sessions.json', filtered);
+        return true;
+    }
+
+    // Friend operations
+    async createFriendRequest(fromUserId, toUserId) {
+        const requests = await this.readFile('friend_requests.json');
+        
+        // Check if request already exists
+        const existing = requests.find(r => 
+            (r.fromUserId === fromUserId && r.toUserId === toUserId) ||
+            (r.fromUserId === toUserId && r.toUserId === fromUserId)
+        );
+        
+        if (existing) {
+            throw new Error('Friend request already exists');
+        }
+        
+        const request = {
+            id: uuidv4(),
+            fromUserId,
+            toUserId,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        };
+        
+        requests.push(request);
+        await this.writeFile('friend_requests.json', requests);
+        return request;
+    }
+
+    async getFriendRequests(userId) {
+        const requests = await this.readFile('friend_requests.json');
+        return requests.filter(r => r.toUserId === userId && r.status === 'pending');
+    }
+
+    async acceptFriendRequest(requestId) {
+        const requests = await this.readFile('friend_requests.json');
+        const request = requests.find(r => r.id === requestId);
+        
+        if (!request) {
+            throw new Error('Friend request not found');
+        }
+        
+        // Create friendship
+        const friends = await this.readFile('friends.json');
+        friends.push({
+            id: uuidv4(),
+            userId: request.fromUserId,
+            friendId: request.toUserId,
+            createdAt: new Date().toISOString()
+        });
+        friends.push({
+            id: uuidv4(),
+            userId: request.toUserId,
+            friendId: request.fromUserId,
+            createdAt: new Date().toISOString()
+        });
+        await this.writeFile('friends.json', friends);
+        
+        // Remove request
+        const index = requests.findIndex(r => r.id === requestId);
+        requests.splice(index, 1);
+        await this.writeFile('friend_requests.json', requests);
+        
+        return true;
+    }
+
+    async removeFriend(userId, friendId) {
+        const friends = await this.readFile('friends.json');
+        const filtered = friends.filter(f => 
+            !(f.userId === userId && f.friendId === friendId) &&
+            !(f.userId === friendId && f.friendId === userId)
+        );
+        await this.writeFile('friends.json', filtered);
+        return true;
+    }
+
+    async getFriends(userId) {
+        const friends = await this.readFile('friends.json');
+        const userFriends = friends.filter(f => f.userId === userId);
+        
+        // Get friend details
+        const users = await this.readFile('users.json');
+        return userFriends.map(f => {
+            const friend = users.find(u => u.id === f.friendId);
+            return friend ? {
+                id: friend.id,
+                email: friend.email,
+                displayName: friend.displayName,
+                friendshipId: f.id,
+                friendsSince: f.createdAt
+            } : null;
+        }).filter(f => f !== null);
+    }
+
+    // Chat operations
+    async createThread(threadData) {
+        const threads = await this.readFile('chat_threads.json');
+        const thread = {
+            id: uuidv4(),
+            participants: threadData.participants || [],
+            type: threadData.type || 'direct',
+            name: threadData.name || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        threads.push(thread);
+        await this.writeFile('chat_threads.json', threads);
+        return thread;
+    }
+
+    async getThread(threadId) {
+        const threads = await this.readFile('chat_threads.json');
+        return threads.find(t => t.id === threadId) || null;
+    }
+
+    async getUserThreads(userId) {
+        const threads = await this.readFile('chat_threads.json');
+        return threads.filter(t => t.participants.includes(userId));
+    }
+
+    async createMessage(messageData) {
+        const messages = await this.readFile('chat_messages.json');
+        const message = {
+            id: uuidv4(),
+            threadId: messageData.threadId,
+            senderId: messageData.senderId,
+            content: messageData.content, // Encrypted content
+            encryptionVersion: messageData.encryptionVersion || 'v1',
+            nonce: messageData.nonce || null,
+            createdAt: new Date().toISOString(),
+            readBy: []
+        };
+        messages.push(message);
+        await this.writeFile('chat_messages.json', messages);
+        
+        // Update thread timestamp
+        const threads = await this.readFile('chat_threads.json');
+        const thread = threads.find(t => t.id === messageData.threadId);
+        if (thread) {
+            thread.updatedAt = new Date().toISOString();
+            thread.lastMessageId = message.id;
+            await this.writeFile('chat_threads.json', threads);
+        }
+        
+        return message;
+    }
+
+    async getMessages(threadId, limit = 50, offset = 0) {
+        const messages = await this.readFile('chat_messages.json');
+        const threadMessages = messages
+            .filter(m => m.threadId === threadId)
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+            .slice(offset, offset + limit);
+        return threadMessages;
+    }
+
+    async markMessageAsRead(messageId, userId) {
+        const messages = await this.readFile('chat_messages.json');
+        const message = messages.find(m => m.id === messageId);
+        
+        if (message && !message.readBy.includes(userId)) {
+            message.readBy.push(userId);
+            await this.writeFile('chat_messages.json', messages);
+        }
+        
+        return true;
+    }
+
+    // Mind-map operations
+    async createMindmap(mindmapData) {
+        const mindmaps = await this.readFile('mindmaps.json');
+        const mindmap = {
+            id: uuidv4(),
+            userId: mindmapData.userId,
+            title: mindmapData.title,
+            description: mindmapData.description || '',
+            isPublic: mindmapData.isPublic || false,
+            shareCode: mindmapData.shareCode || uuidv4().substring(0, 8),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        mindmaps.push(mindmap);
+        await this.writeFile('mindmaps.json', mindmaps);
+        return mindmap;
+    }
+
+    async getMindmap(mindmapId) {
+        const mindmaps = await this.readFile('mindmaps.json');
+        const mindmap = mindmaps.find(m => m.id === mindmapId || m.shareCode === mindmapId);
+        
+        if (!mindmap) return null;
+        
+        // Get nodes and edges
+        const nodes = await this.readFile('mindmap_nodes.json');
+        const edges = await this.readFile('mindmap_edges.json');
+        
+        mindmap.nodes = nodes.filter(n => n.mindmapId === mindmap.id);
+        mindmap.edges = edges.filter(e => e.mindmapId === mindmap.id);
+        
+        return mindmap;
+    }
+
+    async updateMindmap(mindmapId, updates) {
+        const mindmaps = await this.readFile('mindmaps.json');
+        const index = mindmaps.findIndex(m => m.id === mindmapId);
+        if (index === -1) return null;
+        
+        mindmaps[index] = {
+            ...mindmaps[index],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        await this.writeFile('mindmaps.json', mindmaps);
+        return mindmaps[index];
+    }
+
+    async deleteMindmap(mindmapId) {
+        const mindmaps = await this.readFile('mindmaps.json');
+        const index = mindmaps.findIndex(m => m.id === mindmapId);
+        if (index === -1) return false;
+        
+        mindmaps.splice(index, 1);
+        await this.writeFile('mindmaps.json', mindmaps);
+        
+        // Delete associated nodes and edges
+        const nodes = await this.readFile('mindmap_nodes.json');
+        const edges = await this.readFile('mindmap_edges.json');
+        
+        await this.writeFile('mindmap_nodes.json', nodes.filter(n => n.mindmapId !== mindmapId));
+        await this.writeFile('mindmap_edges.json', edges.filter(e => e.mindmapId !== mindmapId));
+        
+        return true;
+    }
+
+    async createNode(nodeData) {
+        const nodes = await this.readFile('mindmap_nodes.json');
+        const node = {
+            id: uuidv4(),
+            mindmapId: nodeData.mindmapId,
+            content: nodeData.content,
+            x: nodeData.x || 0,
+            y: nodeData.y || 0,
+            color: nodeData.color || '#3b82f6',
+            createdAt: new Date().toISOString()
+        };
+        nodes.push(node);
+        await this.writeFile('mindmap_nodes.json', nodes);
+        return node;
+    }
+
+    async updateNode(nodeId, updates) {
+        const nodes = await this.readFile('mindmap_nodes.json');
+        const index = nodes.findIndex(n => n.id === nodeId);
+        if (index === -1) return null;
+        
+        nodes[index] = { ...nodes[index], ...updates };
+        await this.writeFile('mindmap_nodes.json', nodes);
+        return nodes[index];
+    }
+
+    async deleteNode(nodeId) {
+        const nodes = await this.readFile('mindmap_nodes.json');
+        const index = nodes.findIndex(n => n.id === nodeId);
+        if (index === -1) return false;
+        
+        nodes.splice(index, 1);
+        await this.writeFile('mindmap_nodes.json', nodes);
+        
+        // Delete associated edges
+        const edges = await this.readFile('mindmap_edges.json');
+        await this.writeFile('mindmap_edges.json', 
+            edges.filter(e => e.fromNodeId !== nodeId && e.toNodeId !== nodeId)
+        );
+        
+        return true;
+    }
+
+    async createEdge(edgeData) {
+        const edges = await this.readFile('mindmap_edges.json');
+        const edge = {
+            id: uuidv4(),
+            mindmapId: edgeData.mindmapId,
+            fromNodeId: edgeData.fromNodeId,
+            toNodeId: edgeData.toNodeId,
+            label: edgeData.label || '',
+            createdAt: new Date().toISOString()
+        };
+        edges.push(edge);
+        await this.writeFile('mindmap_edges.json', edges);
+        return edge;
+    }
+
+    async deleteEdge(edgeId) {
+        const edges = await this.readFile('mindmap_edges.json');
+        const index = edges.findIndex(e => e.id === edgeId);
+        if (index === -1) return false;
+        
+        edges.splice(index, 1);
+        await this.writeFile('mindmap_edges.json', edges);
+        return true;
+    }
+
+    // Shortlink operations (preserve existing links.json structure)
+    async createShortlink(shortlinkData) {
+        const links = await this.readFile('links.json');
+        const link = {
+            id: uuidv4(),
+            code: shortlinkData.code,
+            url: shortlinkData.url,
+            userId: shortlinkData.userId || null,
+            clicks: 0,
+            expiresAt: shortlinkData.expiresAt || null,
+            createdAt: new Date().toISOString()
+        };
+        links.push(link);
+        await this.writeFile('links.json', links);
+        return link;
+    }
+
+    async getShortlink(code) {
+        const links = await this.readFile('links.json');
+        const link = links.find(l => l.code === code);
+        
+        if (!link) return null;
+        
+        // Check expiration
+        if (link.expiresAt && new Date(link.expiresAt) < new Date()) {
+            return null;
+        }
+        
+        return link;
+    }
+
+    async getShortlinks(userId = null) {
+        const links = await this.readFile('links.json');
+        if (userId) {
+            return links.filter(l => l.userId === userId);
+        }
+        return links;
+    }
+
+    async updateShortlink(code, updates) {
+        const links = await this.readFile('links.json');
+        const index = links.findIndex(l => l.code === code);
+        if (index === -1) return null;
+        
+        links[index] = { ...links[index], ...updates };
+        await this.writeFile('links.json', links);
+        return links[index];
+    }
+
+    async deleteShortlink(code) {
+        const links = await this.readFile('links.json');
+        const index = links.findIndex(l => l.code === code);
+        if (index === -1) return false;
+        
+        links.splice(index, 1);
+        await this.writeFile('links.json', links);
+        return true;
+    }
+
+    // Upload metadata operations
+    async createUpload(uploadData) {
+        const uploads = await this.readFile('uploads.json');
+        const upload = {
+            id: uuidv4(),
+            filename: uploadData.filename,
+            originalName: uploadData.originalName,
+            size: uploadData.size,
+            mimetype: uploadData.mimetype,
+            userId: uploadData.userId || null,
+            expiresAt: uploadData.expiresAt,
+            createdAt: new Date().toISOString()
+        };
+        uploads.push(upload);
+        await this.writeFile('uploads.json', uploads);
+        return upload;
+    }
+
+    async getUpload(uploadId) {
+        const uploads = await this.readFile('uploads.json');
+        return uploads.find(u => u.id === uploadId) || null;
+    }
+
+    async getUploads(userId = null) {
+        const uploads = await this.readFile('uploads.json');
+        if (userId) {
+            return uploads.filter(u => u.userId === userId);
+        }
+        return uploads;
+    }
+
+    async deleteUpload(uploadId) {
+        const uploads = await this.readFile('uploads.json');
+        const index = uploads.findIndex(u => u.id === uploadId);
+        if (index === -1) return false;
+        
+        uploads.splice(index, 1);
+        await this.writeFile('uploads.json', uploads);
+        return true;
+    }
+
+    // Audit log operations
+    async logAudit(auditData) {
+        const logs = await this.readFile('audit_logs.json');
+        const log = {
+            id: uuidv4(),
+            userId: auditData.userId || null,
+            action: auditData.action,
+            resource: auditData.resource || null,
+            details: auditData.details || {},
+            ipAddress: auditData.ipAddress || null,
+            userAgent: auditData.userAgent || null,
+            timestamp: new Date().toISOString()
+        };
+        logs.push(log);
+        
+        // Keep only last MAX_AUDIT_LOGS to prevent file from growing too large
+        if (logs.length > MAX_AUDIT_LOGS) {
+            logs.splice(0, logs.length - MAX_AUDIT_LOGS);
+        }
+        
+        await this.writeFile('audit_logs.json', logs);
+        return log;
+    }
+
+    async getAuditLogs(filters = {}) {
+        const logs = await this.readFile('audit_logs.json');
+        let filtered = logs;
+        
+        if (filters.userId) {
+            filtered = filtered.filter(l => l.userId === filters.userId);
+        }
+        
+        if (filters.action) {
+            filtered = filtered.filter(l => l.action === filters.action);
+        }
+        
+        if (filters.resource) {
+            filtered = filtered.filter(l => l.resource === filters.resource);
+        }
+        
+        if (filters.startDate) {
+            filtered = filtered.filter(l => new Date(l.timestamp) >= new Date(filters.startDate));
+        }
+        
+        if (filters.endDate) {
+            filtered = filtered.filter(l => new Date(l.timestamp) <= new Date(filters.endDate));
+        }
+        
+        // Sort by timestamp descending
+        filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        // Apply limit
+        const limit = filters.limit || 100;
+        return filtered.slice(0, limit);
+    }
+}
+
+module.exports = JsonStorageAdapter;
