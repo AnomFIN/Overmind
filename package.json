@@ -2,10 +2,10 @@
   "name": "anomhome-overmind",
   "version": "1.0.0",
   "description": "AnomHome Overmind: A self-hosted home dashboard for Linux",
-  "main": "backend/server.js",
+  "main": "backend/serverIntegrated.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "node --watch backend/server.js",
+    "start": "node backend/serverIntegrated.js",
+    "dev": "node --watch backend/serverIntegrated.js",
     "test": "node --test backend/tests/*.test.js"
   },
   "engines": {

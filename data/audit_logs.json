@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "0c25ec56-3fbc-4412-9691-9c6d6093e711",
+    "userId": "a0161364-c2c7-4576-b257-bfb7c311ded6",
+    "action": "login",
+    "resource": "session",
+    "details": {
+      "username": "admin"
+    },
+    "ipAddress": "127.0.0.1",
+    "userAgent": "curl/8.5.0",
+    "timestamp": "2025-12-18T17:56:56.064Z"
+  },
+  {
+    "id": "c321fc1c-9932-4ab7-b9ee-5a16f433dda5",
+    "userId": "a0161364-c2c7-4576-b257-bfb7c311ded6",
+    "action": "login",
+    "resource": "session",
+    "details": {
+      "username": "admin"
+    },
+    "ipAddress": "127.0.0.1",
+    "userAgent": "curl/8.5.0",
+    "timestamp": "2025-12-18T17:57:41.376Z"
+  }
+]

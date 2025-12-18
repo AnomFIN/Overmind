@@ -12,6 +12,39 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 </head>
 <body>
+    <!-- Auth check -->
+    <script>
+        // Check if user is authenticated
+        (async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                const data = await response.json();
+                // Store user info
+                window.currentUser = data.user;
+                
+                // Show/hide admin-only features
+                if (data.user.role === 'admin') {
+                    document.body.classList.add('is-admin');
+                } else {
+                    document.body.classList.add('is-user');
+                }
+            } catch (err) {
+                console.error('Auth check error:', err);
+                // On error, redirect to login
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+    
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
@@ -47,8 +80,19 @@
                     <span class="nav-icon">🗺️</span>
                     <span class="nav-text">Mind Map</span>
                 </li>
+                <li class="nav-item admin-only" data-panel="settings" style="display: none;">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </li>
             </ul>
             <div class="sidebar-footer">
+                <div class="user-info" id="userInfo" style="padding: var(--space-md); border-top: 1px solid var(--color-border-primary); margin-bottom: var(--space-sm);">
+                    <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Logged in as:</div>
+                    <div id="userName" style="font-size: var(--font-size-md); font-weight: var(--font-weight-medium); margin-top: var(--space-xs);"></div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: var(--space-sm);" onclick="handleLogout()">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
                 <div class="system-status" id="systemStatus">
                     <div class="status-pill status-pill-online">
                         <span class="status-indicator"></span>
@@ -323,5 +367,43 @@
 
     <script src="js/app.js"></script>
     <script src="js/ui-magic.js"></script>
+    <script>
+        // Show admin-only features if user is admin
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.currentUser) {
+                // Update user info display
+                document.getElementById('userName').textContent = window.currentUser.displayName || window.currentUser.username;
+                
+                // Show admin-only features
+                if (window.currentUser.role === 'admin') {
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.style.display = '';
+                    });
+                }
+            }
+        });
+        
+        // Handle logout
+        async function handleLogout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/login.html';
+                } else {
+                    console.error('Logout failed');
+                    // Still redirect to login
+                    window.location.href = '/login.html';
+                }
+            } catch (err) {
+                console.error('Logout error:', err);
+                // Still redirect to login
+                window.location.href = '/login.html';
+            }
+        }
+    </script>
 </body>
 </html>
