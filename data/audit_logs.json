@@ -22,5 +22,42 @@
     "ipAddress": "127.0.0.1",
     "userAgent": "curl/8.5.0",
     "timestamp": "2025-12-18T17:57:41.376Z"
+  },
+  {
+    "id": "bcfc4eec-c656-4ad9-a158-76e97feab9f0",
+    "userId": "a0161364-c2c7-4576-b257-bfb7c311ded6",
+    "action": "login",
+    "resource": "session",
+    "details": {
+      "username": "admin"
+    },
+    "ipAddress": "127.0.0.1",
+    "userAgent": "curl/8.5.0",
+    "timestamp": "2025-12-18T18:06:18.576Z"
+  },
+  {
+    "id": "47c9f6ef-d54a-497b-8b07-edbeacb2dbeb",
+    "userId": "284c53ca-ea63-4087-a08f-b37077b5acaf",
+    "action": "register",
+    "resource": "user",
+    "details": {
+      "username": "testuser",
+      "email": "test@example.com"
+    },
+    "ipAddress": "127.0.0.1",
+    "userAgent": "curl/8.5.0",
+    "timestamp": "2025-12-18T18:06:53.749Z"
+  },
+  {
+    "id": "7d81c599-24ec-4df8-9523-ff1f03d82a49",
+    "userId": "284c53ca-ea63-4087-a08f-b37077b5acaf",
+    "action": "login",
+    "resource": "session",
+    "details": {
+      "username": "testuser"
+    },
+    "ipAddress": "127.0.0.1",
+    "userAgent": "curl/8.5.0",
+    "timestamp": "2025-12-18T18:07:01.932Z"
   }
 ]
