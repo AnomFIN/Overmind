@@ -1012,3 +1012,119 @@ function copyToClipboard(text) {
         alert('Copied to clipboard!');
     });
 }
+
+// MindMap Zoom and Pan functionality
+let mindmapZoom = 1;
+let mindmapPanX = 0;
+let mindmapPanY = 0;
+let isPanning = false;
+let lastPanX = 0;
+let lastPanY = 0;
+
+function applyMindmapTransform() {
+    const container = document.getElementById('mindmapNodes');
+    if (!container) return;
+    
+    container.style.transform = `translate(${mindmapPanX}px, ${mindmapPanY}px) scale(${mindmapZoom})`;
+    container.style.transformOrigin = '0 0';
+}
+
+function zoomInMindmap() {
+    mindmapZoom = Math.min(mindmapZoom * 1.2, 3);
+    applyMindmapTransform();
+}
+
+function zoomOutMindmap() {
+    mindmapZoom = Math.max(mindmapZoom / 1.2, 0.3);
+    applyMindmapTransform();
+}
+
+function resetZoomMindmap() {
+    mindmapZoom = 1;
+    mindmapPanX = 0;
+    mindmapPanY = 0;
+    applyMindmapTransform();
+}
+
+// Setup mindmap pan and pinch zoom for mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('mindmapContainer');
+    if (!container) return;
+    
+    // Mouse pan
+    container.addEventListener('mousedown', function(e) {
+        if (e.target === container || e.target.tagName === 'svg' || e.target.id === 'mindmapNodes') {
+            isPanning = true;
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+            container.style.cursor = 'grabbing';
+        }
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (isPanning) {
+            const dx = e.clientX - lastPanX;
+            const dy = e.clientY - lastPanY;
+            mindmapPanX += dx;
+            mindmapPanY += dy;
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+            applyMindmapTransform();
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (isPanning) {
+            isPanning = false;
+            container.style.cursor = '';
+        }
+    });
+    
+    // Touch pan
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let initialPinchDistance = 0;
+    let initialZoom = 1;
+    
+    container.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+            // Pinch zoom start
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+            initialZoom = mindmapZoom;
+        }
+    }, { passive: true });
+    
+    container.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 1) {
+            // Pan
+            const dx = e.touches[0].clientX - touchStartX;
+            const dy = e.touches[0].clientY - touchStartY;
+            mindmapPanX += dx;
+            mindmapPanY += dy;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            applyMindmapTransform();
+        } else if (e.touches.length === 2) {
+            // Pinch zoom
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const scale = distance / initialPinchDistance;
+            mindmapZoom = Math.max(0.3, Math.min(3, initialZoom * scale));
+            applyMindmapTransform();
+        }
+    }, { passive: true });
+    
+    // Mouse wheel zoom
+    container.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        mindmapZoom = Math.max(0.3, Math.min(3, mindmapZoom * delta));
+        applyMindmapTransform();
+    });
+});

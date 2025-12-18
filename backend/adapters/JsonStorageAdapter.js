@@ -34,7 +34,9 @@ class JsonStorageAdapter extends StorageAdapter {
             'mindmap_edges.json',
             'shortlinks.json',
             'uploads.json',
-            'audit_logs.json'
+            'audit_logs.json',
+            'personas.json',
+            'app_config.json'
         ];
 
         for (const file of files) {
@@ -70,9 +72,12 @@ class JsonStorageAdapter extends StorageAdapter {
         const users = await this.readFile('users.json');
         const user = {
             id: uuidv4(),
+            username: userData.username,
             email: userData.email,
             passwordHash: userData.passwordHash,
-            displayName: userData.displayName || userData.email.split('@')[0],
+            displayName: userData.displayName || userData.username || userData.email.split('@')[0],
+            role: userData.role || 'user',
+            requirePasswordChange: userData.requirePasswordChange || false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             ...userData
@@ -91,6 +96,11 @@ class JsonStorageAdapter extends StorageAdapter {
     async getUserByEmail(email) {
         const users = await this.readFile('users.json');
         return users.find(u => u.email === email) || null;
+    }
+
+    async getUserByUsername(username) {
+        const users = await this.readFile('users.json');
+        return users.find(u => u.username === username) || null;
     }
 
     async updateUser(userId, updates) {
@@ -619,6 +629,140 @@ class JsonStorageAdapter extends StorageAdapter {
         // Apply limit
         const limit = filters.limit || 100;
         return filtered.slice(0, limit);
+    }
+
+    // Persona operations
+    async createPersona(personaData) {
+        const personas = await this.readFile('personas.json');
+        const persona = {
+            id: uuidv4(),
+            name: personaData.name,
+            systemPrompt: personaData.systemPrompt,
+            temperature: personaData.temperature || 0.7,
+            model: personaData.model || 'gpt-4',
+            enabled: personaData.enabled !== undefined ? personaData.enabled : true,
+            isDefault: personaData.isDefault || false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        personas.push(persona);
+        await this.writeFile('personas.json', personas);
+        return persona;
+    }
+
+    async getPersonas() {
+        return await this.readFile('personas.json');
+    }
+
+    async getPersona(personaId) {
+        const personas = await this.readFile('personas.json');
+        return personas.find(p => p.id === personaId) || null;
+    }
+
+    async updatePersona(personaId, updates) {
+        const personas = await this.readFile('personas.json');
+        const index = personas.findIndex(p => p.id === personaId);
+        if (index === -1) return null;
+        
+        personas[index] = {
+            ...personas[index],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        await this.writeFile('personas.json', personas);
+        return personas[index];
+    }
+
+    async deletePersona(personaId) {
+        const personas = await this.readFile('personas.json');
+        const index = personas.findIndex(p => p.id === personaId);
+        if (index === -1) return false;
+        
+        personas.splice(index, 1);
+        await this.writeFile('personas.json', personas);
+        return true;
+    }
+
+    // App Config operations
+    async getAppConfig() {
+        const configs = await this.readFile('app_config.json');
+        return configs.length > 0 ? configs[0] : null;
+    }
+
+    async updateAppConfig(updates) {
+        let configs = await this.readFile('app_config.json');
+        
+        if (configs.length === 0) {
+            // Create default config
+            const config = {
+                id: uuidv4(),
+                logoUrl: 'logo.png',
+                backgroundUrl: 'bg.png',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                ...updates
+            };
+            configs.push(config);
+        } else {
+            // Update existing config
+            configs[0] = {
+                ...configs[0],
+                ...updates,
+                updatedAt: new Date().toISOString()
+            };
+        }
+        
+        await this.writeFile('app_config.json', configs);
+        return configs[0];
+    }
+
+    // Camera operations (using existing cameras.json)
+    async createCamera(cameraData) {
+        const cameras = await this.readFile('cameras.json');
+        const camera = {
+            id: uuidv4(),
+            name: cameraData.name,
+            url: cameraData.url,
+            enabled: cameraData.enabled !== undefined ? cameraData.enabled : true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        cameras.push(camera);
+        await this.writeFile('cameras.json', cameras);
+        return camera;
+    }
+
+    async getCameras() {
+        return await this.readFile('cameras.json');
+    }
+
+    async getCamera(cameraId) {
+        const cameras = await this.readFile('cameras.json');
+        return cameras.find(c => c.id === cameraId) || null;
+    }
+
+    async updateCamera(cameraId, updates) {
+        const cameras = await this.readFile('cameras.json');
+        const index = cameras.findIndex(c => c.id === cameraId);
+        if (index === -1) return null;
+        
+        cameras[index] = {
+            ...cameras[index],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        await this.writeFile('cameras.json', cameras);
+        return cameras[index];
+    }
+
+    async deleteCamera(cameraId) {
+        const cameras = await this.readFile('cameras.json');
+        const index = cameras.findIndex(c => c.id === cameraId);
+        if (index === -1) return false;
+        
+        cameras.splice(index, 1);
+        await this.writeFile('cameras.json', cameras);
+        return true;
     }
 }
 

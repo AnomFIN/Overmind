@@ -26,6 +26,10 @@ class StorageAdapter {
         throw new Error('Method getUserByEmail() must be implemented');
     }
 
+    async getUserByUsername(username) {
+        throw new Error('Method getUserByUsername() must be implemented');
+    }
+
     async updateUser(userId, updates) {
         throw new Error('Method updateUser() must be implemented');
     }

@@ -4,6 +4,7 @@
  */
 
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 class AuthService {
     constructor(storageAdapter) {
@@ -11,28 +12,19 @@ class AuthService {
     }
 
     /**
-     * Hash password using PBKDF2 (Node.js built-in, compatible across versions)
-     * In production, consider using argon2 or bcrypt
+     * Hash password using bcrypt
+     * Uses 12 rounds for strong security
      */
     async hashPassword(password) {
-        const util = require('util');
-        const pbkdf2 = util.promisify(crypto.pbkdf2);
-        
-        const salt = crypto.randomBytes(16).toString('hex');
-        const derivedKey = await pbkdf2(password, salt, 100000, 64, 'sha512');
-        return salt + ':' + derivedKey.toString('hex');
+        const saltRounds = 12;
+        return await bcrypt.hash(password, saltRounds);
     }
 
     /**
      * Verify password against hash
      */
     async verifyPassword(password, hash) {
-        const util = require('util');
-        const pbkdf2 = util.promisify(crypto.pbkdf2);
-        
-        const [salt, key] = hash.split(':');
-        const derivedKey = await pbkdf2(password, salt, 100000, 64, 'sha512');
-        return key === derivedKey.toString('hex');
+        return await bcrypt.compare(password, hash);
     }
 
     /**
@@ -45,7 +37,12 @@ class AuthService {
     /**
      * Register new user
      */
-    async register(email, password, displayName = null) {
+    async register(username, email, password, displayName = null, role = 'user') {
+        // Validate username
+        if (!username || username.length < 3) {
+            throw new Error('Username must be at least 3 characters long');
+        }
+
         // Validate email
         if (!email || !email.includes('@')) {
             throw new Error('Invalid email address');
@@ -56,10 +53,16 @@ class AuthService {
             throw new Error('Password must be at least 8 characters long');
         }
 
-        // Check if user already exists
-        const existing = await this.storage.getUserByEmail(email);
-        if (existing) {
+        // Check if user already exists by email
+        const existingEmail = await this.storage.getUserByEmail(email);
+        if (existingEmail) {
             throw new Error('User with this email already exists');
+        }
+
+        // Check if username already exists
+        const existingUsername = await this.storage.getUserByUsername(username);
+        if (existingUsername) {
+            throw new Error('Username already taken');
         }
 
         // Hash password
@@ -67,9 +70,12 @@ class AuthService {
 
         // Create user
         const user = await this.storage.createUser({
+            username,
             email,
             passwordHash,
-            displayName: displayName || email.split('@')[0]
+            displayName: displayName || username,
+            role: role,
+            requirePasswordChange: false
         });
 
         // Remove sensitive data from response
@@ -79,13 +85,17 @@ class AuthService {
     }
 
     /**
-     * Login user
+     * Login user (supports email or username)
      */
-    async login(email, password) {
-        // Get user by email
-        const user = await this.storage.getUserByEmail(email);
+    async login(usernameOrEmail, password) {
+        // Try to get user by email first, then username
+        let user = await this.storage.getUserByEmail(usernameOrEmail);
         if (!user) {
-            throw new Error('Invalid email or password');
+            user = await this.storage.getUserByUsername(usernameOrEmail);
+        }
+        
+        if (!user) {
+            throw new Error('Invalid credentials');
         }
 
         // Verify password
