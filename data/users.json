@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "a0161364-c2c7-4576-b257-bfb7c311ded6",
+    "username": "admin",
+    "email": "admin@overmind.local",
+    "passwordHash": "$2b$12$.SsCVrdr3iOenlQB0S4sW./NHiHIOWxdq.ffmM7N41G6t.eVHCAIK",
+    "displayName": "Administrator",
+    "role": "admin",
+    "requirePasswordChange": false,
+    "createdAt": "2025-12-18T17:53:31.227Z",
+    "updatedAt": "2025-12-18T17:53:31.227Z"
+  }
+]

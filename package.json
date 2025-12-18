@@ -22,6 +22,7 @@
   "author": "AnomFIN",
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.21.0",

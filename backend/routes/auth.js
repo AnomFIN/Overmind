@@ -13,23 +13,23 @@ function createAuthRouter(authService, storage, rateLimiters) {
     // POST /api/auth/register
     router.post('/register', rateLimiters.auth, async (req, res) => {
         try {
-            const { email, password, displayName } = req.body;
+            const { username, email, password, displayName } = req.body;
 
-            if (!email || !password) {
+            if (!username || !email || !password) {
                 return res.status(400).json({
                     error: 'Missing required fields',
-                    message: 'Email and password are required'
+                    message: 'Username, email and password are required'
                 });
             }
 
-            const user = await authService.register(email, password, displayName);
+            const user = await authService.register(username, email, password, displayName);
 
             // Log audit
             await storage.logAudit({
                 userId: user.id,
                 action: 'register',
                 resource: 'user',
-                details: { email: user.email },
+                details: { username: user.username, email: user.email },
                 ipAddress: req.ip,
                 userAgent: req.headers['user-agent']
             });
@@ -52,16 +52,16 @@ function createAuthRouter(authService, storage, rateLimiters) {
     // POST /api/auth/login
     router.post('/login', rateLimiters.auth, async (req, res) => {
         try {
-            const { email, password } = req.body;
+            const { usernameOrEmail, password } = req.body;
 
-            if (!email || !password) {
+            if (!usernameOrEmail || !password) {
                 return res.status(400).json({
                     error: 'Missing required fields',
-                    message: 'Email and password are required'
+                    message: 'Username/email and password are required'
                 });
             }
 
-            const { user, session } = await authService.login(email, password);
+            const { user, session } = await authService.login(usernameOrEmail, password);
 
             // Set secure cookie
             res.cookie('session', session.token, {
@@ -76,7 +76,7 @@ function createAuthRouter(authService, storage, rateLimiters) {
                 userId: user.id,
                 action: 'login',
                 resource: 'session',
-                details: { email: user.email },
+                details: { username: user.username },
                 ipAddress: req.ip,
                 userAgent: req.headers['user-agent']
             });
@@ -87,7 +87,8 @@ function createAuthRouter(authService, storage, rateLimiters) {
                 user,
                 session: {
                     expiresAt: session.expiresAt
-                }
+                },
+                requirePasswordChange: user.requirePasswordChange || false
             });
         } catch (err) {
             console.error('[Auth] Login error:', err.message);
@@ -97,7 +98,7 @@ function createAuthRouter(authService, storage, rateLimiters) {
                 await storage.logAudit({
                     action: 'login_failed',
                     resource: 'session',
-                    details: { email: req.body.email, reason: err.message },
+                    details: { usernameOrEmail: req.body.usernameOrEmail, reason: err.message },
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent']
                 });

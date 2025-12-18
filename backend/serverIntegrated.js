@@ -41,6 +41,8 @@ const rateLimiters = require('./middleware/rateLimit');
 const createAuthRouter = require('./routes/auth');
 const createFriendsRouter = require('./routes/friends');
 const createChatRouter = require('./routes/chatAuth');
+const createSettingsRouter = require('./routes/settings');
+const { bootstrap } = require('./utils/bootstrap');
 
 // Import existing routes
 const openaiChatRoutes = require('./routes/chat');
@@ -69,8 +71,12 @@ const friendsService = new FriendsService(storage);
 const chatService = new ChatService(storage);
 
 // Initialize storage
-storage.init().then(() => {
+storage.init().then(async () => {
     console.log('[Server] Storage initialized');
+    // Bootstrap admin user and default personas
+    await bootstrap().catch(err => {
+        console.error('[Server] Bootstrap error:', err);
+    });
 }).catch(err => {
     console.error('[Server] Storage initialization error:', err);
     process.exit(1);
@@ -136,6 +142,7 @@ const optionalAuthMiddleware = createOptionalAuthMiddleware(authService);
 app.use('/api/auth', createAuthRouter(authService, storage, rateLimiters));
 app.use('/api/friends', createFriendsRouter(friendsService, storage, authMiddleware, rateLimiters));
 app.use('/api/chatmessages', createChatRouter(chatService, storage, authMiddleware, rateLimiters, wsService));
+app.use('/api/settings', createSettingsRouter(storage, authMiddleware));
 
 // API Routes - Existing features
 app.use('/api/chat', openaiChatRoutes); // OpenAI console
