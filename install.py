@@ -397,6 +397,9 @@ def configure_cameras(project_dir):
             password = ""
             if username:
                 password = getpass.getpass("Password (optional): ").strip()
+                if password:
+                    print_warning("Note: RTSP credentials will be stored in plaintext in cameras.json.")
+                    print_warning("Ensure proper file permissions and secure the configuration file.")
             
             if username and password:
                 url = f"rtsp://{username}:{password}@{ip}:{port}{path}"
