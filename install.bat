@@ -84,31 +84,38 @@ echo UPLOAD INSTRUCTIONS
 echo ===================
 echo.
 echo 1. Upload all files from the 'webhotel_deploy' folder to your web hosting
+echo    - Use File Manager in cPanel/Plesk OR
+echo    - Use FTP client like FileZilla
+echo    - Upload to: public_html, www, or htdocs folder
 echo.
-echo 2. Rename php/config.php.example to php/config.php
+echo 2. Make sure these folders are writable ^(chmod 755 or 777^):
+echo    - /uploads
+echo    - /tmp_uploads
+echo    - /data
 echo.
-echo 3. Edit php/config.php with your database credentials
-echo.
-echo 4. Open your website in a browser and navigate to:
+echo 3. Open your website in a browser and navigate to:
 echo    http://yourdomain.com/install.php
 echo.
-echo 5. Follow the on-screen instructions to complete installation
+echo 4. Follow the on-screen installation wizard:
+echo    Step 1: System Check
+echo    Step 2: Enter Database Credentials
+echo    Step 3: Create Admin Account
+echo    Step 4: Complete!
 echo.
-echo 6. Delete install.php after successful installation for security
+echo 5. IMPORTANT: Delete install.php after successful installation!
 echo.
-echo FOLDER PERMISSIONS:
-echo -------------------
-echo Make sure these folders are writable ^(chmod 755 or 777^):
-echo   - /uploads
-echo   - /tmp_uploads
-echo   - /data
+echo 6. Log in with your admin credentials at:
+echo    http://yourdomain.com
 echo.
-echo DEFAULT LOGIN:
+echo DEFAULT LOGIN ^(if not changed in wizard^):
 echo --------------
 echo Username: admin
 echo Password: admin123
 echo.
-echo IMPORTANT: Change the default password immediately after first login!
+echo CHANGE THE PASSWORD IMMEDIATELY AFTER FIRST LOGIN!
+echo.
+echo For detailed instructions, see WEBHOTEL_QUICK_START.md
+echo.
 ) > webhotel_deploy\UPLOAD_INSTRUCTIONS.txt
 echo [OK] Instructions file created
 
