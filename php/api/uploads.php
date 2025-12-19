@@ -196,9 +196,11 @@ function handleDownload($fileId, $db) {
         return;
     }
     
-    $upload = $db->getConnection()->query(
-        "SELECT * FROM uploads WHERE id = '" . $db->escapeString($fileId) . "'"
-    )->fetch_assoc();
+    $upload = $db->fetchOne(
+        "SELECT * FROM uploads WHERE id = ?",
+        [$fileId],
+        's'
+    );
     
     if (!$upload) {
         http_response_code(404);

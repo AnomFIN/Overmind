@@ -137,8 +137,9 @@ class Validator {
     
     /**
      * Generate secure random token
+     * @param int $length Number of random bytes (token will be double this length in hex characters)
      */
-    public static function generateToken($length = 32) {
+    public static function generateToken($length = 16) {
         return bin2hex(random_bytes($length));
     }
     
