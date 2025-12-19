@@ -295,22 +295,21 @@ def configure_cameras(project_dir):
     
     response = input("\nConfigure cameras? [y/N]: ").strip().lower()
     if response != 'y':
-        print_info("Skipping camera configuration. You can add cameras later via the web UI.")
+        print_warning("Skipping camera configuration. You can add cameras later via the web UI.")
         return True
     
     cameras = []
-    data_dir = project_dir / "data"
+    data_dir = project_dir / "backend" / "data"
     cameras_file = data_dir / "cameras.json"
     
     # Check if cameras.json already exists
     if cameras_file.exists():
         try:
             with open(cameras_file, 'r') as f:
-                data = json.load(f)
-                if 'cameras' in data:
-                    cameras = data['cameras']
-                else:
-                    cameras = data if isinstance(data, list) else []
+                cameras = json.load(f)
+                # Ensure it's a list
+                if not isinstance(cameras, list):
+                    cameras = []
         except (json.JSONDecodeError, OSError):
             cameras = []
     
@@ -401,7 +400,7 @@ def configure_cameras(project_dir):
         try:
             cameras_file.parent.mkdir(parents=True, exist_ok=True)
             with open(cameras_file, 'w') as f:
-                json.dump({"cameras": cameras}, f, indent=2)
+                json.dump(cameras, f, indent=2)
             print_success(f"Saved {len(cameras)} camera(s) to {cameras_file}")
         except OSError as e:
             print_error(f"Failed to save cameras: {e}")
