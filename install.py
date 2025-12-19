@@ -264,6 +264,13 @@ def initialize_data_files(project_dir):
     """Initialize JSON data files if they don't exist."""
     data_dir = project_dir / "backend" / "data"
     
+    # Ensure data directory exists
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        print_error(f"Failed to create data directory: {e}")
+        return False
+    
     data_files = {
         "links.json": [],
         "notes.json": [],
