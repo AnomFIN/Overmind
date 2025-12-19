@@ -129,7 +129,12 @@ def create_venv(project_dir):
     print("\nChoose virtual environment directory name:")
     print("  1. venv (default)")
     print("  2. .venv (hidden directory)")
-    venv_choice = input("Enter choice [1/2] (default: 1): ").strip()
+    
+    while True:
+        venv_choice = input("Enter choice [1/2] (default: 1): ").strip()
+        if venv_choice in ['', '1', '2']:
+            break
+        print_warning("Invalid choice. Please enter 1 or 2.")
     
     venv_name = ".venv" if venv_choice == "2" else "venv"
     venv_path = project_dir / venv_name
@@ -260,15 +265,21 @@ SECRET_KEY=your_secret_key_here
         return False
 
 
-def initialize_data_files(project_dir):
-    """Initialize JSON data files if they don't exist."""
+def ensure_data_directory(project_dir):
+    """Ensure the data directory exists."""
     data_dir = project_dir / "backend" / "data"
-    
-    # Ensure data directory exists
     try:
         data_dir.mkdir(parents=True, exist_ok=True)
+        return data_dir
     except OSError as e:
         print_error(f"Failed to create data directory: {e}")
+        return None
+
+
+def initialize_data_files(project_dir):
+    """Initialize JSON data files if they don't exist."""
+    data_dir = ensure_data_directory(project_dir)
+    if data_dir is None:
         return False
     
     data_files = {
@@ -306,7 +317,9 @@ def configure_cameras(project_dir):
         return True
     
     cameras = []
-    data_dir = project_dir / "backend" / "data"
+    data_dir = ensure_data_directory(project_dir)
+    if data_dir is None:
+        return False
     cameras_file = data_dir / "cameras.json"
     
     # Check if cameras.json already exists
@@ -333,6 +346,11 @@ def configure_cameras(project_dir):
         
         cam_type = input("\nSelect camera type [1-4]: ").strip()
         
+        # Validate camera type
+        if cam_type not in ['1', '2', '3', '4']:
+            print_warning("Invalid camera type. Please enter a number between 1 and 4.")
+            continue
+        
         name = input("Camera name: ").strip()
         if not name:
             print_warning("Camera name is required")
@@ -341,6 +359,10 @@ def configure_cameras(project_dir):
         url = ""
         if cam_type == "1":  # IP Camera
             protocol = input("Protocol [http/https] (default: http): ").strip().lower() or "http"
+            # Validate protocol
+            if protocol not in ['http', 'https']:
+                print_warning(f"Invalid protocol '{protocol}'. Using 'http' instead.")
+                protocol = 'http'
             ip = input("IP address: ").strip()
             port = input("Port (default: 80 for http, 443 for https): ").strip()
             if not port:
@@ -405,7 +427,6 @@ def configure_cameras(project_dir):
     # Save cameras
     if cameras:
         try:
-            cameras_file.parent.mkdir(parents=True, exist_ok=True)
             with open(cameras_file, 'w') as f:
                 json.dump(cameras, f, indent=2)
             print_success(f"Saved {len(cameras)} camera(s) to {cameras_file}")
