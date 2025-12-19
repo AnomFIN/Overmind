@@ -3,6 +3,9 @@
  * Authentication API endpoints
  */
 
+// Load validator
+require_once __DIR__ . '/../lib/Validator.php';
+
 function handleAuthRequest($method, $parts, $body, $auth) {
     $action = $parts[1] ?? '';
     
@@ -15,9 +18,28 @@ function handleAuthRequest($method, $parts, $body, $auth) {
             }
             
             try {
-                $username = $body['username'] ?? '';
-                $email = $body['email'] ?? '';
-                $password = $body['password'] ?? '';
+                // Validate required fields
+                Validator::requireFields($body, ['username', 'email', 'password']);
+                
+                // Sanitize inputs
+                $username = Validator::sanitizeString($body['username']);
+                $email = Validator::sanitizeEmail($body['email']);
+                $password = $body['password']; // Don't sanitize password
+                
+                // Validate username format
+                if (!Validator::isValidUsername($username)) {
+                    throw new Exception('Username must be 3-50 characters and contain only letters, numbers, underscores, and hyphens');
+                }
+                
+                // Validate email
+                if (!Validator::isValidEmail($email)) {
+                    throw new Exception('Invalid email address');
+                }
+                
+                // Validate password length
+                if (!Validator::validateLength($password, 6, 100)) {
+                    throw new Exception('Password must be 6-100 characters');
+                }
                 
                 $user = $auth->register($username, $email, $password);
                 
@@ -40,8 +62,19 @@ function handleAuthRequest($method, $parts, $body, $auth) {
             }
             
             try {
+                // Rate limiting for login attempts
+                Validator::checkRateLimit('login', 5, 300); // 5 attempts per 5 minutes
+                
+                // Validate required fields
                 $usernameOrEmail = $body['username'] ?? $body['email'] ?? '';
                 $password = $body['password'] ?? '';
+                
+                if (empty($usernameOrEmail) || empty($password)) {
+                    throw new Exception('Username/email and password are required');
+                }
+                
+                // Sanitize username/email
+                $usernameOrEmail = Validator::sanitizeString($usernameOrEmail);
                 
                 $user = $auth->login($usernameOrEmail, $password);
                 

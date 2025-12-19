@@ -47,17 +47,28 @@ function handleLinksRequest($method, $parts, $body, $auth, $db) {
             $user = $auth->getCurrentUser();
             
             try {
-                $url = $body['url'] ?? '';
-                $shortCode = $body['short_code'] ?? generateShortCode();
+                require_once __DIR__ . '/../lib/Validator.php';
+                
+                // Validate required fields
+                Validator::requireFields($body, ['url']);
+                
+                $url = trim($body['url']);
+                $shortCode = isset($body['short_code']) ? Validator::sanitizeString($body['short_code']) : generateShortCode();
                 $expiresAt = $body['expires_at'] ?? null;
                 
-                if (empty($url)) {
-                    throw new Exception('URL is required');
+                // Validate URL
+                if (!Validator::isValidUrl($url)) {
+                    throw new Exception('Invalid URL format');
                 }
                 
-                // Validate URL
-                if (!filter_var($url, FILTER_VALIDATE_URL)) {
-                    throw new Exception('Invalid URL');
+                // Validate short code format
+                if (!preg_match('/^[a-zA-Z0-9_-]{3,50}$/', $shortCode)) {
+                    throw new Exception('Short code must be 3-50 characters and contain only letters, numbers, underscores, and hyphens');
+                }
+                
+                // Validate URL length
+                if (strlen($url) > 2000) {
+                    throw new Exception('URL is too long (maximum 2000 characters)');
                 }
                 
                 // Check if short code exists

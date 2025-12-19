@@ -37,17 +37,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Error handling
 set_error_handler(function($errno, $errstr, $errfile, $errline) {
-    throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+    // Don't throw for warnings and notices in production
+    if (error_reporting() & $errno) {
+        throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+    }
+    return true;
 });
 
 // Exception handling
 set_exception_handler(function($e) {
-    error_log("API Error: " . $e->getMessage());
+    error_log("API Error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    
+    // Don't expose sensitive error details in production
+    $message = 'Internal server error';
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        $message = $e->getMessage();
+    }
+    
     http_response_code(500);
     echo json_encode([
         'error' => 'Internal server error',
-        'message' => $e->getMessage()
+        'message' => $message
     ]);
+    exit;
 });
 
 // Parse request path
@@ -73,9 +85,19 @@ if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
     }
 }
 
-// Initialize services
-$db = Database::getInstance();
-$auth = new Auth();
+// Initialize services with error handling
+try {
+    $db = Database::getInstance();
+    $auth = new Auth();
+} catch (Exception $e) {
+    error_log("Failed to initialize services: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Service initialization failed',
+        'message' => 'Unable to connect to database. Please check configuration.'
+    ]);
+    exit;
+}
 
 // Clean up expired sessions periodically (1% chance)
 if (rand(1, 100) === 1) {

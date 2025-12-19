@@ -52,6 +52,10 @@ function handleUploadsRequest($method, $parts, $body, $auth, $db) {
         case 'POST':
             // Upload file
             try {
+                // Rate limiting for uploads
+                require_once __DIR__ . '/../lib/Validator.php';
+                Validator::checkRateLimit('upload', 10, 60); // 10 uploads per minute
+                
                 if (empty($_FILES['file'])) {
                     throw new Exception('No file uploaded');
                 }
@@ -66,6 +70,26 @@ function handleUploadsRequest($method, $parts, $body, $auth, $db) {
                     throw new Exception('File too large. Maximum size: ' . (MAX_UPLOAD_SIZE / 1024 / 1024) . 'MB');
                 }
                 
+                // Sanitize filename
+                $originalName = Validator::sanitizeFilename($file['name']);
+                
+                // Validate file extension (optional - can be customized)
+                // Uncomment the following lines to enable extension filtering:
+                // if (!Validator::isAllowedFileExtension($originalName)) {
+                //     throw new Exception('File type not allowed');
+                // }
+                
+                // Check for suspicious file content
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+                
+                // Reject PHP files and other dangerous types
+                $dangerousMimes = ['application/x-php', 'application/x-httpd-php', 'text/x-php'];
+                if (in_array($mimeType, $dangerousMimes)) {
+                    throw new Exception('This file type is not allowed for security reasons');
+                }
+                
                 // Get user if authenticated
                 $userId = null;
                 if ($auth->isAuthenticated()) {
@@ -75,7 +99,7 @@ function handleUploadsRequest($method, $parts, $body, $auth, $db) {
                 
                 // Generate unique filename
                 $id = generateUuid();
-                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
                 $filename = $id . '.' . $extension;
                 $uploadDir = __DIR__ . '/../../tmp_uploads/';
                 
@@ -95,7 +119,7 @@ function handleUploadsRequest($method, $parts, $body, $auth, $db) {
                 // Save to database
                 $db->query(
                     "INSERT INTO uploads (id, filename, original_name, size, mime_type, created_by, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    [$id, $filename, $file['name'], $file['size'], $file['type'], $userId, $expiresAt],
+                    [$id, $filename, $originalName, $file['size'], $mimeType, $userId, $expiresAt],
                     'sssisis'
                 );
                 
