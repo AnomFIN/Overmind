@@ -11,6 +11,7 @@ import os
 import shutil
 import json
 import uuid
+import getpass
 from pathlib import Path
 
 
@@ -364,18 +365,38 @@ def configure_cameras(project_dir):
                 print_warning(f"Invalid protocol '{protocol}'. Using 'http' instead.")
                 protocol = 'http'
             ip = input("IP address: ").strip()
+            if not ip:
+                print_warning("IP address is required")
+                continue
             port = input("Port (default: 80 for http, 443 for https): ").strip()
             if not port:
                 port = "443" if protocol == "https" else "80"
+            # Validate port is numeric
+            try:
+                int(port)
+            except ValueError:
+                print_warning(f"Invalid port '{port}'. Port must be a number.")
+                continue
             path = input("Path (e.g., /video or /mjpeg, default: /): ").strip() or "/"
             url = f"{protocol}://{ip}:{port}{path}"
             
         elif cam_type == "2":  # RTSP
             ip = input("IP address: ").strip()
+            if not ip:
+                print_warning("IP address is required")
+                continue
             port = input("Port (default: 554): ").strip() or "554"
+            # Validate port is numeric
+            try:
+                int(port)
+            except ValueError:
+                print_warning(f"Invalid port '{port}'. Port must be a number.")
+                continue
             path = input("Stream path (e.g., /stream1): ").strip() or "/stream1"
             username = input("Username (optional): ").strip()
-            password = input("Password (optional): ").strip()
+            password = ""
+            if username:
+                password = getpass.getpass("Password (optional): ").strip()
             
             if username and password:
                 url = f"rtsp://{username}:{password}@{ip}:{port}{path}"
@@ -393,12 +414,21 @@ def configure_cameras(project_dir):
             print("  - Use iVCam (iOS): http://phone-ip:port/video")
             
             ip = input("\nMobile device IP address: ").strip()
+            if not ip:
+                print_warning("IP address is required")
+                continue
             port = input("Port (e.g., 8080 for IP Webcam, 4747 for DroidCam): ").strip()
+            if not port:
+                print_warning("Port is required")
+                continue
+            # Validate port is numeric
+            try:
+                int(port)
+            except ValueError:
+                print_warning(f"Invalid port '{port}'. Port must be a number.")
+                continue
             path = input("Path (default: /video): ").strip() or "/video"
             url = f"http://{ip}:{port}{path}"
-        else:
-            print_warning("Invalid camera type")
-            continue
         
         if not url:
             print_warning("Camera URL/path is required")
