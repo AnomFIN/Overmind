@@ -2,7 +2,7 @@
 
 **Version 1.01** - Enterprise-grade authentication, settings management, and mobile optimization
 
-**AnomHome Overmind** is a self-hosted, Linux-first personal dashboard that keeps everything on your own machine.
+**AnomHome Overmind** is a self-hosted personal dashboard that works on both Linux servers and standard web hosting.
 
 It combines:
 
@@ -15,7 +15,9 @@ It combines:
 - 📷 **Camera Wall** - Motion-triggered recording and live streaming
 - 🗺️ **Mobile-Optimized MindMap** - Touch-enabled, zoomable mind mapping
 
-All wrapped into a single, ultra-polished web UI served from your Linux box.
+**Two Deployment Options:**
+1. **Linux Server** - Full-featured Node.js deployment (original method)
+2. **Web Hosting** - PHP/MySQL deployment for standard shared hosting (NEW!)
 
 ---
 
@@ -93,15 +95,95 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 
 ---
 
-## Getting started
+## 🌐 Installation Guide
 
-### Prerequisites
+Choose your deployment method:
 
+### Option 1: Web Hosting (PHP/MySQL) - Super Easy! 🎉
+
+**Perfect for:** Shared hosting, cPanel, Plesk, or any hosting with PHP and MySQL support.
+
+**Requirements:**
+- PHP 7.4 or higher
+- MySQL 5.7 or higher  
+- At least 100MB disk space
+- Apache with mod_rewrite (or equivalent)
+
+#### Step-by-Step Installation (So Easy a 6-Year-Old Can Do It!)
+
+**On Your Windows Computer:**
+
+1. **Download the Repository**
+   - Download this repository as a ZIP file
+   - Extract it to a folder on your computer
+   - Open the folder in Windows Explorer
+
+2. **Prepare Files for Upload**
+   - Double-click `install.bat` 
+   - Wait for it to finish (it creates a `webhotel_deploy` folder)
+   - Read the `UPLOAD_INSTRUCTIONS.txt` file created in `webhotel_deploy`
+
+3. **Upload to Your Web Host**
+   - Using your hosting's file manager or FTP client (like FileZilla):
+   - Upload **ALL files** from the `webhotel_deploy` folder to your website's root folder
+   - Usually this is called `public_html`, `www`, or `htdocs`
+
+**On Your Web Hosting (in your browser):**
+
+4. **Configure Database Credentials**
+   - Log into your hosting control panel (cPanel/Plesk)
+   - Create a new MySQL database (write down the database name)
+   - Create a MySQL user (write down the username and password)
+   - Give the user full access to the database
+
+5. **Run the Installation Wizard**
+   - Open your website in a browser: `http://yourwebsite.com/install.php`
+   - Follow the step-by-step wizard:
+     - **Step 1:** System checks (automatic)
+     - **Step 2:** Enter your database details
+     - **Step 3:** Create your admin account
+     - **Step 4:** Done! 🎉
+
+6. **Security Final Steps**
+   - Delete the `install.php` file from your server (via file manager or FTP)
+   - Log in to your website
+   - Go to Settings and **change your admin password**
+
+**That's it! Your dashboard is now live! 🚀**
+
+#### Setting Folder Permissions
+
+If you see permission errors, you need to make some folders writable:
+
+**Via cPanel File Manager:**
+1. Right-click on the folder → Change Permissions
+2. Set these folders to `755` or `777`:
+   - `uploads`
+   - `tmp_uploads`
+   - `data`
+
+**Via FTP (FileZilla):**
+1. Right-click on the folder → File Permissions
+2. Set to `755` or `777` for the folders above
+
+#### Optional: Enable OpenAI Chat
+
+1. Get an API key from https://platform.openai.com/api-keys
+2. Edit `php/config.php` on your server
+3. Add your API key: `define('OPENAI_API_KEY', 'your-key-here');`
+
+---
+
+### Option 2: Linux Server (Node.js) - Full Features
+
+**Perfect for:** VPS, dedicated servers, or local Linux machines with full control.
+
+**Requirements:**
 - Linux machine (Ubuntu or similar)
 - Node.js **20 LTS**
 - npm
 
-### Quick Start
+#### Quick Start
 
 ```bash
 # Clone the repository
@@ -121,7 +203,7 @@ npm start
 
 The server will start at `http://localhost:3000`
 
-### First Login
+#### First Login
 
 1. Navigate to `http://localhost:3000`
 2. You'll be redirected to the login page
@@ -130,7 +212,7 @@ The server will start at `http://localhost:3000`
    - **Password**: `admin123`
 4. **⚠️ IMPORTANT**: Change the default password immediately in Settings!
 
-### Environment Variables
+#### Environment Variables
 
 Create a `.env` file based on `.env.example`:
 
@@ -155,7 +237,7 @@ FILE_BROWSER_ROOT=/path/to/browse
 SECRET_KEY=your_random_secret_key
 ```
 
-### Production Deployment
+#### Production Deployment
 
 For production environments:
 
@@ -167,12 +249,81 @@ For production environments:
 
 ---
 
+## 🔧 Troubleshooting
+
+### Web Hosting Installation Issues
+
+**Problem: "Database connection failed"**
+- Check your database credentials in Step 2 of the installer
+- Make sure the database exists in your hosting control panel
+- Try `localhost` or `127.0.0.1` as the database host
+- Contact your hosting provider to verify MySQL is enabled
+
+**Problem: "Permission denied" or "Cannot write to folder"**
+- Set folder permissions to `755` or `777` for: `uploads`, `tmp_uploads`, `data`
+- Use your hosting file manager or FTP client to change permissions
+- See "Setting Folder Permissions" section above
+
+**Problem: "PHP extension missing"**
+- Contact your hosting provider to enable missing PHP extensions
+- Required: `mysqli`, `json`, `session`, `mbstring`
+- Most hosting providers have these enabled by default
+
+**Problem: "Internal Server Error (500)"**
+- Check PHP error logs in your hosting control panel
+- Make sure `.htaccess` file was uploaded
+- Verify PHP version is 7.4 or higher
+- Try renaming `.htaccess` to `htaccess.txt` temporarily to test
+
+**Problem: "404 Not Found for API calls"**
+- Ensure `.htaccess` file exists in root directory
+- Check if `mod_rewrite` is enabled (ask your hosting provider)
+- Verify all files were uploaded to the correct directory
+
+### Linux Server Installation Issues
+
+**Problem: Node.js version too old**
+```bash
+# Install Node.js 20 LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+**Problem: "EADDRINUSE" - Port already in use**
+- Change the PORT in `.env` file
+- Or kill the process using: `sudo lsof -ti:3000 | xargs kill -9`
+
+**Problem: "Module not found"**
+- Delete `node_modules` and `package-lock.json`
+- Run `npm install` again
+
+---
+
+## 📋 Features Comparison
+
+| Feature | Web Hosting (PHP) | Linux Server (Node.js) |
+|---------|-------------------|------------------------|
+| User Authentication | ✅ | ✅ |
+| Link Shortener | ✅ | ✅ |
+| File Uploads (15-min) | ✅ | ✅ |
+| Mind Map Notes | ✅ | ✅ |
+| Settings Management | ✅ | ✅ |
+| AI Personas | ✅ | ✅ |
+| OpenAI Chat | ✅ | ✅ |
+| Local File Browser | ❌ | ✅ |
+| Camera Wall | ❌ | ✅ |
+| Motion Recording | ❌ | ✅ |
+| WebSocket Support | ❌ | ✅ |
+
+---
+
 ## Clone and install
 
 ```bash
 git clone https://github.com/<your-org>/anomhome-overmind.git
 cd anomhome-overmind
 python3 install.py
+```
 
 ## Cameras: motion recorder
 - Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
