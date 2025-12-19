@@ -10,6 +10,7 @@ import sys
 import os
 import shutil
 import json
+import uuid
 from pathlib import Path
 
 
@@ -124,10 +125,17 @@ def check_npm():
 
 def create_venv(project_dir):
     """Create Python virtual environment."""
-    venv_path = project_dir / "venv"
+    # Ask user to choose venv directory name
+    print("\nChoose virtual environment directory name:")
+    print("  1. venv (default)")
+    print("  2. .venv (hidden directory)")
+    venv_choice = input("Enter choice [1/2] (default: 1): ").strip()
+    
+    venv_name = ".venv" if venv_choice == "2" else "venv"
+    venv_path = project_dir / venv_name
     
     if venv_path.exists():
-        print_warning("Virtual environment already exists")
+        print_warning(f"Virtual environment '{venv_name}' already exists")
         response = input("Do you want to recreate it? [y/N]: ").strip().lower()
         if response == 'y':
             try:
@@ -276,7 +284,221 @@ def initialize_data_files(project_dir):
     return True
 
 
-def print_completion_message(project_dir):
+def configure_cameras(project_dir):
+    """Interactive camera configuration."""
+    print("\nWould you like to configure cameras now?")
+    print("  You can add multiple cameras with different connection types:")
+    print("  - IP cameras (HTTP/HTTPS)")
+    print("  - RTSP cameras")
+    print("  - USB webcams")
+    print("  - Mobile device cameras (Android/iOS)")
+    
+    response = input("\nConfigure cameras? [y/N]: ").strip().lower()
+    if response != 'y':
+        print_info("Skipping camera configuration. You can add cameras later via the web UI.")
+        return True
+    
+    cameras = []
+    data_dir = project_dir / "data"
+    cameras_file = data_dir / "cameras.json"
+    
+    # Check if cameras.json already exists
+    if cameras_file.exists():
+        try:
+            with open(cameras_file, 'r') as f:
+                data = json.load(f)
+                if 'cameras' in data:
+                    cameras = data['cameras']
+                else:
+                    cameras = data if isinstance(data, list) else []
+        except (json.JSONDecodeError, OSError):
+            cameras = []
+    
+    while True:
+        print("\n" + "=" * 60)
+        print("Add a new camera")
+        print("=" * 60)
+        
+        print("\nCamera type:")
+        print("  1. IP Camera (HTTP/HTTPS)")
+        print("  2. RTSP Camera")
+        print("  3. USB Webcam")
+        print("  4. Mobile Device Camera (Android/iOS)")
+        
+        cam_type = input("\nSelect camera type [1-4]: ").strip()
+        
+        name = input("Camera name: ").strip()
+        if not name:
+            print_warning("Camera name is required")
+            continue
+        
+        url = ""
+        if cam_type == "1":  # IP Camera
+            protocol = input("Protocol [http/https] (default: http): ").strip().lower() or "http"
+            ip = input("IP address: ").strip()
+            port = input("Port (default: 80 for http, 443 for https): ").strip()
+            if not port:
+                port = "443" if protocol == "https" else "80"
+            path = input("Path (e.g., /video or /mjpeg, default: /): ").strip() or "/"
+            url = f"{protocol}://{ip}:{port}{path}"
+            
+        elif cam_type == "2":  # RTSP
+            ip = input("IP address: ").strip()
+            port = input("Port (default: 554): ").strip() or "554"
+            path = input("Stream path (e.g., /stream1): ").strip() or "/stream1"
+            username = input("Username (optional): ").strip()
+            password = input("Password (optional): ").strip()
+            
+            if username and password:
+                url = f"rtsp://{username}:{password}@{ip}:{port}{path}"
+            else:
+                url = f"rtsp://{ip}:{port}{path}"
+                
+        elif cam_type == "3":  # USB Webcam
+            device = input("Device path (e.g., /dev/video0, default: /dev/video0): ").strip() or "/dev/video0"
+            url = device
+            
+        elif cam_type == "4":  # Mobile Device
+            print("\nMobile device camera options:")
+            print("  - Use IP Webcam app (Android): http://phone-ip:8080/video")
+            print("  - Use DroidCam (Android/iOS): http://phone-ip:4747/video")
+            print("  - Use iVCam (iOS): http://phone-ip:port/video")
+            
+            ip = input("\nMobile device IP address: ").strip()
+            port = input("Port (e.g., 8080 for IP Webcam, 4747 for DroidCam): ").strip()
+            path = input("Path (default: /video): ").strip() or "/video"
+            url = f"http://{ip}:{port}{path}"
+        else:
+            print_warning("Invalid camera type")
+            continue
+        
+        if not url:
+            print_warning("Camera URL/path is required")
+            continue
+        
+        # Create camera entry
+        camera = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "rtspUrl": url,
+            "enabled": True,
+            "sensitivity": 12,
+            "minMotionSeconds": 2,
+            "cooldownSeconds": 3,
+            "outputDir": f"recordings/{name.lower().replace(' ', '_')}",
+            "audio": False
+        }
+        
+        cameras.append(camera)
+        print_success(f"Added camera: {name}")
+        
+        another = input("\nAdd another camera? [y/N]: ").strip().lower()
+        if another != 'y':
+            break
+    
+    # Save cameras
+    if cameras:
+        try:
+            cameras_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(cameras_file, 'w') as f:
+                json.dump({"cameras": cameras}, f, indent=2)
+            print_success(f"Saved {len(cameras)} camera(s) to {cameras_file}")
+        except OSError as e:
+            print_error(f"Failed to save cameras: {e}")
+            return False
+    
+    return True
+
+
+def print_windows_ftp_instructions():
+    """Print instructions for Windows + FTP deployment."""
+    instructions = """
+╔══════════════════════════════════════════════════════════════╗
+║          Windows + FTP Deployment Instructions               ║
+╚══════════════════════════════════════════════════════════════╝
+
+If you're developing on Windows and deploying to a Linux server:
+
+1. SETUP FTP CLIENT:
+   
+   Option A: FileZilla (Recommended)
+   - Download from https://filezilla-project.org/
+   - Install and configure your Linux server connection:
+     * Host: Your Linux server IP
+     * Port: 21 (FTP) or 22 (SFTP/SSH)
+     * Protocol: SFTP (SSH File Transfer Protocol) recommended
+     * User: Your Linux username
+     * Password: Your Linux password
+   
+   Option B: WinSCP
+   - Download from https://winscp.net/
+   - Similar configuration to FileZilla
+   
+   Option C: Web-based FTP clients
+   - net2ftp (https://www.net2ftp.com/)
+   - MonstaFTP (if installed on your server)
+
+2. TRANSFER FILES:
+   - Upload the entire Overmind directory to your Linux server
+   - Recommended location: /home/your-username/Overmind
+   - Ensure file permissions are preserved (especially for .py files)
+
+3. CONNECT TO SERVER:
+   - Use SSH client like PuTTY or Windows Terminal with SSH
+   - Connect to your Linux server:
+     ssh your-username@server-ip
+
+4. RUN INSTALLATION:
+   - Navigate to the Overmind directory:
+     cd ~/Overmind
+   
+   - Make installation script executable:
+     chmod +x install.py
+   
+   - Run the installer:
+     python3 install.py
+
+5. START THE APPLICATION:
+   - Follow the completion message instructions
+   - Use the startup method you selected during installation
+
+6. ACCESS FROM WINDOWS:
+   - Open browser to: http://server-ip:3000
+   - For local network access, use the server's local IP
+   - For internet access, configure port forwarding or use ngrok
+
+TROUBLESHOOTING:
+- If files won't upload, check FTP/SFTP server is running on Linux
+- If permissions denied, ensure your Linux user owns the files
+- For line ending issues, configure your editor to use LF (Unix) not CRLF (Windows)
+"""
+    print(instructions)
+
+
+def ask_startup_preference():
+    """Ask user for preferred startup method."""
+    print("\n" + "=" * 60)
+    print("Choose your preferred startup method:")
+    print("=" * 60)
+    print("\nOption 1: npm start")
+    print("  - Starts the Node.js server directly")
+    print("  - Simple and straightforward")
+    print("  - Good for development and testing")
+    print("  - Command: npm start")
+    
+    print("\nOption 2: palvelin.py (Server Management TUI)")
+    print("  - Terminal-based GUI for server management")
+    print("  - Real-time monitoring (CPU, RAM, disk, visitors)")
+    print("  - Service control (start, stop, restart)")
+    print("  - View logs and manage uploads")
+    print("  - Requires Python dependencies")
+    print("  - Command: python3 palvelin.py")
+    
+    choice = input("\nSelect startup method [1/2] (default: 1): ").strip()
+    return "palvelin" if choice == "2" else "npm"
+
+
+def print_completion_message(project_dir, startup_method="npm"):
     """Print installation completion message."""
     print("\n" + "=" * 60)
     print("✓ Installation completed successfully!")
@@ -285,11 +507,32 @@ def print_completion_message(project_dir):
     print(f"  1. Copy .env.example to .env and configure your settings:")
     print(f"     cp .env.example .env")
     print(f"  2. Edit .env and add your OpenAI API key (optional)")
-    print(f"  3. Start the server:")
-    print(f"     npm start")
+    
+    if startup_method == "palvelin":
+        print(f"  3. Start the server management TUI:")
+        print(f"     python3 palvelin.py")
+        print(f"\n     Keyboard shortcuts in palvelin.py:")
+        print(f"       S - Start service")
+        print(f"       T - Stop service")
+        print(f"       R - Restart service")
+        print(f"       C - Run cleanup")
+        print(f"       L - View logs")
+        print(f"       Q - Quit")
+    else:
+        print(f"  3. Start the server:")
+        print(f"     npm start")
+        print(f"\n     For development with auto-reload:")
+        print(f"     npm run dev")
+    
     print(f"  4. Open your browser to http://localhost:3000")
-    print("\nFor development with auto-reload:")
-    print(f"  npm run dev")
+    
+    print("\nAlternative startup methods:")
+    if startup_method == "npm":
+        print("  - Server management TUI: python3 palvelin.py")
+    else:
+        print("  - Direct start: npm start")
+        print("  - Development mode: npm run dev")
+    
     print("\n" + "=" * 60)
 
 
@@ -313,41 +556,57 @@ def main():
     if not check_npm():
         sys.exit(1)
     
-    # Step 2: Create directories
-    print_step(2, "Creating directories")
+    # Step 2: Show Windows + FTP instructions if needed
+    print_step(2, "Deployment Options")
+    print("\nAre you deploying from Windows to a Linux server via FTP?")
+    show_ftp = input("Show Windows + FTP instructions? [y/N]: ").strip().lower()
+    if show_ftp == 'y':
+        print_windows_ftp_instructions()
+        input("\nPress Enter to continue with installation...")
+    
+    # Step 3: Create directories
+    print_step(3, "Creating directories")
     if not create_directories(project_dir):
         sys.exit(1)
     
-    # Step 3: Create virtual environment
-    print_step(3, "Setting up Python virtual environment")
+    # Step 4: Create virtual environment
+    print_step(4, "Setting up Python virtual environment")
     venv_path = create_venv(project_dir)
     if venv_path is None:
         print_warning("Continuing without virtual environment")
     
-    # Step 4: Install Python dependencies
-    print_step(4, "Installing Python dependencies")
+    # Step 5: Install Python dependencies
+    print_step(5, "Installing Python dependencies")
     if venv_path:
         install_python_deps(venv_path, project_dir)
     else:
         print_warning("Skipping Python dependencies (no venv)")
     
-    # Step 5: Install Node.js dependencies
-    print_step(5, "Installing Node.js dependencies")
+    # Step 6: Install Node.js dependencies
+    print_step(6, "Installing Node.js dependencies")
     if not install_node_deps(project_dir):
         print_error("Failed to install Node.js dependencies")
         sys.exit(1)
     
-    # Step 6: Create configuration files
-    print_step(6, "Creating configuration files")
+    # Step 7: Create configuration files
+    print_step(7, "Creating configuration files")
     create_env_example(project_dir)
     
-    # Step 7: Initialize data files
-    print_step(7, "Initializing data files")
+    # Step 8: Initialize data files
+    print_step(8, "Initializing data files")
     if not initialize_data_files(project_dir):
         print_warning("Some data files could not be initialized")
     
+    # Step 9: Camera configuration
+    print_step(9, "Camera Configuration")
+    configure_cameras(project_dir)
+    
+    # Step 10: Ask for startup preference
+    print_step(10, "Startup Preference")
+    startup_method = ask_startup_preference()
+    
     # Print completion message
-    print_completion_message(project_dir)
+    print_completion_message(project_dir, startup_method)
 
 
 if __name__ == "__main__":
