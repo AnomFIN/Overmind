@@ -30,6 +30,38 @@ if (file_exists($lockFile)) {
     ');
 }
 
+// Optional additional security: require a token if INSTALL_TOKEN is configured
+$installToken = getenv('INSTALL_TOKEN');
+if ($installToken !== false && $installToken !== '') {
+    $providedToken = null;
+    if (isset($_GET['token'])) {
+        $providedToken = $_GET['token'];
+    } elseif (isset($_POST['token'])) {
+        $providedToken = $_POST['token'];
+    }
+
+    if (!is_string($providedToken) || !hash_equals($installToken, $providedToken)) {
+        die('
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Unauthorized Installer Access</title>
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 20px; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="error">
+                <h2>⚠️ Unauthorized Installer Access</h2>
+                <p>Installer access is restricted. A valid installation token is required.</p>
+                <p>Please contact the server administrator.</p>
+            </div>
+        </body>
+        </html>
+        ');
+    }
+}
 // Error handling
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
