@@ -145,7 +145,7 @@ class EncryptionManager {
         const privateKeyString = JSON.stringify(privateKeyJwk);
 
         // Derive key from password
-        const passwordKey = await this.deriveKeyFromPassword(password);
+        const { key: passwordKey, salt } = await this.deriveKeyFromPassword(password);
 
         // Generate IV
         const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -159,7 +159,8 @@ class EncryptionManager {
 
         return {
             encrypted: this.arrayBufferToBase64(encrypted),
-            iv: this.arrayBufferToBase64(iv)
+            iv: this.arrayBufferToBase64(iv),
+            salt
         };
     }
 
@@ -342,11 +343,11 @@ class EncryptionManager {
     /**
      * Derive key from password using PBKDF2
      */
-    async deriveKeyFromPassword(password, salt = null) {
+    async deriveKeyFromPassword(password, saltBase64 = null) {
         const encoder = new TextEncoder();
 
         // Use provided salt or generate new one
-        const saltBuffer = salt ? this.base64ToArrayBuffer(salt) : crypto.getRandomValues(new Uint8Array(16));
+        const saltBuffer = saltBase64 ? this.base64ToArrayBuffer(saltBase64) : crypto.getRandomValues(new Uint8Array(16));
 
         // Import password as key
         const passwordKey = await crypto.subtle.importKey(
@@ -371,7 +372,10 @@ class EncryptionManager {
             ['encrypt', 'decrypt']
         );
 
-        return derivedKey;
+        return {
+            key: derivedKey,
+            salt: this.arrayBufferToBase64(saltBuffer)
+        };
     }
 
     /**

@@ -358,11 +358,21 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
                 });
             }
 
-            // Validate file size (10MB limit for base64 encoded data)
-            if (encryptedContent.length > 10 * 1024 * 1024) {
+            // Validate original file size (before encryption)
+            const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+            if (size && size > maxSizeBytes) {
                 return res.status(400).json({
                     error: 'File too large',
                     message: 'File must be less than 10MB'
+                });
+            }
+
+            // Validate encrypted content size (base64 adds ~33% overhead, so allow up to 13.3MB)
+            const maxEncodedSize = 13.3 * 1024 * 1024;
+            if (encryptedContent.length > maxEncodedSize) {
+                return res.status(400).json({
+                    error: 'Encrypted file too large',
+                    message: 'Encrypted file must be less than 13.3MB'
                 });
             }
 

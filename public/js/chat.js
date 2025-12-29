@@ -92,8 +92,12 @@ class ChatApp {
             // Get public key to upload
             const publicKey = await encryptionManager.getPublicKeyString();
 
-            // Encrypt private key with session token (simplified - in production use user password)
-            const encryptedPrivateKey = await encryptionManager.getEncryptedPrivateKey(this.sessionToken);
+            // For now, we use a simple password derived from user data
+            // TODO: In production, prompt user for a password to encrypt their private key
+            const password = this.sessionToken; // Temporary - should be user-provided password
+
+            // Encrypt private key with password
+            const encryptedPrivateKey = await encryptionManager.getEncryptedPrivateKey(password);
 
             // Upload to server
             const response = await fetch('/api/chat/keys', {
@@ -123,12 +127,26 @@ class ChatApp {
      * Load current user info
      */
     async loadCurrentUser() {
-        // In a real app, we'd fetch user info from an endpoint
-        // For now, we'll extract from the session
-        this.currentUser = {
-            id: 'current-user',
-            displayName: 'You'
-        };
+        try {
+            // Fetch current user info from API
+            const response = await fetch('/api/auth/me', {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.currentUser = data.user;
+            } else {
+                throw new Error('Failed to load user info');
+            }
+        } catch (error) {
+            console.error('[Chat] Error loading user:', error);
+            // Fallback to basic info
+            this.currentUser = {
+                id: 'unknown',
+                displayName: 'You'
+            };
+        }
     }
 
     /**
@@ -504,7 +522,7 @@ class ChatApp {
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    filename: `encrypted_${Date.now()}`,
+                    filename: `encrypted_${this.currentUser.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
                     originalName: file.name,
                     encryptedContent: encrypted.encryptedContent,
                     encryptionKey: encrypted.key,

@@ -245,9 +245,25 @@ class ChatService {
             throw new Error('File not found');
         }
 
-        // Verify user has access to this file (uploaded by them or received in a message)
-        // For now, we'll allow access if user exists
-        // TODO: Add proper access control based on message participation
+        // Verify user has access to this file
+        // Check if user uploaded the file OR received it in a message
+        if (file.uploadedBy === userId) {
+            return file;
+        }
+
+        // Check if file is part of any message in user's threads
+        const userThreads = await this.storage.getUserThreads(userId);
+        const threadIds = userThreads.map(t => t.id);
+        
+        const messages = await this.storage.readFile('chat_messages.json');
+        const hasAccess = messages.some(m => 
+            threadIds.includes(m.threadId) && 
+            m.fileId === fileId
+        );
+
+        if (!hasAccess) {
+            throw new Error('Access denied');
+        }
         
         return file;
     }
