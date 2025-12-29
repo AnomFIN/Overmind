@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - AnomHome Overmind</title>
+    <link rel="stylesheet" href="/css/chat.css">
+    <link rel="icon" type="image/png" href="/overmind-logotp.png">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Sidebar with contacts -->
+        <div class="chat-sidebar" id="chatSidebar">
+            <div class="chat-sidebar-header">
+                <h1 class="chat-sidebar-title">🔐 Secure Chat</h1>
+                <div class="chat-sidebar-actions">
+                    <button id="newChatBtn" title="New Chat">➕</button>
+                    <button id="backToMainBtn" title="Back to Dashboard">🏠</button>
+                </div>
+            </div>
+
+            <div class="chat-search">
+                <input type="text" class="chat-search-input" id="contactSearch" placeholder="Search contacts...">
+            </div>
+
+            <div class="chat-contacts" id="contactsList">
+                <!-- Contacts will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Main chat area -->
+        <div class="chat-main" id="chatMain">
+            <div class="chat-empty" id="chatEmpty">
+                <div class="chat-empty-icon">💬</div>
+                <h2 class="chat-empty-title">End-to-End Encrypted Chat</h2>
+                <p class="chat-empty-description">
+                    Select a contact to start a secure conversation.<br>
+                    All messages are encrypted on your device.
+                </p>
+            </div>
+
+            <!-- Chat header (hidden initially) -->
+            <div class="chat-main-header" id="chatHeader" style="display: none;">
+                <div class="chat-main-user">
+                    <div class="chat-main-avatar" id="chatAvatar"></div>
+                    <div class="chat-main-user-info">
+                        <div class="chat-main-user-name" id="chatUserName"></div>
+                        <div class="chat-main-user-status" id="chatUserStatus">Online</div>
+                    </div>
+                </div>
+                <div class="chat-main-actions">
+                    <button id="chatSearchBtn" title="Search">🔍</button>
+                    <button id="chatMenuBtn" title="Menu">⋮</button>
+                </div>
+            </div>
+
+            <!-- Encryption status badge -->
+            <div class="chat-encryption-badge" id="encryptionBadge" style="display: none;">
+                <span class="chat-encryption-icon">🔒</span>
+                <span>Messages are end-to-end encrypted</span>
+            </div>
+
+            <!-- Messages area (hidden initially) -->
+            <div class="chat-messages" id="messagesContainer" style="display: none;">
+                <!-- Messages will be loaded here -->
+            </div>
+
+            <!-- Typing indicator (hidden initially) -->
+            <div class="chat-typing-indicator" id="typingIndicator" style="display: none; margin: 8px 16px;">
+                <div class="chat-typing-dots">
+                    <div class="chat-typing-dot"></div>
+                    <div class="chat-typing-dot"></div>
+                    <div class="chat-typing-dot"></div>
+                </div>
+            </div>
+
+            <!-- Message input (hidden initially) -->
+            <div class="chat-input-container" id="chatInput" style="display: none;">
+                <div class="chat-input-actions">
+                    <button class="chat-input-action" id="attachFileBtn" title="Attach File">📎</button>
+                    <input type="file" id="fileInput" style="display: none;">
+                </div>
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="messageInput" 
+                        placeholder="Type a message..." 
+                        rows="1"
+                    ></textarea>
+                </div>
+                <button class="chat-send-button" id="sendBtn" disabled>
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include encryption library -->
+    <script src="/js/encryption.js"></script>
+    
+    <!-- Include chat logic -->
+    <script src="/js/chat.js"></script>
+</body>
+</html>
