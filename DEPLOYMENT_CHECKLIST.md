@@ -38,7 +38,8 @@ Use this checklist to ensure your webhotel deployment is secure and functional.
 
 ## Installation Wizard
 
-- [ ] Opened `http://yourwebsite.com/install.php` in browser
+- [ ] (Optional) Set `INSTALL_TOKEN` environment variable for enhanced security
+- [ ] Opened `http://yourwebsite.com/install.php` in browser (with `?token=` if INSTALL_TOKEN set)
 - [ ] **Step 1: System Check** - All green checkmarks ✓
 - [ ] **Step 2: Database Configuration** - Entered credentials and tested connection
 - [ ] **Step 3: Admin User** - Created admin account
@@ -51,6 +52,7 @@ Use this checklist to ensure your webhotel deployment is secure and functional.
 - [ ] Changed admin password in Settings
 - [ ] Tested logout and login again
 - [ ] Verified session persistence
+- [ ] (If INSTALL_TOKEN was used) Removed or changed the environment variable
 
 ## Functionality Testing
 

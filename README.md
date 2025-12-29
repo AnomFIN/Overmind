@@ -172,6 +172,16 @@ If you see permission errors, you need to make some folders writable:
 2. Edit `php/config.php` on your server
 3. Add your API key: `define('OPENAI_API_KEY', 'your-key-here');`
 
+#### Optional: Enhanced Installer Security
+
+For additional security, protect the installer with a token:
+
+1. Set environment variable `INSTALL_TOKEN` to a random string in your hosting control panel
+2. Access installer with: `http://yoursite.com/install.php?token=your-token`
+3. Without the correct token, the installer will be blocked
+
+**Note:** This is optional and only needed if you want extra protection during installation.
+
 ---
 
 ### Option 2: Linux Server (Node.js) - Full Features

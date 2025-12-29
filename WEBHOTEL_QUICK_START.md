@@ -138,9 +138,27 @@ Before starting, make sure you have:
 
 ## 🚀 Step 5: Run the Installation Wizard
 
+### Optional: Enhanced Installer Security (Advanced)
+
+For additional security, you can protect the installer with a token:
+
+1. **Set Environment Variable** (before running installer)
+   - In cPanel: Go to "PHP Variables" or "Environment Variables"
+   - Add variable: `INSTALL_TOKEN` = `your-secret-token-here`
+   - Use a long random string (e.g., `a8f4d9c2b7e3f1a9d4c8b2e7f3a1d9c4`)
+
+2. **Access Installer with Token**
+   - Go to: `http://yourwebsite.com/install.php?token=your-secret-token-here`
+   - Without the correct token, installer will be blocked
+
+**Note:** This is optional. If you don't set INSTALL_TOKEN, the installer works normally.
+
+### Standard Installation
+
 1. **Open Your Browser**
    - Go to: `http://yourwebsite.com/install.php`
    - Replace `yourwebsite.com` with your actual domain
+   - If you set INSTALL_TOKEN, add `?token=your-token` to the URL
 
 2. **Step 1: System Check**
    - The installer will check your server

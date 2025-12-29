@@ -167,6 +167,13 @@ Return JSON Response
 - CSRF protection via SameSite cookies
 - Regeneration on privilege escalation
 
+### Installer Security
+- Install lock file prevents re-running
+- Optional INSTALL_TOKEN environment variable for additional protection
+- Timing-attack-safe token comparison using hash_equals()
+- Token can be passed via GET or POST parameters
+- Clear error messages without exposing system details
+
 ---
 
 ## 📊 Database Schema
