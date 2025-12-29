@@ -198,6 +198,65 @@ class StorageAdapter {
     async getAuditLogs(filters = {}) {
         throw new Error('Method getAuditLogs() must be implemented');
     }
+
+    /**
+     * E2E Encrypted Chat operations
+     */
+    async storeUserKeys(userId, publicKey, encryptedPrivateKey) {
+        throw new Error('Method storeUserKeys() must be implemented');
+    }
+
+    async getUserPublicKey(userId) {
+        throw new Error('Method getUserPublicKey() must be implemented');
+    }
+
+    async getUserKeys(userId) {
+        throw new Error('Method getUserKeys() must be implemented');
+    }
+
+    async storeEncryptedFile(fileData) {
+        throw new Error('Method storeEncryptedFile() must be implemented');
+    }
+
+    async getEncryptedFile(fileId) {
+        throw new Error('Method getEncryptedFile() must be implemented');
+    }
+
+    async deleteEncryptedFile(fileId) {
+        throw new Error('Method deleteEncryptedFile() must be implemented');
+    }
+
+    async updateTypingStatus(conversationId, userId, isTyping) {
+        throw new Error('Method updateTypingStatus() must be implemented');
+    }
+
+    async getTypingStatus(conversationId) {
+        throw new Error('Method getTypingStatus() must be implemented');
+    }
+
+    async createReadReceipt(messageId, userId) {
+        throw new Error('Method createReadReceipt() must be implemented');
+    }
+
+    async getReadReceipts(messageId) {
+        throw new Error('Method getReadReceipts() must be implemented');
+    }
+
+    async markMessageDelivered(messageId) {
+        throw new Error('Method markMessageDelivered() must be implemented');
+    }
+
+    async deleteMessage(messageId, userId, forEveryone) {
+        throw new Error('Method deleteMessage() must be implemented');
+    }
+
+    async createMessageWithEncryption(messageData) {
+        throw new Error('Method createMessageWithEncryption() must be implemented');
+    }
+
+    async getMessagesForUser(threadId, userId, limit, offset) {
+        throw new Error('Method getMessagesForUser() must be implemented');
+    }
 }
 
 module.exports = StorageAdapter;

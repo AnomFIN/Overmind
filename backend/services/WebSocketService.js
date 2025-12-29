@@ -219,6 +219,76 @@ class WebSocketService {
     }
 
     /**
+     * Broadcast typing status to thread participants
+     */
+    async broadcastTypingStatus(threadId, userId, isTyping, participants) {
+        const payload = {
+            type: 'typing',
+            threadId,
+            userId,
+            isTyping,
+            timestamp: Date.now()
+        };
+
+        participants.forEach(participantId => {
+            if (participantId !== userId) {
+                this.sendToUser(participantId, payload);
+            }
+        });
+    }
+
+    /**
+     * Broadcast read receipt to thread participants
+     */
+    async broadcastReadReceipt(messageId, userId, participants) {
+        const payload = {
+            type: 'read_receipt',
+            messageId,
+            userId,
+            timestamp: Date.now()
+        };
+
+        participants.forEach(participantId => {
+            if (participantId !== userId) {
+                this.sendToUser(participantId, payload);
+            }
+        });
+    }
+
+    /**
+     * Broadcast message deletion to thread participants
+     */
+    async broadcastMessageDeleted(messageId, participants) {
+        const payload = {
+            type: 'message_deleted',
+            messageId,
+            timestamp: Date.now()
+        };
+
+        participants.forEach(participantId => {
+            this.sendToUser(participantId, payload);
+        });
+    }
+
+    /**
+     * Broadcast message delivery confirmation
+     */
+    async broadcastMessageDelivered(messageId, userId, participants) {
+        const payload = {
+            type: 'message_delivered',
+            messageId,
+            userId,
+            timestamp: Date.now()
+        };
+
+        participants.forEach(participantId => {
+            if (participantId !== userId) {
+                this.sendToUser(participantId, payload);
+            }
+        });
+    }
+
+    /**
      * Start heartbeat to detect dead connections
      */
     startHeartbeat() {

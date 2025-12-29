@@ -140,6 +140,167 @@ class ChatService {
         await this.storage.markMessageAsRead(messageId, userId);
         return true;
     }
+
+    /**
+     * Store user's encryption keys
+     */
+    async storeKeys(userId, publicKey, encryptedPrivateKey) {
+        return await this.storage.storeUserKeys(userId, publicKey, encryptedPrivateKey);
+    }
+
+    /**
+     * Get user's public key
+     */
+    async getPublicKey(userId) {
+        return await this.storage.getUserPublicKey(userId);
+    }
+
+    /**
+     * Get user's encryption keys (including encrypted private key)
+     */
+    async getUserKeys(userId) {
+        return await this.storage.getUserKeys(userId);
+    }
+
+    /**
+     * Send encrypted message with file support
+     */
+    async sendEncryptedMessage(threadId, userId, content, metadata = {}) {
+        // Verify user is participant
+        const thread = await this.storage.getThread(threadId);
+        if (!thread || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
+        const message = await this.storage.createMessageWithEncryption({
+            threadId,
+            senderId: userId,
+            content,
+            encryptionMetadata: metadata.encryption || {},
+            messageType: metadata.type || 'text',
+            fileId: metadata.fileId || null
+        });
+
+        // Get sender details
+        const sender = await this.storage.getUserById(userId);
+        
+        return {
+            ...message,
+            sender: sender ? {
+                id: sender.id,
+                displayName: sender.displayName
+            } : null
+        };
+    }
+
+    /**
+     * Get messages for user (filtering deleted messages)
+     */
+    async getMessagesForUser(threadId, userId, limit = 50, offset = 0) {
+        // Verify user is participant
+        const thread = await this.storage.getThread(threadId);
+        if (!thread || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
+        const messages = await this.storage.getMessagesForUser(threadId, userId, limit, offset);
+
+        // Get sender details and read receipts
+        const messagesWithDetails = await Promise.all(
+            messages.map(async (message) => {
+                const sender = await this.storage.getUserById(message.senderId);
+                const readReceipts = await this.storage.getReadReceipts(message.id);
+                
+                return {
+                    ...message,
+                    sender: sender ? {
+                        id: sender.id,
+                        displayName: sender.displayName
+                    } : null,
+                    readReceipts
+                };
+            })
+        );
+
+        return messagesWithDetails;
+    }
+
+    /**
+     * Upload encrypted file
+     */
+    async uploadEncryptedFile(fileData, uploadedBy) {
+        return await this.storage.storeEncryptedFile({
+            ...fileData,
+            uploadedBy
+        });
+    }
+
+    /**
+     * Get encrypted file
+     */
+    async getEncryptedFile(fileId, userId) {
+        const file = await this.storage.getEncryptedFile(fileId);
+        
+        if (!file) {
+            throw new Error('File not found');
+        }
+
+        // Verify user has access to this file (uploaded by them or received in a message)
+        // For now, we'll allow access if user exists
+        // TODO: Add proper access control based on message participation
+        
+        return file;
+    }
+
+    /**
+     * Update typing status
+     */
+    async updateTypingStatus(threadId, userId, isTyping) {
+        // Verify user is participant
+        const thread = await this.storage.getThread(threadId);
+        if (!thread || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
+        return await this.storage.updateTypingStatus(threadId, userId, isTyping);
+    }
+
+    /**
+     * Get typing status
+     */
+    async getTypingStatus(threadId, userId) {
+        // Verify user is participant
+        const thread = await this.storage.getThread(threadId);
+        if (!thread || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
+        return await this.storage.getTypingStatus(threadId);
+    }
+
+    /**
+     * Mark message as delivered
+     */
+    async markAsDelivered(messageId, userId) {
+        // TODO: Verify user is recipient
+        return await this.storage.markMessageDelivered(messageId);
+    }
+
+    /**
+     * Create read receipt
+     */
+    async createReadReceipt(messageId, userId) {
+        // TODO: Verify user is recipient
+        await this.storage.createReadReceipt(messageId, userId);
+        return true;
+    }
+
+    /**
+     * Delete message
+     */
+    async deleteMessage(messageId, userId, forEveryone = false) {
+        return await this.storage.deleteMessage(messageId, userId, forEveryone);
+    }
 }
 
 module.exports = ChatService;
