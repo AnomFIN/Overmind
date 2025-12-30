@@ -253,7 +253,7 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
 
     // GET /api/chat/keys/:userId
     // Get another user's public key
-    router.get('/keys/:userId', async (req, res) => {
+    router.get('/keys/:userId', rateLimiters.api, async (req, res) => {
         try {
             const { userId } = req.params;
 
@@ -300,6 +300,28 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
                     error: 'Message too long',
                     message: 'Encrypted message must be less than 50000 characters'
                 });
+            }
+
+            // Validate encryption metadata structure
+            if (metadata && metadata.encryption) {
+                const { encryptedKey, iv, algorithm } = metadata.encryption;
+                
+                // Check required fields exist
+                if (!encryptedKey || !iv) {
+                    return res.status(400).json({
+                        error: 'Invalid encryption metadata',
+                        message: 'Encryption metadata must include encryptedKey and iv'
+                    });
+                }
+
+                // Basic base64 validation (simplified check)
+                const base64Pattern = /^[A-Za-z0-9+/=]+$/;
+                if (!base64Pattern.test(encryptedKey) || !base64Pattern.test(iv)) {
+                    return res.status(400).json({
+                        error: 'Invalid encryption metadata',
+                        message: 'Encryption key and IV must be valid base64 strings'
+                    });
+                }
             }
 
             const message = await chatService.sendEncryptedMessage(
@@ -349,21 +371,12 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
     // Upload encrypted file
     router.post('/files/upload', rateLimiters.api, async (req, res) => {
         try {
-            const { filename, originalName, encryptedContent, encryptionKey, mimeType, size } = req.body;
+            const { filename, originalName, encryptedContent, encryptionKey, iv, mimeType, size } = req.body;
 
-            if (!filename || !encryptedContent || !encryptionKey || !mimeType) {
+            if (!filename || !encryptedContent || !encryptionKey || !iv || !mimeType) {
                 return res.status(400).json({
                     error: 'Missing required fields',
-                    message: 'Filename, encrypted content, encryption key, and mime type are required'
-                });
-            }
-
-            // Validate original file size (before encryption)
-            const maxSizeBytes = 10 * 1024 * 1024; // 10MB
-            if (size && size > maxSizeBytes) {
-                return res.status(400).json({
-                    error: 'File too large',
-                    message: 'File must be less than 10MB'
+                    message: 'Filename, encrypted content, encryption key, IV, and mime type are required'
                 });
             }
 
@@ -376,13 +389,17 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
                 });
             }
 
+            // Sanitize originalName to prevent path traversal
+            const sanitizedName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+
             const file = await chatService.uploadEncryptedFile({
                 filename,
-                originalName,
+                originalName: sanitizedName,
                 encryptedContent,
                 encryptionKey,
+                iv,
                 mimeType,
-                size: size || encryptedContent.length
+                size: encryptedContent.length
             }, req.user.id);
 
             res.json({
@@ -408,7 +425,7 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
 
     // GET /api/chat/files/:fileId
     // Download encrypted file
-    router.get('/files/:fileId', async (req, res) => {
+    router.get('/files/:fileId', rateLimiters.api, async (req, res) => {
         try {
             const { fileId } = req.params;
 
@@ -466,7 +483,7 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
 
     // GET /api/chat/typing/:threadId
     // Get typing status for thread
-    router.get('/typing/:threadId', async (req, res) => {
+    router.get('/typing/:threadId', rateLimiters.api, async (req, res) => {
         try {
             const { threadId } = req.params;
 

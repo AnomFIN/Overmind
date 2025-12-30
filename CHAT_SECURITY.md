@@ -11,10 +11,12 @@ The AnomHome Overmind chat system implements end-to-end encryption (E2E) to ensu
 All messages and files shared through the chat system are encrypted on the client-side (in the user's browser) before being sent to the server. The server only stores encrypted data and cannot read message contents.
 
 **Key Principles:**
-- **Zero-Knowledge Server**: The server never has access to unencrypted message content
+- **Zero-Knowledge Server**: The server never has access to unencrypted message content (but does store encrypted private key backups and all metadata)
 - **Client-Side Encryption**: All encryption/decryption happens in the browser
-- **Forward Secrecy**: Each message uses a unique encryption key
-- **Secure Key Storage**: Private keys are stored encrypted in IndexedDB
+- **Per-Message Unique Keys**: Each message uses a freshly generated AES encryption key
+- **Secure Key Storage**: Private keys are stored in browser IndexedDB
+
+> **Note**: Because the RSA key pair is long-lived and used to encrypt per-message AES keys, this design does **not** provide forward secrecy in the strict cryptographic sense. Compromise of the long-term RSA private key would allow decryption of past messages.
 
 ## Encryption Implementation
 
@@ -34,8 +36,8 @@ When a user first accesses the chat feature, the system generates a 2048-bit RSA
 
 **Key Storage:**
 - **Public Key**: Stored on the server in plaintext (shareable)
-- **Private Key**: Encrypted with user's session token and stored in IndexedDB
-- **Backup**: Encrypted private key also stored on server for recovery
+- **Private Key**: Stored in browser IndexedDB (currently unencrypted - TODO: encrypt with user password)
+- **Backup**: Encrypted private key backup stored on server (encrypted with session token - should be user password)
 
 ### Message Encryption Process
 
@@ -174,9 +176,11 @@ All cryptographic operations use the Web Crypto API, which provides:
 | End-to-End Encryption | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Optional |
 | Open Source | ✅ Yes | ❌ No | ✅ Yes | ⚠️ Partial |
 | Self-Hosted | ✅ Yes | ❌ No | ❌ No | ❌ No |
-| Zero-Knowledge Server | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Optional |
+| Zero-Knowledge Server | ⚠️ Partial* | ✅ Yes | ✅ Yes | ⚠️ Optional |
 | File Encryption | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Optional |
 | Metadata Protection | ❌ No | ❌ No | ⚠️ Sealed Sender | ⚠️ Limited |
+
+\* Server stores encrypted private key backups and has access to all metadata (who talks to whom, when).
 
 ## Limitations
 

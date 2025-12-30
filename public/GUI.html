@@ -581,7 +581,8 @@
         }
         
         // Handle secure chat navigation
-        document.addEventListener('DOMContentLoaded', function() {
+        // Check if DOM is already loaded or wait for it
+        function initSecureChat() {
             const secureChatNav = document.getElementById('secureChatNav');
             if (secureChatNav) {
                 secureChatNav.addEventListener('click', function(e) {
@@ -590,7 +591,13 @@
                     window.location.href = '/chat.html';
                 });
             }
-        });
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSecureChat);
+        } else {
+            initSecureChat();
+        }
     </script>
 </body>
 </html>

@@ -298,7 +298,19 @@ class ChatService {
      * Mark message as delivered
      */
     async markAsDelivered(messageId, userId) {
-        // TODO: Verify user is recipient
+        // Verify user is participant in the message's thread
+        const messages = await this.storage.readFile('chat_messages.json');
+        const message = messages.find(m => m.id === messageId);
+        
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        const thread = await this.storage.getThread(message.threadId);
+        if (!thread || !thread.participants || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
         return await this.storage.markMessageDelivered(messageId);
     }
 
@@ -306,7 +318,19 @@ class ChatService {
      * Create read receipt
      */
     async createReadReceipt(messageId, userId) {
-        // TODO: Verify user is recipient
+        // Verify user is participant in the message's thread
+        const messages = await this.storage.readFile('chat_messages.json');
+        const message = messages.find(m => m.id === messageId);
+        
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        const thread = await this.storage.getThread(message.threadId);
+        if (!thread || !thread.participants || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
         await this.storage.createReadReceipt(messageId, userId);
         return true;
     }
@@ -315,6 +339,25 @@ class ChatService {
      * Delete message
      */
     async deleteMessage(messageId, userId, forEveryone = false) {
+        // Fetch message to verify permissions
+        const messages = await this.storage.readFile('chat_messages.json');
+        const message = messages.find(m => m.id === messageId);
+        
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        // For "delete for everyone", only the sender can perform this action
+        if (forEveryone && message.senderId !== userId) {
+            throw new Error('Only the sender can delete messages for everyone');
+        }
+
+        // Verify user is a participant in the conversation
+        const thread = await this.storage.getThread(message.threadId);
+        if (!thread || !thread.participants || !thread.participants.includes(userId)) {
+            throw new Error('Access denied');
+        }
+
         return await this.storage.deleteMessage(messageId, userId, forEveryone);
     }
 }

@@ -827,6 +827,7 @@ class JsonStorageAdapter extends StorageAdapter {
             originalName: fileData.originalName,
             encryptedContent: fileData.encryptedContent,
             encryptionKey: fileData.encryptionKey,
+            iv: fileData.iv,
             mimeType: fileData.mimeType,
             size: fileData.size,
             uploadedBy: fileData.uploadedBy,
@@ -960,6 +961,10 @@ class JsonStorageAdapter extends StorageAdapter {
             message.deletedAt = new Date().toISOString();
             message.deletedForEveryone = true;
             message.content = '[Message deleted]';
+            // Clear encryption metadata to avoid leaking encryption parameters
+            if (message.encryptionMetadata) {
+                message.encryptionMetadata = {};
+            }
         } else {
             // Delete for self only
             if (!message.deletedFor) {

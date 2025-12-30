@@ -1,6 +1,8 @@
 /**
  * End-to-End Encryption Library
- * Implements Signal Protocol-inspired encryption using Web Crypto API
+ * Implements hybrid RSA-OAEP + AES-GCM encryption using the Web Crypto API.
+ * Note: This is not the Signal Protocol and does not implement a Double Ratchet
+ * or provide Signal-style forward secrecy.
  */
 
 class EncryptionManager {
@@ -10,22 +12,40 @@ class EncryptionManager {
         this.privateKey = null;
         this.db = null;
         this.initialized = false;
+        this.initPromise = null;
     }
 
     /**
      * Initialize encryption manager and IndexedDB
      */
     async init() {
-        if (this.initialized) return;
+        if (this.initialized) {
+            return;
+        }
 
-        // Open IndexedDB for secure key storage
-        this.db = await this.openDatabase();
+        // If initialization is already in progress, wait for it
+        if (this.initPromise) {
+            return this.initPromise;
+        }
 
-        // Load or generate keys
-        await this.loadOrGenerateKeys();
+        // Start initialization and share the same promise across callers
+        this.initPromise = (async () => {
+            // Open IndexedDB for secure key storage
+            this.db = await this.openDatabase();
 
-        this.initialized = true;
-        console.log('[Encryption] Initialized');
+            // Load or generate keys
+            await this.loadOrGenerateKeys();
+
+            this.initialized = true;
+            console.log('[Encryption] Initialized');
+        })();
+
+        try {
+            return await this.initPromise;
+        } finally {
+            // Clear the promise reference once initialization has completed
+            this.initPromise = null;
+        }
     }
 
     /**
@@ -342,6 +362,9 @@ class EncryptionManager {
 
     /**
      * Derive key from password using PBKDF2
+     * @param {string} password - The password to derive the key from
+     * @param {string|null} saltBase64 - Optional base64-encoded salt. If not provided, a new random salt is generated
+     * @returns {Promise<{key: CryptoKey, salt: string}>} Object containing the derived key and base64-encoded salt
      */
     async deriveKeyFromPassword(password, saltBase64 = null) {
         const encoder = new TextEncoder();

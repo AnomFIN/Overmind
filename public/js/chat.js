@@ -213,26 +213,42 @@ class ChatApp {
             const unreadCount = 0; // TODO: Calculate actual unread count
 
             return `
-                <div class="chat-contact" data-friend-id="${friend.id}" data-thread-id="${thread?.id || ''}">
+                <div class="chat-contact" 
+                     data-friend-id="${friend.id}" 
+                     data-thread-id="${thread?.id || ''}"
+                     role="button"
+                     tabindex="0"
+                     aria-label="Chat with ${this.escapeHtml(friend.displayName || friend.email)}">
                     <div class="chat-contact-avatar">${initials}</div>
                     <div class="chat-contact-info">
                         <div class="chat-contact-name">${this.escapeHtml(friend.displayName || friend.email)}</div>
                         <div class="chat-contact-last-message">${lastMessage}</div>
                     </div>
                     <div class="chat-contact-meta">
-                        <div class="chat-contact-time">12:00</div>
+                        <div class="chat-contact-time"></div>
                         ${unreadCount > 0 ? `<div class="chat-contact-unread">${unreadCount}</div>` : ''}
                     </div>
                 </div>
             `;
         }).join('');
 
-        // Add click handlers
+        // Add click and keyboard handlers
         document.querySelectorAll('.chat-contact').forEach(contact => {
-            contact.addEventListener('click', () => {
+            const openChatHandler = () => {
                 const friendId = contact.dataset.friendId;
                 const threadId = contact.dataset.threadId;
                 this.openChat(friendId, threadId);
+            };
+            
+            contact.addEventListener('click', openChatHandler);
+            
+            contact.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openChatHandler();
+                }
+            });
+        });
             });
         });
     }
@@ -377,30 +393,37 @@ class ChatApp {
             return;
         }
 
+        // Decrypt all messages in parallel to improve performance
+        const decryptionResults = await Promise.all(
+            this.messages.map(async (message) => {
+                let decryptedContent = '';
+                try {
+                    // Decrypt message
+                    if (message.encryptionMetadata && message.encryptionMetadata.encryptedKey) {
+                        decryptedContent = await encryptionManager.decryptMessage(
+                            message.content,
+                            message.encryptionMetadata.encryptedKey,
+                            message.encryptionMetadata.iv
+                        );
+                    } else {
+                        // Fallback for non-encrypted messages
+                        decryptedContent = message.content;
+                    }
+                } catch (error) {
+                    const errorLabel = error && (error.code || error.name || 'UnknownError');
+                    console.error('[Chat] Error decrypting message:', errorLabel);
+                    decryptedContent = '[Cannot decrypt message]';
+                }
+
+                return { message, decryptedContent };
+            })
+        );
+
         const messagesHtml = [];
         
-        for (const message of this.messages) {
+        for (const { message, decryptedContent } of decryptionResults) {
             const isSent = message.senderId === this.currentUser.id;
             const time = this.formatTime(message.createdAt);
-
-            let decryptedContent = '';
-            try {
-                // Decrypt message
-                if (message.encryptionMetadata && message.encryptionMetadata.encryptedKey) {
-                    decryptedContent = await encryptionManager.decryptMessage(
-                        message.content,
-                        message.encryptionMetadata.encryptedKey,
-                        message.encryptionMetadata.iv
-                    );
-                } else {
-                    // Fallback for non-encrypted messages
-                    decryptedContent = message.content;
-                }
-            } catch (error) {
-                console.error('[Chat] Error decrypting message:', error);
-                decryptedContent = '[Cannot decrypt message]';
-            }
-
             const readStatus = message.readReceipts && message.readReceipts.length > 0 ? 'read' : '';
 
             messagesHtml.push(`
@@ -422,6 +445,16 @@ class ChatApp {
         }
 
         container.innerHTML = messagesHtml.join('');
+        
+        // Add event listeners for file download buttons
+        container.querySelectorAll('.chat-message-file-download').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const fileId = e.currentTarget.getAttribute('data-file-id');
+                if (fileId) {
+                    this.downloadFile(fileId);
+                }
+            });
+        });
     }
 
     /**
@@ -437,7 +470,7 @@ class ChatApp {
                     <div class="chat-message-file-name">File attachment</div>
                     <div class="chat-message-file-size">Download to view</div>
                 </div>
-                <button class="chat-message-file-download" onclick="chatApp.downloadFile('${message.fileId}')">
+                <button class="chat-message-file-download" data-file-id="${this.escapeHtml(message.fileId)}">
                     ⬇
                 </button>
             </div>
@@ -526,6 +559,7 @@ class ChatApp {
                     originalName: file.name,
                     encryptedContent: encrypted.encryptedContent,
                     encryptionKey: encrypted.key,
+                    iv: encrypted.iv,
                     mimeType: file.type,
                     size: file.size
                 })
@@ -760,18 +794,23 @@ class ChatApp {
 
         // Message input
         const messageInput = document.getElementById('messageInput');
+        let typingStartSent = false;
         
         messageInput.addEventListener('input', () => {
             this.updateSendButton();
             this.autoResizeTextarea(messageInput);
             
-            // Send typing indicator
-            this.sendTypingStatus(true);
+            // Debounce typing start indicator - only send once until stop
+            if (!typingStartSent) {
+                this.sendTypingStatus(true);
+                typingStartSent = true;
+            }
             
-            // Clear typing timeout
+            // Clear and reset timeout for typing stop
             clearTimeout(this.typingTimeout);
             this.typingTimeout = setTimeout(() => {
                 this.sendTypingStatus(false);
+                typingStartSent = false;
             }, 3000);
         });
 
