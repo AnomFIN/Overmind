@@ -390,7 +390,12 @@ function createChatRouter(chatService, storage, authMiddleware, rateLimiters, ws
             }
 
             // Sanitize originalName to prevent path traversal
-            const sanitizedName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+            // Remove path separators and keep only the basename, limit to alphanumeric and single extension
+            const sanitizedName = originalName
+                .replace(/^.*[\/\\]/, '') // Remove any path
+                .replace(/\.+/g, '.') // Replace multiple dots with single dot
+                .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special chars
+                .substring(0, 255); // Limit length
 
             const file = await chatService.uploadEncryptedFile({
                 filename,
