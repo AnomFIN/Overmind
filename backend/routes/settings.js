@@ -7,8 +7,46 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const SETTINGS_FILE = path.join(__dirname, '..', '..', '.env');
+
+// Security constants
+const MIN_SECRET_LENGTH = 32;
+const WEAK_SECRETS = ['your_secret_key_here', 'secret', 'password', '123456'];
+
+/**
+ * Generate a cryptographically secure random secret
+ */
+function generateSecureSecret() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * Validate session secret for security requirements
+ * @param {string} secret - The secret to validate
+ * @returns {object} - {valid: boolean, error: string}
+ */
+function validateSessionSecret(secret) {
+    if (!secret || typeof secret !== 'string') {
+        return { valid: false, error: 'Session secret is required' };
+    }
+
+    // Check for weak/common secrets
+    if (WEAK_SECRETS.some(weak => secret.toLowerCase().includes(weak.toLowerCase()))) {
+        return { valid: false, error: 'Session secret is too weak. Please use a strong, unique secret.' };
+    }
+
+    // Check minimum length
+    if (secret.length < MIN_SECRET_LENGTH) {
+        return { 
+            valid: false, 
+            error: `Session secret must be at least ${MIN_SECRET_LENGTH} characters long for security.` 
+        };
+    }
+
+    return { valid: true };
+}
 
 /**
  * Read current settings from .env file
@@ -62,7 +100,15 @@ function writeEnvSettings(settings) {
     content += `MAX_UPLOAD_SIZE=${settings.maxUploadSize || 100}\n\n`;
     
     content += '# Security\n';
-    content += `SECRET_KEY=${settings.sessionSecret || 'your_secret_key_here'}\n`;
+    // Never write a weak default - require a valid secret
+    if (settings.sessionSecret && settings.sessionSecret !== 'your_secret_key_here') {
+        content += `SECRET_KEY=${settings.sessionSecret}\n`;
+    } else {
+        // If no valid secret provided, generate a secure one
+        const secureSecret = generateSecureSecret();
+        content += `SECRET_KEY=${secureSecret}\n`;
+        console.warn('[Settings] Generated new secure session secret');
+    }
     
     fs.writeFileSync(SETTINGS_FILE, content, 'utf8');
 }
@@ -148,6 +194,30 @@ router.post('/', (req, res) => {
             validatedMaxUploadSize = parsedMaxUploadSize;
         }
 
+        // Validate or generate session secret
+        let validatedSessionSecret = sessionSecret;
+        if (sessionSecret && sessionSecret !== '****') {
+            // User provided a secret, validate it
+            const validation = validateSessionSecret(sessionSecret);
+            if (!validation.valid) {
+                return res.status(400).json({ error: validation.error });
+            }
+            validatedSessionSecret = sessionSecret;
+        } else {
+            // No secret provided or placeholder, read existing or generate new
+            const envSettings = readEnvSettings();
+            const existingSecret = envSettings.SECRET_KEY;
+            
+            // Check if existing secret is valid
+            if (existingSecret && validateSessionSecret(existingSecret).valid) {
+                validatedSessionSecret = existingSecret;
+            } else {
+                // Generate a new secure secret
+                validatedSessionSecret = generateSecureSecret();
+                console.warn('[Settings] Generated new secure session secret');
+            }
+        }
+
         // Write settings to .env file
         writeEnvSettings({
             aiProvider,
@@ -157,7 +227,7 @@ router.post('/', (req, res) => {
             localServerPort: validatedLocalServerPort,
             fileRoot,
             maxUploadSize: validatedMaxUploadSize,
-            sessionSecret
+            sessionSecret: validatedSessionSecret
         });
 
         res.json({
