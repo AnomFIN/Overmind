@@ -22,7 +22,214 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCameras();
     loadNotes();
     browsePath('');
+    
+    // Add neon animations and effects
+    initNeonEffects();
+    initTechAnimations();
+    addParticleBackground();
 });
+
+// ==================== Neon Effects & Tech Animations ====================
+
+function initNeonEffects() {
+    // Add glitch effect to logo
+    const logo = document.querySelector('.logo-image');
+    if (logo) {
+        setInterval(() => {
+            if (Math.random() < 0.1) { // 10% chance every interval
+                logo.style.filter = 'hue-rotate(90deg) saturate(2) brightness(1.2)';
+                setTimeout(() => {
+                    logo.style.filter = 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.6))';
+                }, 100);
+            }
+        }, 2000);
+    }
+    
+    // Add typing effect to status indicators
+    addTypingEffect();
+    
+    // Add random glow pulses
+    addRandomGlowPulses();
+}
+
+function initTechAnimations() {
+    // Add staggered animation to dashboard cards
+    const cards = document.querySelectorAll('.dashboard-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('slide-in-animation');
+        
+        // Add tech-themed hover effects
+        card.addEventListener('mouseenter', () => {
+            createRippleEffect(card);
+            addDataStream(card);
+        });
+    });
+    
+    // Add matrix-style background to panels
+    addMatrixEffect();
+}
+
+function addParticleBackground() {
+    const particleContainer = document.createElement('div');
+    particleContainer.className = 'particle-background';
+    particleContainer.innerHTML = `
+        <div class="particles">
+            ${Array.from({length: 50}, () => 
+                `<div class="particle" style="
+                    left: ${Math.random() * 100}%;
+                    top: ${Math.random() * 100}%;
+                    animation-delay: ${Math.random() * 2}s;
+                    animation-duration: ${3 + Math.random() * 2}s;
+                "></div>`
+            ).join('')}
+        </div>
+    `;
+    
+    document.body.appendChild(particleContainer);
+}
+
+function addTypingEffect() {
+    const statusElements = document.querySelectorAll('.status-value, .system-status span');
+    statusElements.forEach(element => {
+        if (element.textContent && element.textContent.length > 1) {
+            const text = element.textContent;
+            element.textContent = '';
+            
+            let i = 0;
+            const typeInterval = setInterval(() => {
+                element.textContent += text[i];
+                i++;
+                if (i >= text.length) {
+                    clearInterval(typeInterval);
+                    element.style.borderRight = '2px solid var(--neon-blue)';
+                    element.style.animation = 'var(--animation-pulse)';
+                }
+            }, 100);
+        }
+    });
+}
+
+function addRandomGlowPulses() {
+    const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
+    
+    setInterval(() => {
+        const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
+        if (randomElement && Math.random() < 0.3) {
+            randomElement.style.animation = 'neonPulse 1s ease-in-out';
+            setTimeout(() => {
+                randomElement.style.animation = '';
+            }, 1000);
+        }
+    }, 3000);
+}
+
+function createRippleEffect(element) {
+    const ripple = document.createElement('div');
+    ripple.className = 'ripple-effect';
+    ripple.style.cssText = `
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--neon-blue) 0%, transparent 70%);
+        width: 100px;
+        height: 100px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        animation: ripple 0.6s ease-out;
+        pointer-events: none;
+        z-index: 1000;
+    `;
+    
+    element.style.position = 'relative';
+    element.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 600);
+}
+
+function addDataStream(element) {
+    const stream = document.createElement('div');
+    stream.className = 'data-stream';
+    stream.innerHTML = Array.from({length: 20}, () => 
+        Math.random().toString(36).substring(7)
+    ).join(' ');
+    
+    stream.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        color: var(--neon-green);
+        font-family: 'Courier New', monospace;
+        font-size: 8px;
+        opacity: 0.3;
+        white-space: nowrap;
+        overflow: hidden;
+        animation: dataFlow 2s ease-out;
+        pointer-events: none;
+        z-index: 1;
+    `;
+    
+    element.appendChild(stream);
+    
+    setTimeout(() => {
+        stream.remove();
+    }, 2000);
+}
+
+function addMatrixEffect() {
+    const panels = document.querySelectorAll('.panel');
+    panels.forEach(panel => {
+        panel.addEventListener('transitionend', () => {
+            if (panel.classList.contains('active')) {
+                createMatrixRain(panel);
+            }
+        });
+    });
+}
+
+function createMatrixRain(container) {
+    const matrix = document.createElement('div');
+    matrix.className = 'matrix-rain';
+    matrix.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.1;
+    `;
+    
+    // Create falling characters
+    for (let i = 0; i < 20; i++) {
+        const char = document.createElement('div');
+        char.textContent = String.fromCharCode(33 + Math.random() * 94);
+        char.style.cssText = `
+            position: absolute;
+            left: ${Math.random() * 100}%;
+            top: -20px;
+            color: var(--neon-green);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            animation: fall ${2 + Math.random() * 3}s linear infinite;
+            animation-delay: ${Math.random() * 2}s;
+        `;
+        matrix.appendChild(char);
+    }
+    
+    container.style.position = 'relative';
+    container.appendChild(matrix);
+    
+    setTimeout(() => {
+        matrix.remove();
+    }, 5000);
+}
 
 // ==================== Navigation ====================
 
@@ -589,8 +796,41 @@ async function loadNotes() {
         select.innerHTML = '<option value="">-- Select Note --</option>' +
             notes.map(note => `<option value="${note.id}">${escapeHtml(note.title)}</option>`).join('');
         
+        // Update notes grid
+        const notesGrid = document.getElementById('notesGrid');
+        if (notes.length === 0) {
+            notesGrid.innerHTML = '<p class="empty-message">No notes yet. Create your first mind map!</p>';
+        } else {
+            notesGrid.innerHTML = notes.map(note => `
+                <div class="note-card" onclick="loadNote('${note.id}')">
+                    <div class="note-card-header">
+                        <div class="note-title">${escapeHtml(note.title)}</div>
+                        <div class="note-toggle ${note.isPublic ? 'active' : ''}" 
+                             onclick="event.stopPropagation(); toggleNotePublic('${note.id}', ${!note.isPublic})" 
+                             title="${note.isPublic ? 'Public' : 'Private'}">
+                            ${note.isPublic ? '➤' : '○'}
+                        </div>
+                    </div>
+                    <div class="note-meta">
+                        ${note.nodes ? note.nodes.length : 1} nodes • 
+                        ${formatDate(note.updatedAt)}
+                    </div>
+                    <div class="note-preview">
+                        ${escapeHtml(note.content || 'Click to edit this mind map')}
+                    </div>
+                    ${note.isPublic && note.shareCode ? `
+                        <div class="note-url">
+                            ${window.location.origin}/share/${note.shareCode}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
     } catch (err) {
         console.error('Failed to load notes:', err);
+        document.getElementById('notesGrid').innerHTML = 
+            '<p class="empty-message">Failed to load notes</p>';
     }
 }
 
@@ -624,6 +864,53 @@ async function createNote(e) {
         }
     } catch (err) {
         alert('Failed to create note: ' + err.message);
+    }
+}
+
+// Toggle individual note public status
+async function toggleNotePublic(noteId, isPublic) {
+    try {
+        const response = await fetch(`${API_BASE}/notes/${noteId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isPublic })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(data.error);
+        } else {
+            loadNotes(); // Refresh the notes grid
+        }
+    } catch (err) {
+        alert('Failed to update note visibility: ' + err.message);
+    }
+}
+
+// Toggle all notes public/private
+async function toggleAllNotesPublic() {
+    try {
+        const response = await fetch(`${API_BASE}/notes`);
+        const notes = await response.json();
+        
+        // Determine if majority are public or private
+        const publicCount = notes.filter(note => note.isPublic).length;
+        const makePublic = publicCount < notes.length / 2;
+        
+        const promises = notes.map(note => 
+            fetch(`${API_BASE}/notes/${note.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isPublic: makePublic })
+            })
+        );
+        
+        await Promise.all(promises);
+        loadNotes(); // Refresh the notes grid
+        
+    } catch (err) {
+        alert('Failed to toggle notes visibility: ' + err.message);
     }
 }
 
@@ -933,6 +1220,126 @@ async function loadSharedNote(code) {
         
     } catch (err) {
         alert('Failed to load shared note');
+    }
+}
+
+// ==================== Settings ====================
+
+async function loadSettings() {
+    try {
+        const response = await fetch(`${API_BASE}/settings`);
+        if (response.ok) {
+            const settings = await response.json();
+            
+            // AI Provider
+            document.getElementById('aiProvider').value = settings.aiProvider || 'openai';
+            toggleAIProvider();
+            
+            // OpenAI settings
+            document.getElementById('openaiKey').value = settings.openaiKey || '';
+            
+            // Local model settings
+            document.getElementById('localModelPath').value = settings.localModelPath || '';
+            document.getElementById('modelContextSize').value = settings.modelContextSize || 4096;
+            document.getElementById('localServerPort').value = settings.localServerPort || 8080;
+            
+            // File browser
+            document.getElementById('fileRoot').value = settings.fileRoot || '';
+            document.getElementById('maxUploadSize').value = settings.maxUploadSize || 100;
+            
+            // Security
+            document.getElementById('sessionSecret').value = settings.sessionSecret || '';
+        }
+    } catch (err) {
+        console.error('Failed to load settings:', err);
+    }
+    
+    // Update AI status
+    updateAIStatus();
+}
+
+function toggleAIProvider() {
+    const provider = document.getElementById('aiProvider').value;
+    const openaiConfig = document.getElementById('openaiConfig');
+    const localConfig = document.getElementById('localConfig');
+    
+    if (provider === 'local') {
+        openaiConfig.style.display = 'none';
+        localConfig.style.display = 'block';
+    } else {
+        openaiConfig.style.display = 'block';
+        localConfig.style.display = 'none';
+    }
+}
+
+async function saveSettings() {
+    const settings = {
+        aiProvider: document.getElementById('aiProvider').value,
+        openaiKey: document.getElementById('openaiKey').value,
+        localModelPath: document.getElementById('localModelPath').value,
+        modelContextSize: parseInt(document.getElementById('modelContextSize').value),
+        localServerPort: parseInt(document.getElementById('localServerPort').value),
+        fileRoot: document.getElementById('fileRoot').value,
+        maxUploadSize: parseInt(document.getElementById('maxUploadSize').value),
+        sessionSecret: document.getElementById('sessionSecret').value
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE}/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Failed to save settings: ' + data.error);
+        } else {
+            alert('Settings saved successfully! Please restart the server to apply changes.');
+            updateAIStatus();
+        }
+    } catch (err) {
+        alert('Failed to save settings: ' + err.message);
+    }
+}
+
+async function updateAIStatus() {
+    const aiStatus = document.getElementById('aiStatus');
+    const statusIndicator = aiStatus.querySelector('.status-indicator');
+    
+    try {
+        const response = await fetch(`${API_BASE}/chat/status`);
+        const data = await response.json();
+        
+        if (data.configured) {
+            statusIndicator.className = 'status-indicator online';
+            aiStatus.innerHTML = '<span class="status-indicator online"></span>Connected';
+        } else {
+            statusIndicator.className = 'status-indicator';
+            aiStatus.innerHTML = '<span class="status-indicator"></span>Not Configured';
+        }
+    } catch (err) {
+        statusIndicator.className = 'status-indicator';
+        aiStatus.innerHTML = '<span class="status-indicator"></span>Error';
+    }
+}
+
+// Load settings when settings panel is opened
+function showPanel(panelName) {
+    // Update nav
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.panel === panelName);
+    });
+    
+    // Update panels
+    document.querySelectorAll('.panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
+    });
+    
+    // Load settings if settings panel is opened
+    if (panelName === 'settings') {
+        loadSettings();
     }
 }
 

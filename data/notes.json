@@ -1,1 +1,256 @@
-{"notes":[]}
+{
+  "notes": [
+    {
+      "id": "sample-1",
+      "title": "Työtehtävät",
+      "content": "Päivittäiset työtehtävät ja projektit",
+      "nodes": [
+        {
+          "id": "root",
+          "text": "Työtehtävät",
+          "x": 400,
+          "y": 200,
+          "color": "#4a90d9"
+        },
+        {
+          "id": "node-1",
+          "text": "Projekti A",
+          "x": 200,
+          "y": 300,
+          "color": "#22c55e"
+        },
+        {
+          "id": "node-2", 
+          "text": "Palaveri",
+          "x": 600,
+          "y": 300,
+          "color": "#f59e0b"
+        }
+      ],
+      "connections": [
+        { "from": "root", "to": "node-1" },
+        { "from": "root", "to": "node-2" }
+      ],
+      "shareCode": null,
+      "isPublic": false,
+      "createdAt": "2026-01-01T04:00:00.000Z",
+      "updatedAt": "2026-01-01T04:00:00.000Z"
+    },
+    {
+      "id": "sample-2",
+      "title": "Ostoslista",
+      "content": "Kaupassa käynti ja tarvittavat ostokset",
+      "nodes": [
+        {
+          "id": "root",
+          "text": "Ostoslista",
+          "x": 300,
+          "y": 150,
+          "color": "#ef4444"
+        },
+        {
+          "id": "node-1",
+          "text": "Ruoka",
+          "x": 150,
+          "y": 250,
+          "color": "#22c55e"
+        },
+        {
+          "id": "node-2",
+          "text": "Siivous",
+          "x": 450,
+          "y": 250,
+          "color": "#6366f1"
+        },
+        {
+          "id": "node-3",
+          "text": "Maito",
+          "x": 80,
+          "y": 350,
+          "color": "#10b981"
+        },
+        {
+          "id": "node-4",
+          "text": "Leipä",
+          "x": 220,
+          "y": 350,
+          "color": "#10b981"
+        },
+        {
+          "id": "node-5",
+          "text": "Pesuaine",
+          "x": 520,
+          "y": 350,
+          "color": "#8b5cf6"
+        }
+      ],
+      "connections": [
+        { "from": "root", "to": "node-1" },
+        { "from": "root", "to": "node-2" },
+        { "from": "node-1", "to": "node-3" },
+        { "from": "node-1", "to": "node-4" },
+        { "from": "node-2", "to": "node-5" }
+      ],
+      "shareCode": null,
+      "isPublic": false,
+      "createdAt": "2026-01-01T04:05:00.000Z",
+      "updatedAt": "2026-01-01T04:05:00.000Z"
+    },
+    {
+      "id": "sample-3",
+      "title": "Ideat",
+      "content": "Luovuus ja inspiraatio",
+      "nodes": [
+        {
+          "id": "root",
+          "text": "Ideat",
+          "x": 350,
+          "y": 180,
+          "color": "#f59e0b"
+        },
+        {
+          "id": "node-1",
+          "text": "Kotiprojektit",
+          "x": 200,
+          "y": 280,
+          "color": "#14b8a6"
+        },
+        {
+          "id": "node-2",
+          "text": "Teknologia",
+          "x": 500,
+          "y": 280,
+          "color": "#3b82f6"
+        },
+        {
+          "id": "node-3",
+          "text": "Harrastukset",
+          "x": 350,
+          "y": 380,
+          "color": "#ec4899"
+        }
+      ],
+      "connections": [
+        { "from": "root", "to": "node-1" },
+        { "from": "root", "to": "node-2" },
+        { "from": "root", "to": "node-3" }
+      ],
+      "shareCode": null,
+      "isPublic": false,
+      "createdAt": "2026-01-01T04:10:00.000Z",
+      "updatedAt": "2026-01-01T04:10:00.000Z"
+    },
+    {
+      "id": "sample-4",
+      "title": "Lomansuunnittelu",
+      "content": "Kesäloman ideat ja valmistelut",
+      "nodes": [
+        {
+          "id": "root",
+          "text": "Kesäloma",
+          "x": 400,
+          "y": 200,
+          "color": "#06b6d4"
+        },
+        {
+          "id": "node-1",
+          "text": "Kohteet",
+          "x": 250,
+          "y": 120,
+          "color": "#84cc16"
+        },
+        {
+          "id": "node-2",
+          "text": "Pakkaus",
+          "x": 550,
+          "y": 120,
+          "color": "#f97316"
+        },
+        {
+          "id": "node-3",
+          "text": "Aktiviteetit",
+          "x": 250,
+          "y": 280,
+          "color": "#8b5cf6"
+        },
+        {
+          "id": "node-4",
+          "text": "Budjetti",
+          "x": 550,
+          "y": 280,
+          "color": "#ef4444"
+        },
+        {
+          "id": "node-5",
+          "text": "Lappi",
+          "x": 150,
+          "y": 50,
+          "color": "#22c55e"
+        },
+        {
+          "id": "node-6",
+          "text": "Espanja",
+          "x": 350,
+          "y": 50,
+          "color": "#22c55e"
+        },
+        {
+          "id": "node-7",
+          "text": "Vaatteet",
+          "x": 480,
+          "y": 50,
+          "color": "#fb7185"
+        },
+        {
+          "id": "node-8",
+          "text": "Kamera",
+          "x": 620,
+          "y": 50,
+          "color": "#fb7185"
+        }
+      ],
+      "connections": [
+        { "from": "root", "to": "node-1" },
+        { "from": "root", "to": "node-2" },
+        { "from": "root", "to": "node-3" },
+        { "from": "root", "to": "node-4" },
+        { "from": "node-1", "to": "node-5" },
+        { "from": "node-1", "to": "node-6" },
+        { "from": "node-2", "to": "node-7" },
+        { "from": "node-2", "to": "node-8" }
+      ],
+      "shareCode": null,
+      "isPublic": false,
+      "createdAt": "2026-01-01T04:15:00.000Z",
+      "updatedAt": "2026-01-01T04:15:00.000Z"
+    },
+    {
+      "id": "sample-5",
+      "title": "Muistiinpano",
+      "content": "Pieni nopea muistiinpano",
+      "nodes": [
+        {
+          "id": "root",
+          "text": "Muista!",
+          "x": 300,
+          "y": 200,
+          "color": "#f59e0b"
+        },
+        {
+          "id": "node-1",
+          "text": "Soitto äidille",
+          "x": 450,
+          "y": 280,
+          "color": "#ec4899"
+        }
+      ],
+      "connections": [
+        { "from": "root", "to": "node-1" }
+      ],
+      "shareCode": null,
+      "isPublic": false,
+      "createdAt": "2026-01-01T04:20:00.000Z",
+      "updatedAt": "2026-01-01T04:20:00.000Z"
+    }
+  ]
+}

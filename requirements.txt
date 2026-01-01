@@ -1,5 +1,9 @@
 # AnomHome Overmind - Python Dependencies
 # These are optional Python packages for extended functionality
 
+# Local AI Model Support (optional)
+# Install with: pip install llama-cpp-python[server]
+# llama-cpp-python[server]>=0.2.0
+
 # No required Python packages for basic functionality
 # Add any Python dependencies here if needed for custom extensions

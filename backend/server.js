@@ -36,6 +36,7 @@ const filesRoutes = require('./routes/files');
 const camerasRoutes = require('./routes/cameras');
 const notesRoutes = require('./routes/notes');
 const recordingsRoutes = require('./routes/recordings');
+const settingsRoutes = require('./routes/settings');
 const MotionRecorderService = require('./services/motionRecorder');
 
 // Import utilities
@@ -89,6 +90,7 @@ app.use('/api/files', filesRoutes);
 app.use('/api/cameras', camerasRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/recordings', recordingsRoutes.router);
+app.use('/api/settings', settingsRoutes);
 
 // Short link redirect
 app.get('/s/:code', async (req, res) => {
