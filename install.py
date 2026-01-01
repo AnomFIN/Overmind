@@ -365,6 +365,24 @@ def configure_local_model(project_dir):
                 return None
         context_size = input("Context size (default 4096): ").strip() or "4096"
         server_port = input("Server port (default 8080): ").strip() or "8080"
+
+        # Validate context size as a positive integer
+        try:
+            context_int = int(context_size)
+            if context_int <= 0:
+                raise ValueError("Context size must be positive")
+        except ValueError:
+            print_error(f"Invalid context size: {context_size}. It must be a positive integer.")
+            return None
+
+        # Validate server port as an integer in the range 1024-65535
+        try:
+            port_int = int(server_port)
+            if port_int < 1024 or port_int > 65535:
+                raise ValueError("Port out of range")
+        except ValueError:
+            print_error(f"Invalid server port: {server_port}. It must be an integer between 1024 and 65535.")
+            return None
         
         create_env_file(project_dir, {
             'AI_PROVIDER': 'local',
