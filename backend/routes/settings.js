@@ -224,8 +224,6 @@ router.post('/', requireAuth, (req, res) => {
             });
         }
         
-        // Validate numeric configuration values
-
         // Validate numeric configuration values if provided
         let validatedModelContextSize = modelContextSize;
         if (modelContextSize !== undefined && modelContextSize !== null && modelContextSize !== '') {
