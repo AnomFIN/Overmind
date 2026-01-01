@@ -33,7 +33,8 @@ function validateSessionSecret(secret) {
     }
 
     // Check for weak/common secrets
-    if (WEAK_SECRETS.some(weak => secret.toLowerCase().includes(weak.toLowerCase()))) {
+    const secretLower = secret.toLowerCase();
+    if (WEAK_SECRETS.some(weak => secretLower === weak.toLowerCase())) {
         return { valid: false, error: 'Session secret is too weak. Please use a strong, unique secret.' };
     }
 
@@ -100,8 +101,9 @@ function writeEnvSettings(settings) {
     content += `MAX_UPLOAD_SIZE=${settings.maxUploadSize || 100}\n\n`;
     
     content += '# Security\n';
-    // Never write a weak default - require a valid secret
-    if (settings.sessionSecret && settings.sessionSecret !== 'your_secret_key_here') {
+    // Validate and write session secret - never use weak defaults
+    const validation = validateSessionSecret(settings.sessionSecret);
+    if (validation.valid) {
         content += `SECRET_KEY=${settings.sessionSecret}\n`;
     } else {
         // If no valid secret provided, generate a secure one
@@ -202,7 +204,6 @@ router.post('/', (req, res) => {
             if (!validation.valid) {
                 return res.status(400).json({ error: validation.error });
             }
-            validatedSessionSecret = sessionSecret;
         } else {
             // No secret provided or placeholder, read existing or generate new
             const envSettings = readEnvSettings();
