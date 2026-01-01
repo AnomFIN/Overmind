@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const { requireAuth } = require('../middleware/auth');
 
 const SETTINGS_FILE = path.join(__dirname, '..', '..', '.env');
 
@@ -63,6 +64,7 @@ function writeEnvSettings(settings) {
     
     content += '# Security\n';
     content += `SECRET_KEY=${settings.sessionSecret || 'your_secret_key_here'}\n`;
+    content += `ADMIN_TOKEN=${process.env.ADMIN_TOKEN || ''}\n`;
     
     fs.writeFileSync(SETTINGS_FILE, content, 'utf8');
 }
@@ -70,8 +72,9 @@ function writeEnvSettings(settings) {
 /**
  * GET /api/settings
  * Get current settings
+ * Requires authentication
  */
-router.get('/', (req, res) => {
+router.get('/', requireAuth, (req, res) => {
     try {
         const envSettings = readEnvSettings();
         
@@ -97,8 +100,9 @@ router.get('/', (req, res) => {
 /**
  * POST /api/settings
  * Update settings
+ * Requires authentication
  */
-router.post('/', (req, res) => {
+router.post('/', requireAuth, (req, res) => {
     try {
         const {
             aiProvider,
