@@ -100,7 +100,7 @@ function makeLocalModelRequest(messages, port) {
         });
 
         req.on('error', (err) => {
-            reject(new Error(`Failed to connect to local model server on port ${port}. Make sure the server is running.`));
+            reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}. Make sure the server is running.`));
         });
         req.write(data);
         req.end();

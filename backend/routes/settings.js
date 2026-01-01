@@ -73,12 +73,12 @@ function validateSessionSecret(secret) {
 function validateFilePath(filePath) {
     if (!filePath) return true; // Empty is allowed
     
-    // Resolve to absolute path to normalize separators
+    // Resolve to absolute path
     const resolvedPath = path.resolve(filePath);
     
-    // Check for directory traversal attempts
-    // Ensure the resolved path doesn't try to escape outside reasonable boundaries
-    if (resolvedPath.includes('..')) {
+    // Define a safe base directory (e.g., user's home or a specific data directory)
+    // For now, we'll ensure the path is an absolute path and doesn't contain null bytes
+    if (resolvedPath.includes('\0')) {
         return false;
     }
     

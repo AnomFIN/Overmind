@@ -28,13 +28,27 @@ function showNotification(message, type = 'info') {
     
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-icon">${getNotificationIcon(type)}</span>
-            <span class="notification-message">${message}</span>
-        </div>
-        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
-    `;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'notification-content';
+    
+    const icon = document.createElement('span');
+    icon.className = 'notification-icon';
+    icon.textContent = getNotificationIcon(type);
+    
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'notification-message';
+    messageSpan.textContent = message;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => notification.remove());
+    
+    contentDiv.appendChild(icon);
+    contentDiv.appendChild(messageSpan);
+    notification.appendChild(contentDiv);
+    notification.appendChild(closeBtn);
     
     container.appendChild(notification);
     
