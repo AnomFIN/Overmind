@@ -83,6 +83,32 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 git clone https://github.com/<your-org>/anomhome-overmind.git
 cd anomhome-overmind
 python3 install.py
+```
+
+### Security Configuration
+
+**Important**: The settings endpoint (`/api/settings`) is protected by token-based authentication to prevent unauthorized access to sensitive configuration like API keys.
+
+To secure your installation:
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Generate a secure admin token:
+   ```bash
+   openssl rand -hex 32
+   ```
+
+3. Add the token to your `.env` file:
+   ```
+   ADMIN_TOKEN=your_generated_token_here
+   ```
+
+4. Use this token in the Settings panel UI to view and modify system settings.
+
+**Note**: Without setting `ADMIN_TOKEN`, the settings endpoint will return a 503 error with setup instructions.
 
 ## Cameras: motion recorder
 - Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
