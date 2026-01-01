@@ -489,6 +489,7 @@ async function createLink(e) {
             document.getElementById('linkUrl').value = '';
             document.getElementById('linkCode').value = '';
             loadLinks();
+            showToast('Link created successfully!', 'success', 2000);
         }
     } catch (err) {
         showToast('Failed to create link: ' + err.message, 'error');
@@ -501,6 +502,7 @@ async function deleteLink(id) {
     try {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
         loadLinks();
+        showToast('Link deleted successfully', 'success', 2000);
     } catch (err) {
         showToast('Failed to delete link: ' + err.message, 'error');
     }
@@ -557,6 +559,7 @@ async function uploadFile(file) {
             showToast(data.error, 'error');
         } else {
             addUploadToList(data.file);
+            showToast('File uploaded successfully', 'success', 2000);
         }
     } catch (err) {
         showToast('Upload failed: ' + err.message, 'error');
@@ -607,6 +610,7 @@ async function deleteUpload(filename) {
         await fetch(`${API_BASE}/uploads/${filename}`, { method: 'DELETE' });
         const el = document.getElementById(`upload-${filename}`);
         if (el) el.remove();
+        showToast('File deleted successfully', 'success', 2000);
     } catch (err) {
         showToast('Failed to delete file: ' + err.message, 'error');
     }
@@ -814,6 +818,7 @@ async function addCamera(e) {
             document.getElementById('cameraUser').value = '';
             document.getElementById('cameraPass').value = '';
             loadCameras();
+            showToast('Camera added successfully', 'success', 2000);
         }
     } catch (err) {
         showToast('Failed to add camera: ' + err.message, 'error');
@@ -826,6 +831,7 @@ async function deleteCamera(id) {
     try {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
         loadCameras();
+        showToast('Camera deleted successfully', 'success', 2000);
     } catch (err) {
         showToast('Failed to delete camera: ' + err.message, 'error');
     }
