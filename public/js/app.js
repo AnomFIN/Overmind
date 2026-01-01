@@ -71,6 +71,11 @@ function initTechAnimations() {
 }
 
 function addParticleBackground() {
+    // Check if particles already exist to prevent duplicates
+    if (document.querySelector('.particle-background')) {
+        return;
+    }
+    
     const particleContainer = document.createElement('div');
     particleContainer.className = 'particle-background';
     particleContainer.innerHTML = `
