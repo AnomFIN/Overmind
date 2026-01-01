@@ -233,7 +233,7 @@ function createMatrixRain(container) {
 
 // ==================== Toast Notifications ====================
 
-function showNotification(message, type = 'info', duration = 5000) {
+function showNotification(message, type = 'info', duration = 5000, allowHTML = false) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
     
@@ -254,15 +254,47 @@ function showNotification(message, type = 'info', duration = 5000) {
         info: 'Information'
     };
     
-    toast.innerHTML = `
-        <div class="toast-icon">${icons[type] || icons.info}</div>
-        <div class="toast-content">
-            <div class="toast-title">${titles[type] || titles.info}</div>
-            <div class="toast-message">${message}</div>
-        </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-        ${duration > 0 ? '<div class="toast-progress"></div>' : ''}
-    `;
+    // Create toast structure
+    const toastIcon = document.createElement('div');
+    toastIcon.className = 'toast-icon';
+    toastIcon.textContent = icons[type] || icons.info;
+    
+    const toastContent = document.createElement('div');
+    toastContent.className = 'toast-content';
+    
+    const toastTitle = document.createElement('div');
+    toastTitle.className = 'toast-title';
+    toastTitle.textContent = titles[type] || titles.info;
+    
+    const toastMessage = document.createElement('div');
+    toastMessage.className = 'toast-message';
+    
+    // Set message content based on allowHTML flag
+    if (allowHTML) {
+        toastMessage.innerHTML = message;
+    } else {
+        toastMessage.textContent = message;
+    }
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'toast-close';
+    closeButton.textContent = '×';
+    closeButton.addEventListener('click', () => toast.remove());
+    
+    toastContent.appendChild(toastTitle);
+    toastContent.appendChild(toastMessage);
+    
+    toast.appendChild(toastIcon);
+    toast.appendChild(toastContent);
+    toast.appendChild(closeButton);
+    
+    // Add progress bar with dynamic duration
+    if (duration > 0) {
+        const progressBar = document.createElement('div');
+        progressBar.className = 'toast-progress';
+        progressBar.style.animationDuration = `${duration}ms`;
+        toast.appendChild(progressBar);
+    }
     
     container.appendChild(toast);
     
@@ -1353,7 +1385,8 @@ async function saveSettings() {
                 '2. Run <code>node server.js</code> again<br><br>' +
                 'Or use <code>npm restart</code> if configured.',
                 'success',
-                8000
+                8000,
+                true // Allow HTML for formatted restart instructions
             );
             updateAIStatus();
         }
