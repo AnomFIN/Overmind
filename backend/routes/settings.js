@@ -162,6 +162,10 @@ function readEnvSettings() {
 
 /**
  * Write settings to .env file
+ * 
+ * SECURITY NOTE: This function writes sensitive data (API keys, session secrets) 
+ * to the .env file. The .env file is excluded from version control via .gitignore
+ * to prevent accidentally committing credentials. Never commit .env files to git.
  */
 function writeEnvSettings(settings) {
     let content = '# AnomHome Overmind Configuration\n';

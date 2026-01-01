@@ -361,6 +361,14 @@ cd anomhome-overmind
 python3 install.py
 ```
 
+### Security notes
+
+**⚠️ Important: Protect your .env file**
+
+- The `.env` file contains sensitive credentials (API keys, session secrets)
+- This file is automatically excluded from git via `.gitignore`
+- **Never commit the `.env` file to version control**
+- Use `.env.example` as a template for sharing configuration structure
 ### Environment setup
 
 **Important:** Before running the application, you must configure your environment variables:
