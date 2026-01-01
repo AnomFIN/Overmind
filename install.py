@@ -410,23 +410,71 @@ def create_model_runner(project_dir, model_path, context_size, server_port):
     """Create script to run local model server."""
     runner_script = project_dir / "run_local_model.py"
     
-    script_content = f'''#!/usr/bin/env python3
+    script_content = '''#!/usr/bin/env python3
 """
 Local GGUF Model Server Runner
 Starts a local llama-cpp-python server for Overmind
+Reads configuration from .env file for easy updates
 """
 
 import subprocess
 import sys
 import os
+from pathlib import Path
+
+def load_env_config():
+    """Load configuration from .env file."""
+    env_file = Path(__file__).parent / ".env"
+    config = {
+        'LOCAL_MODEL_PATH': '',
+        'MODEL_CONTEXT_SIZE': '4096',
+        'LOCAL_SERVER_PORT': '8080'
+    }
+    
+    if not env_file.exists():
+        print(f"Warning: .env file not found at {env_file}")
+        print("Using default values. Please create a .env file with LOCAL_MODEL_PATH, MODEL_CONTEXT_SIZE, and LOCAL_SERVER_PORT")
+        return config
+    
+    try:
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and '=' in line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    if key in config:
+                        config[key] = value
+    except Exception as e:
+        print(f"Error reading .env file: {e}")
+        print("Using default values")
+    
+    return config
 
 def main():
-    model_path = "{model_path}"
-    context_size = {context_size}
-    port = {server_port}
+    config = load_env_config()
+    
+    model_path = config['LOCAL_MODEL_PATH']
+    context_size = config['MODEL_CONTEXT_SIZE']
+    port = config['LOCAL_SERVER_PORT']
+    
+    if not model_path:
+        print("Error: LOCAL_MODEL_PATH not set in .env file")
+        print("Please add LOCAL_MODEL_PATH=/path/to/your/model.gguf to your .env file")
+        sys.exit(1)
     
     if not os.path.exists(model_path):
-        print(f"Error: Model file not found: {{model_path}}")
+        print(f"Error: Model file not found: {model_path}")
+        print(f"Please check the LOCAL_MODEL_PATH in your .env file")
+        sys.exit(1)
+    
+    try:
+        context_size = int(context_size)
+        port = int(port)
+    except ValueError as e:
+        print(f"Error: Invalid configuration value - {e}")
+        print("MODEL_CONTEXT_SIZE and LOCAL_SERVER_PORT must be integers")
         sys.exit(1)
     
     cmd = [
@@ -438,17 +486,20 @@ def main():
         "--chat_format", "chatml"
     ]
     
-    print(f"Starting local model server on port {{port}}...")
-    print(f"Model: {{model_path}}")
-    print(f"Context size: {{context_size}}")
-    print("\nPress Ctrl+C to stop the server\n")
+    print(f"Starting local model server on port {port}...")
+    print(f"Model: {model_path}")
+    print(f"Context size: {context_size}")
+    print("")
+    print("Press Ctrl+C to stop the server")
+    print("")
     
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
-        print("\nModel server stopped")
+        print("")
+        print("Model server stopped")
     except Exception as e:
-        print(f"Error running model server: {{e}}")
+        print(f"Error running model server: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
