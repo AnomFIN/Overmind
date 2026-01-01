@@ -304,11 +304,20 @@ def configure_local_model(project_dir):
     # Check if llama-cpp-python is available
     try:
         import subprocess
-        result = subprocess.run([sys.executable, "-c", "import llama_cpp"], 
-                              capture_output=True, text=True)
-        if result.returncode != 0:
-            print_warning("llama-cpp-python not found. Installing...")
+        try:
+            result = subprocess.run(
+                [sys.executable, "-c", "import llama_cpp"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except subprocess.TimeoutExpired:
+            print_warning("Timeout while checking llama-cpp-python. Attempting installation...")
             install_llama_cpp()
+        else:
+            if result.returncode != 0:
+                print_warning("llama-cpp-python not found. Installing...")
+                install_llama_cpp()
     except Exception as e:
         print_warning(f"Could not check llama-cpp-python: {e}")
         install_llama_cpp()
