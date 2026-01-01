@@ -661,12 +661,19 @@ class ChatApp {
      */
     connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/chat?token=${this.sessionToken}`;
+        const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
 
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
             console.log('[Chat] WebSocket connected');
+            // Send authentication message with session token instead of including it in the URL
+            if (this.sessionToken) {
+                this.ws.send(JSON.stringify({
+                    type: 'auth',
+                    token: this.sessionToken
+                }));
+            }
         };
 
         this.ws.onmessage = (event) => {
