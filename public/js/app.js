@@ -252,6 +252,11 @@ function showPanel(panelName) {
     document.querySelectorAll('.panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === `panel-${panelName}`);
     });
+    
+    // Load settings if settings panel is opened
+    if (panelName === 'settings') {
+        loadSettings();
+    }
 }
 
 // ==================== Dashboard ====================
@@ -1323,24 +1328,6 @@ async function updateAIStatus() {
     } catch (err) {
         statusIndicator.className = 'status-indicator';
         aiStatus.innerHTML = '<span class="status-indicator"></span>Error';
-    }
-}
-
-// Load settings when settings panel is opened
-function showPanel(panelName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.panel === panelName);
-    });
-    
-    // Update panels
-    document.querySelectorAll('.panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
-    });
-    
-    // Load settings if settings panel is opened
-    if (panelName === 'settings') {
-        loadSettings();
     }
 }
 
