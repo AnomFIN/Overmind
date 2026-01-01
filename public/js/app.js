@@ -11,6 +11,9 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Track active typing effect intervals for cleanup
+let activeTypingIntervals = [];
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -98,16 +101,43 @@ function addTypingEffect() {
             
             let i = 0;
             const typeInterval = setInterval(() => {
+                // Check if element is still in the DOM
+                if (!document.body.contains(element)) {
+                    clearInterval(typeInterval);
+                    // Remove from tracking array
+                    const index = activeTypingIntervals.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeTypingIntervals.splice(index, 1);
+                    }
+                    return;
+                }
+                
                 element.textContent += text[i];
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
+                    // Remove from tracking array
+                    const index = activeTypingIntervals.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeTypingIntervals.splice(index, 1);
+                    }
                     element.style.borderRight = '2px solid var(--neon-blue)';
                     element.style.animation = 'var(--animation-pulse)';
                 }
             }, 100);
+            
+            // Track this interval for cleanup
+            activeTypingIntervals.push(typeInterval);
         }
     });
+}
+
+function clearTypingEffects() {
+    // Clear all active typing intervals
+    activeTypingIntervals.forEach(interval => {
+        clearInterval(interval);
+    });
+    activeTypingIntervals = [];
 }
 
 function addRandomGlowPulses() {
@@ -239,18 +269,6 @@ function initNavigation() {
             const panel = item.dataset.panel;
             showPanel(panel);
         });
-    });
-}
-
-function showPanel(panelName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.panel === panelName);
-    });
-    
-    // Update panels
-    document.querySelectorAll('.panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
     });
 }
 
@@ -1328,6 +1346,9 @@ async function updateAIStatus() {
 
 // Load settings when settings panel is opened
 function showPanel(panelName) {
+    // Clear any active typing effects before switching panels
+    clearTypingEffects();
+    
     // Update nav
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.toggle('active', item.dataset.panel === panelName);
