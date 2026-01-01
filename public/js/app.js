@@ -233,6 +233,13 @@ function createMatrixRain(container) {
 
 // ==================== Toast Notifications ====================
 
+/**
+ * Display a toast notification
+ * @param {string} message - The notification message
+ * @param {string} type - Notification type: 'success', 'error', 'warning', or 'info'
+ * @param {number} duration - Auto-dismiss duration in ms (0 for no auto-dismiss)
+ * @param {boolean} allowHTML - Allow HTML in message (USE ONLY WITH TRUSTED CONTENT)
+ */
 function showNotification(message, type = 'info', duration = 5000, allowHTML = false) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
