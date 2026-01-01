@@ -682,8 +682,6 @@ async function deleteUpload(filename) {
         showNotification('File deleted successfully', 'success');
     } catch (err) {
         showNotification('Failed to delete file: ' + err.message, 'error');
-        toast.success('File deleted', 'File Deleted');
-    } catch (err) {
         toast.error(err.message, 'Failed to Delete File');
     }
 }
