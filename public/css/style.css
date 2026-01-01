@@ -674,7 +674,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('/overmind-logotp.png'), url('/overmind-logotp-fallback.svg');
+    background-image: url('/overmind-logotp.png');
     background-position: center;
     background-repeat: no-repeat;
     background-size: 40%;
