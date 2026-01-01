@@ -1,6 +1,6 @@
 /**
- * OpenAI Chat Console Route
- * Provides API endpoint for AI chat functionality
+ * AI Chat Console Route
+ * Supports both OpenAI API and local GGUF models
  */
 
 const express = require('express');
@@ -69,23 +69,38 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Message is required' });
         }
         
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            return res.status(503).json({ 
-                error: 'OpenAI API key not configured',
-                hint: 'Add OPENAI_API_KEY to your .env file'
-            });
+        const aiProvider = process.env.AI_PROVIDER || 'openai';
+        
+        // Check configuration based on provider
+        if (aiProvider === 'openai') {
+            const apiKey = process.env.OPENAI_API_KEY;
+            if (!apiKey) {
+                return res.status(503).json({ 
+                    error: 'OpenAI API key not configured',
+                    hint: 'Add OPENAI_API_KEY to your .env file or configure local model in settings'
+                });
+            }
+        } else if (aiProvider === 'local') {
+            const modelPath = process.env.LOCAL_MODEL_PATH;
+            if (!modelPath) {
+                return res.status(503).json({ 
+                    error: 'Local model path not configured',
+                    hint: 'Configure LOCAL_MODEL_PATH in settings or switch to OpenAI'
+                });
+            }
         }
         
         // Get or create chat history for this session
         const session = sessionId || 'default';
         if (!chatHistory.has(session)) {
-            chatHistory.set(session, [
-                {
-                    role: 'system',
-                    content: 'You are a helpful assistant for the AnomHome Overmind dashboard. You help users with home automation, productivity, and general questions.'
-                }
-            ]);
+            const systemMessage = aiProvider === 'local' 
+                ? 'You are a helpful assistant for the AnomHome Overmind dashboard running locally. You help users with home automation, productivity, and general questions.'
+                : 'You are a helpful assistant for the AnomHome Overmind dashboard. You help users with home automation, productivity, and general questions.';
+                
+            chatHistory.set(session, [{
+                role: 'system',
+                content: systemMessage
+            }]);
         }
         
         const messages = chatHistory.get(session);
@@ -96,8 +111,21 @@ router.post('/', async (req, res) => {
             messages.splice(1, messages.length - 21);
         }
         
-        const response = await makeOpenAIRequest(apiKey, messages);
-        const assistantMessage = response.choices[0].message.content;
+        let response;
+        let assistantMessage;
+        
+        // Make request based on provider
+        if (aiProvider === 'openai') {
+            const apiKey = process.env.OPENAI_API_KEY;
+            response = await makeOpenAIRequest(apiKey, messages);
+            assistantMessage = response.choices[0].message.content;
+        } else if (aiProvider === 'local') {
+            const port = process.env.LOCAL_SERVER_PORT || 8080;
+            response = await makeLocalModelRequest(messages, port);
+            assistantMessage = response.choices[0].message.content;
+        } else {
+            throw new Error(`Unsupported AI provider: ${aiProvider}`);
+        }
         
         // Add assistant response to history
         messages.push({ role: 'assistant', content: assistantMessage });
@@ -105,7 +133,8 @@ router.post('/', async (req, res) => {
         res.json({
             message: assistantMessage,
             sessionId: session,
-            usage: response.usage
+            usage: response.usage || { provider: aiProvider },
+            provider: aiProvider
         });
         
     } catch (err) {
@@ -129,10 +158,27 @@ router.delete('/:sessionId', (req, res) => {
  * Check if OpenAI is configured
  */
 router.get('/status', (req, res) => {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const aiProvider = process.env.AI_PROVIDER || 'openai';
+    
+    let configured = false;
+    let message = '';
+    
+    if (aiProvider === 'openai') {
+        const apiKey = process.env.OPENAI_API_KEY;
+        configured = !!apiKey;
+        message = configured ? 'OpenAI API is configured' : 'OpenAI API key not set';
+    } else if (aiProvider === 'local') {
+        const modelPath = process.env.LOCAL_MODEL_PATH;
+        configured = !!modelPath;
+        message = configured ? 'Local model is configured' : 'Local model path not set';
+    } else {
+        message = `Unknown AI provider: ${aiProvider}`;
+    }
+    
     res.json({
-        configured: !!apiKey,
-        message: apiKey ? 'OpenAI API is configured' : 'OpenAI API key not set'
+        configured,
+        message,
+        provider: aiProvider
     });
 });
 
