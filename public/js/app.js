@@ -11,6 +11,56 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// ==================== Toast Notification System ====================
+
+/**
+ * Show a toast notification with cyberpunk styling
+ * @param {string} message - The message to display
+ * @param {string} type - Type of notification: 'success', 'error', 'warning', 'info'
+ * @param {number} duration - Duration in milliseconds (default: 4000)
+ */
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    // Icon based on type
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-content">
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Add to container
+    container.appendChild(toast);
+    
+    // Auto-remove after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.add('removing');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300); // Match animation duration
+        }, duration);
+    }
+    
+    return toast;
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -434,14 +484,14 @@ async function createLink(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             document.getElementById('linkUrl').value = '';
             document.getElementById('linkCode').value = '';
             loadLinks();
         }
     } catch (err) {
-        alert('Failed to create link: ' + err.message);
+        showToast('Failed to create link: ' + err.message, 'error');
     }
 }
 
@@ -452,7 +502,7 @@ async function deleteLink(id) {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
         loadLinks();
     } catch (err) {
-        alert('Failed to delete link: ' + err.message);
+        showToast('Failed to delete link: ' + err.message, 'error');
     }
 }
 
@@ -504,12 +554,12 @@ async function uploadFile(file) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             addUploadToList(data.file);
         }
     } catch (err) {
-        alert('Upload failed: ' + err.message);
+        showToast('Upload failed: ' + err.message, 'error');
     }
 }
 
@@ -558,7 +608,7 @@ async function deleteUpload(filename) {
         const el = document.getElementById(`upload-${filename}`);
         if (el) el.remove();
     } catch (err) {
-        alert('Failed to delete file: ' + err.message);
+        showToast('Failed to delete file: ' + err.message, 'error');
     }
 }
 
@@ -754,7 +804,7 @@ async function addCamera(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             closeModal('addCameraModal');
             // Reset form
@@ -766,7 +816,7 @@ async function addCamera(e) {
             loadCameras();
         }
     } catch (err) {
-        alert('Failed to add camera: ' + err.message);
+        showToast('Failed to add camera: ' + err.message, 'error');
     }
 }
 
@@ -777,7 +827,7 @@ async function deleteCamera(id) {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
         loadCameras();
     } catch (err) {
-        alert('Failed to delete camera: ' + err.message);
+        showToast('Failed to delete camera: ' + err.message, 'error');
     }
 }
 
@@ -854,7 +904,7 @@ async function createNote(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             closeModal('createNoteModal');
             document.getElementById('noteTitle').value = '';
@@ -863,7 +913,7 @@ async function createNote(e) {
             loadNote(data.note.id);
         }
     } catch (err) {
-        alert('Failed to create note: ' + err.message);
+        showToast('Failed to create note: ' + err.message, 'error');
     }
 }
 
@@ -879,12 +929,12 @@ async function toggleNotePublic(noteId, isPublic) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             loadNotes(); // Refresh the notes grid
         }
     } catch (err) {
-        alert('Failed to update note visibility: ' + err.message);
+        showToast('Failed to update note visibility: ' + err.message, 'error');
     }
 }
 
@@ -911,7 +961,7 @@ async function toggleAllNotesPublic() {
         loadNotes(); // Refresh the notes grid
         
     } catch (err) {
-        alert('Failed to toggle notes visibility: ' + err.message);
+        showToast('Failed to toggle notes visibility: ' + err.message, 'error');
     }
 }
 
@@ -929,7 +979,7 @@ async function loadNote(id) {
         const note = await response.json();
         
         if (note.error) {
-            alert(note.error);
+            showToast(note.error, 'error');
             return;
         }
         
@@ -946,7 +996,7 @@ async function loadNote(id) {
         document.getElementById('noteSelect').value = id;
         
     } catch (err) {
-        alert('Failed to load note: ' + err.message);
+        showToast('Failed to load note: ' + err.message, 'error');
     }
 }
 
@@ -1077,7 +1127,7 @@ async function addNode() {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             currentNote.nodes.push(data.node);
             if (data.connection) {
@@ -1086,7 +1136,7 @@ async function addNode() {
             renderMindMap();
         }
     } catch (err) {
-        alert('Failed to add node: ' + err.message);
+        showToast('Failed to add node: ' + err.message, 'error');
     }
 }
 
@@ -1117,7 +1167,7 @@ async function deleteNode(id) {
         currentNote.connections = currentNote.connections.filter(c => c.from !== id && c.to !== id);
         renderMindMap();
     } catch (err) {
-        alert('Failed to delete node: ' + err.message);
+        showToast('Failed to delete node: ' + err.message, 'error');
     }
 }
 
@@ -1153,14 +1203,14 @@ async function toggleNotePublic() {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showToast(data.error, 'error');
         } else {
             currentNote.isPublic = newPublic;
             currentNote.shareCode = data.note.shareCode;
             updatePublicToggle();
         }
     } catch (err) {
-        alert('Failed to update note: ' + err.message);
+        showToast('Failed to update note: ' + err.message, 'error');
     }
 }
 
@@ -1187,7 +1237,7 @@ async function deleteCurrentNote() {
         loadNotes();
         loadNote('');
     } catch (err) {
-        alert('Failed to delete note: ' + err.message);
+        showToast('Failed to delete note: ' + err.message, 'error');
     }
 }
 
@@ -1206,7 +1256,7 @@ async function loadSharedNote(code) {
         const note = await response.json();
         
         if (note.error) {
-            alert('Shared note not found');
+            showToast('Shared note not found', 'error');
             return;
         }
         
@@ -1220,7 +1270,7 @@ async function loadSharedNote(code) {
         renderMindMap();
         
     } catch (err) {
-        alert('Failed to load shared note');
+        showToast('Failed to load shared note', 'error');
     }
 }
 
@@ -1295,13 +1345,13 @@ async function saveSettings() {
         const data = await response.json();
         
         if (data.error) {
-            alert('Failed to save settings: ' + data.error);
+            showToast('Failed to save settings: ' + data.error, 'error');
         } else {
-            alert('Settings saved successfully! Please restart the server to apply changes.');
+            showToast('Settings saved successfully! Please restart the server to apply changes.', 'success', 6000);
             updateAIStatus();
         }
     } catch (err) {
-        alert('Failed to save settings: ' + err.message);
+        showToast('Failed to save settings: ' + err.message, 'error');
     }
 }
 
@@ -1402,7 +1452,7 @@ function formatDate(isoString) {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        alert('Copied to clipboard!');
+        showToast('Copied to clipboard!', 'success', 2000);
     }).catch(() => {
         // Fallback
         const textarea = document.createElement('textarea');
@@ -1411,6 +1461,6 @@ function copyToClipboard(text) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        alert('Copied to clipboard!');
+        showToast('Copied to clipboard!', 'success', 2000);
     });
 }
