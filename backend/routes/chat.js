@@ -58,6 +58,56 @@ function makeOpenAIRequest(apiKey, messages) {
 }
 
 /**
+ * Make request to local llama-cpp-python server
+ */
+function makeLocalModelRequest(messages, port) {
+    return new Promise((resolve, reject) => {
+        const http = require('http');
+        
+        const data = JSON.stringify({
+            messages: messages,
+            max_tokens: 2000,
+            temperature: 0.7,
+            stream: false
+        });
+
+        const options = {
+            hostname: '127.0.0.1',
+            port: port,
+            path: '/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+
+        const req = http.request(options, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    const response = JSON.parse(body);
+                    if (res.statusCode !== 200) {
+                        reject(new Error(response.error?.message || `Local model server error: ${res.statusCode}`));
+                    } else {
+                        resolve(response);
+                    }
+                } catch (e) {
+                    reject(new Error('Invalid JSON response from local model server'));
+                }
+            });
+        });
+
+        req.on('error', (err) => {
+            reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}. Make sure the server is running.`));
+        });
+        req.write(data);
+        req.end();
+    });
+}
+
+/**
  * POST /api/chat
  * Send a message to OpenAI and get a response
  */

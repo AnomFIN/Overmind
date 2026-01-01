@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Overmind</title>
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <style>
+        /* Auth-specific styles */
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--color-bg-primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Animated background gradient */
+        .auth-background {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                var(--color-bg-primary) 0%, 
+                var(--color-bg-secondary) 50%,
+                var(--color-bg-primary) 100%);
+            z-index: 0;
+        }
+        
+        /* Floating bento tiles */
+        .bento-tile {
+            position: absolute;
+            background: var(--color-glass-bg);
+            backdrop-filter: blur(var(--blur-glass));
+            border: 1px solid var(--color-glass-border);
+            border-radius: var(--radius-xl);
+            pointer-events: none;
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        .bento-tile:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .bento-tile:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            left: 80%;
+            animation-delay: -5s;
+        }
+        
+        .bento-tile:nth-child(3) {
+            width: 180px;
+            height: 180px;
+            top: 70%;
+            left: 5%;
+            animation-delay: -10s;
+        }
+        
+        .bento-tile:nth-child(4) {
+            width: 120px;
+            height: 120px;
+            top: 20%;
+            left: 85%;
+            animation-delay: -15s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -20px) rotate(5deg); }
+            50% { transform: translate(-20px, 20px) rotate(-5deg); }
+            75% { transform: translate(20px, 20px) rotate(5deg); }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .bento-tile {
+                animation: none;
+            }
+        }
+        
+        /* Auth container */
+        .auth-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            padding: var(--space-lg);
+        }
+        
+        .auth-card {
+            background: var(--color-glass-bg);
+            backdrop-filter: blur(var(--blur-heavy));
+            -webkit-backdrop-filter: blur(var(--blur-heavy));
+            border: 1px solid var(--color-glass-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: var(--noise-texture);
+            opacity: var(--noise-opacity);
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .auth-logo {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
+        }
+        
+        .auth-title {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-xs);
+            background: var(--gradient-led-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .auth-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        }
+        
+        .auth-form {
+            position: relative;
+        }
+        
+        .form-group {
+            margin-bottom: var(--space-lg);
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: var(--space-sm);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+        }
+        
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            flex-wrap: wrap;
+            gap: var(--space-md);
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .remember-me label {
+            margin: 0;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+        }
+        
+        .forgot-link {
+            font-size: var(--font-size-sm);
+            color: var(--color-accent-primary);
+            text-decoration: none;
+            transition: var(--transition-color);
+        }
+        
+        .forgot-link:hover {
+            color: var(--color-accent-primary-hover);
+        }
+        
+        .auth-divider {
+            text-align: center;
+            margin: var(--space-xl) 0;
+            position: relative;
+        }
+        
+        .auth-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: var(--color-border-primary);
+        }
+        
+        .auth-divider span {
+            position: relative;
+            background: var(--color-glass-bg);
+            padding: 0 var(--space-md);
+            color: var(--color-text-tertiary);
+            font-size: var(--font-size-sm);
+        }
+        
+        .auth-footer {
+            text-align: center;
+            margin-top: var(--space-xl);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        }
+        
+        .auth-footer a {
+            color: var(--color-accent-primary);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xs);
+            margin-top: var(--space-xl);
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            color: var(--color-success);
+        }
+        
+        .demo-info {
+            margin-top: var(--space-xl);
+            padding: var(--space-md);
+            background: rgba(74, 158, 255, 0.1);
+            border: 1px solid rgba(74, 158, 255, 0.2);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background -->
+    <div class="auth-background">
+        <div class="bento-tile"></div>
+        <div class="bento-tile"></div>
+        <div class="bento-tile"></div>
+        <div class="bento-tile"></div>
+    </div>
+    
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">🧠</div>
+                <h1 class="auth-title">Welcome to Overmind</h1>
+                <p class="auth-subtitle">Sign in to your dashboard</p>
+            </div>
+            
+            <form class="auth-form" id="authForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-led-wrapper">
+                        <input 
+                            type="email" 
+                            id="email" 
+                            placeholder="you@example.com" 
+                            required
+                            autocomplete="email">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-led-wrapper password-wrapper">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            placeholder="Enter your password" 
+                            required
+                            data-toggleable
+                            data-strength-meter
+                            autocomplete="current-password">
+                    </div>
+                </div>
+                
+                <div class="form-footer">
+                    <div class="remember-me">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="toggle-slider"></span>
+                        </div>
+                        <label for="rememberMe">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Sign In
+                </button>
+                
+                <div class="demo-info">
+                    <strong>Demo UI:</strong> This is a showcase of the premium auth UI design.
+                    Enter any email and password to see the magic LED effects!
+                </div>
+                
+                <div class="security-badge">
+                    <span>🔒</span>
+                    <span>Secured with end-to-end encryption</span>
+                </div>
+            </form>
+            
+            <div class="auth-divider">
+                <span>or continue with</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+                <button class="btn btn-secondary" onclick="toast.info('SSO not implemented', 'Demo Mode')">
+                    GitHub
+                </button>
+                <button class="btn btn-secondary" onclick="toast.info('SSO not implemented', 'Demo Mode')">
+                    Google
+                </button>
+            </div>
+            
+            <div class="auth-footer">
+                Don't have an account? <a href="#" onclick="toast.info('Registration coming soon!', 'Demo Mode'); return false;">Sign up</a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/ui-magic.js"></script>
+    <script>
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('rememberMe').checked;
+            
+            // Demo: Show success toast and redirect
+            toast.success('Login successful! Redirecting...', 'Welcome');
+            
+            setTimeout(() => {
+                window.location.href = '/GUI.html';
+            }, 1500);
+        }
+        
+        // Add "Enter" hint on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                toast.info('This is a demo auth page showcasing the premium UI design system', 'Demo Mode');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
