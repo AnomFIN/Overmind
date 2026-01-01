@@ -371,7 +371,8 @@ python3 install.py
    ```
 
 2. Edit `.env` and fill in your values:
-   - `OPENAI_API_KEY` - Your OpenAI API key (required for AI chat)
+   - `AI_PROVIDER` - The AI provider to use for chat (for example, `openai`)
+   - `OPENAI_API_KEY` - Your OpenAI API key (required for AI chat when `AI_PROVIDER` is set to `openai`)
    - `SECRET_KEY` - A random, secure string for session management
    - Other optional settings as needed
 
