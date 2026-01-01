@@ -894,9 +894,10 @@ async function toggleAllNotesPublic() {
         const response = await fetch(`${API_BASE}/notes`);
         const notes = await response.json();
         
-        // Determine if majority are public or private
+        // Determine whether to make all notes public or all private:
+        // If all are currently public, make them all private; otherwise, make them all public.
         const publicCount = notes.filter(note => note.isPublic).length;
-        const makePublic = publicCount < notes.length / 2;
+        const makePublic = publicCount !== notes.length;
         
         const promises = notes.map(note => 
             fetch(`${API_BASE}/notes/${note.id}`, {
