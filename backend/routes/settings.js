@@ -148,6 +148,35 @@ router.post('/', (req, res) => {
             validatedMaxUploadSize = parsedMaxUploadSize;
         }
 
+        // Validate fileRoot to prevent directory traversal attacks
+        let validatedFileRoot = fileRoot;
+        if (fileRoot !== undefined && fileRoot !== null && fileRoot !== '') {
+            // Normalize the path to resolve any relative components
+            const normalizedPath = path.normalize(fileRoot);
+            
+            // Check if path is absolute
+            if (!path.isAbsolute(normalizedPath)) {
+                return res.status(400).json({ error: 'fileRoot must be an absolute path.' });
+            }
+            
+            // Check for directory traversal patterns
+            if (normalizedPath.includes('..')) {
+                return res.status(400).json({ error: 'fileRoot cannot contain directory traversal patterns (..).' });
+            }
+            
+            // Verify the path exists and is a directory
+            if (fs.existsSync(normalizedPath)) {
+                const stats = fs.statSync(normalizedPath);
+                if (!stats.isDirectory()) {
+                    return res.status(400).json({ error: 'fileRoot must be a valid directory path.' });
+                }
+            } else {
+                return res.status(400).json({ error: 'fileRoot directory does not exist.' });
+            }
+            
+            validatedFileRoot = normalizedPath;
+        }
+
         // Write settings to .env file
         writeEnvSettings({
             aiProvider,
@@ -155,7 +184,7 @@ router.post('/', (req, res) => {
             localModelPath,
             modelContextSize: validatedModelContextSize,
             localServerPort: validatedLocalServerPort,
-            fileRoot,
+            fileRoot: validatedFileRoot,
             maxUploadSize: validatedMaxUploadSize,
             sessionSecret
         });
