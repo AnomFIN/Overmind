@@ -231,6 +231,55 @@ function createMatrixRain(container) {
     }, 5000);
 }
 
+// ==================== Toast Notifications ====================
+
+function showNotification(message, type = 'info', duration = 5000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    const titles = {
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Information'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || icons.info}</div>
+        <div class="toast-content">
+            <div class="toast-title">${titles[type] || titles.info}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        ${duration > 0 ? '<div class="toast-progress"></div>' : ''}
+    `;
+    
+    container.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Auto-dismiss
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+    
+    return toast;
+}
+
 // ==================== Navigation ====================
 
 function initNavigation() {
@@ -1295,13 +1344,21 @@ async function saveSettings() {
         const data = await response.json();
         
         if (data.error) {
-            alert('Failed to save settings: ' + data.error);
+            showNotification('Failed to save settings: ' + data.error, 'error');
         } else {
-            alert('Settings saved successfully! Please restart the server to apply changes.');
+            showNotification(
+                'Settings saved successfully!<br><br>' +
+                '<strong>To apply changes:</strong><br>' +
+                '1. Stop the server (Ctrl+C in terminal)<br>' +
+                '2. Run <code>node server.js</code> again<br><br>' +
+                'Or use <code>npm restart</code> if configured.',
+                'success',
+                8000
+            );
             updateAIStatus();
         }
     } catch (err) {
-        alert('Failed to save settings: ' + err.message);
+        showNotification('Failed to save settings: ' + err.message, 'error');
     }
 }
 
