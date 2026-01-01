@@ -220,7 +220,7 @@ router.post('/', requireAuth, (req, res) => {
         // Validate file root path for security
         if (fileRoot && !validateFilePath(fileRoot)) {
             return res.status(400).json({ 
-                error: 'Invalid file root path. Path cannot contain ".." or must be a valid directory.' 
+                error: 'Invalid file root path. Path must not contain null bytes and must be a valid directory.' 
             });
         }
         
