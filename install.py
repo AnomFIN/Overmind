@@ -423,7 +423,11 @@ import os
 from pathlib import Path
 
 def load_env_config():
-    """Load configuration from .env file."""
+    """Load configuration from .env file.
+    
+    Returns a dict with LOCAL_MODEL_PATH, MODEL_CONTEXT_SIZE, and LOCAL_SERVER_PORT.
+    Values are read from the .env file in the same directory as this script.
+    """
     env_file = Path(__file__).parent / ".env"
     config = {
         'LOCAL_MODEL_PATH': '',
@@ -433,7 +437,6 @@ def load_env_config():
     
     if not env_file.exists():
         print(f"Warning: .env file not found at {env_file}")
-        print("Using default values. Please create a .env file with LOCAL_MODEL_PATH, MODEL_CONTEXT_SIZE, and LOCAL_SERVER_PORT")
         return config
     
     try:
@@ -444,11 +447,13 @@ def load_env_config():
                     key, value = line.split('=', 1)
                     key = key.strip()
                     value = value.strip()
+                    # Remove quotes from values if present
+                    if value and value[0] in ('"', "'") and value[-1] == value[0]:
+                        value = value[1:-1]
                     if key in config:
                         config[key] = value
     except Exception as e:
         print(f"Error reading .env file: {e}")
-        print("Using default values")
     
     return config
 
