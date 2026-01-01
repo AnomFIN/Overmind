@@ -4,10 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AnomHome Overmind</title>
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 </head>
 <body>
+    <!-- Auth check -->
+    <script>
+        // Check if user is authenticated
+        (async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                const data = await response.json();
+                // Store user info
+                window.currentUser = data.user;
+                
+                // Show/hide admin-only features
+                if (data.user.role === 'admin') {
+                    document.body.classList.add('is-admin');
+                } else {
+                    document.body.classList.add('is-user');
+                }
+            } catch (err) {
+                console.error('Auth check error:', err);
+                // On error, redirect to login
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+    
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
@@ -44,14 +81,28 @@
                     <span class="nav-text">Mind Map</span>
                 </li>
                 <li class="nav-item" data-panel="settings">
+                <li class="nav-item" id="secureChatNav">
+                    <span class="nav-icon">🔐</span>
+                    <span class="nav-text">Secure Chat</span>
+                </li>
+                <li class="nav-item admin-only" data-panel="settings" style="display: none;">
                     <span class="nav-icon">⚙️</span>
                     <span class="nav-text">Settings</span>
                 </li>
             </ul>
             <div class="sidebar-footer">
+                <div class="user-info" id="userInfo" style="padding: var(--space-md); border-top: 1px solid var(--color-border-primary); margin-bottom: var(--space-sm);">
+                    <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Logged in as:</div>
+                    <div id="userName" style="font-size: var(--font-size-md); font-weight: var(--font-weight-medium); margin-top: var(--space-xs);"></div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: var(--space-sm);" onclick="handleLogout()">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
                 <div class="system-status" id="systemStatus">
-                    <span class="status-indicator online"></span>
-                    <span>System Online</span>
+                    <div class="status-pill status-pill-online">
+                        <span class="status-indicator"></span>
+                        <span>Online</span>
+                    </div>
                 </div>
                 <div class="tech-info">
                     <div class="tech-stack">
@@ -127,7 +178,9 @@
                         </div>
                     </div>
                     <form class="chat-input-form" onsubmit="sendMessage(event)">
-                        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        <div class="input-led-wrapper" style="flex-grow: 1;">
+                            <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        </div>
                         <button type="submit" class="btn btn-primary">Send</button>
                     </form>
                 </div>
@@ -140,8 +193,12 @@
                 </header>
                 <div class="panel-content">
                     <form class="form-inline" onsubmit="createLink(event)">
-                        <input type="url" id="linkUrl" placeholder="Enter URL to shorten..." required>
-                        <input type="text" id="linkCode" placeholder="Custom code (optional)" pattern="[a-zA-Z0-9]+" maxlength="20">
+                        <div class="input-led-wrapper">
+                            <input type="url" id="linkUrl" placeholder="Enter URL to shorten..." required>
+                        </div>
+                        <div class="input-led-wrapper">
+                            <input type="text" id="linkCode" placeholder="Custom code (optional)" pattern="[a-zA-Z0-9]+" maxlength="20">
+                        </div>
                         <button type="submit" class="btn btn-primary">Shorten</button>
                     </form>
                     <div class="links-list" id="linksList">
@@ -173,7 +230,9 @@
                 <header class="panel-header">
                     <h2>File Browser</h2>
                     <div class="file-search">
-                        <input type="text" id="fileSearch" placeholder="Search files...">
+                        <div class="input-led-wrapper">
+                            <input type="text" id="fileSearch" placeholder="Search files...">
+                        </div>
                         <button onclick="searchFiles()" class="btn btn-secondary">Search</button>
                     </div>
                 </header>
@@ -229,6 +288,18 @@
                     <div class="mindmap-container" id="mindmapContainer">
                         <svg id="mindmapSvg"></svg>
                         <div id="mindmapNodes"></div>
+                        <!-- Zoom Controls -->
+                        <div class="mindmap-zoom-controls">
+                            <button onclick="zoomInMindmap()" title="Zoom In" aria-label="Zoom In">
+                                <span style="font-size: 18px;">+</span>
+                            </button>
+                            <button onclick="resetZoomMindmap()" title="Fit to Screen" aria-label="Fit to Screen">
+                                <span style="font-size: 14px;">⊡</span>
+                            </button>
+                            <button onclick="zoomOutMindmap()" title="Zoom Out" aria-label="Zoom Out">
+                                <span style="font-size: 18px;">−</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="mindmap-empty" id="mindmapEmpty">
                         <p>Select a note or create a new one to start mind mapping</p>
@@ -324,6 +395,70 @@
                                 <div class="status-value">1.0.0</div>
                             </div>
                         </div>
+            <!-- Settings Panel (Admin Only) -->
+            <div class="panel admin-only" id="panel-settings" style="display: none;">
+                <header class="panel-header">
+                    <h2>⚙️ Settings</h2>
+                    <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0;">
+                        Manage AI personas, branding, and camera sources
+                    </p>
+                </header>
+                <div class="panel-content">
+                    <!-- Settings Tabs -->
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" data-tab="personas">AI Personas</button>
+                        <button class="settings-tab" data-tab="branding">Branding</button>
+                        <button class="settings-tab" data-tab="cameras-settings">Cameras</button>
+                    </div>
+
+                    <!-- Personas Tab -->
+                    <div class="settings-tab-content active" id="personas-tab">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                            <h3 style="margin: 0;">AI Personas</h3>
+                            <button class="btn btn-primary" onclick="showCreatePersonaModal()">+ New Persona</button>
+                        </div>
+                        <div id="personasList" class="settings-list"></div>
+                    </div>
+
+                    <!-- Branding Tab -->
+                    <div class="settings-tab-content" id="branding-tab" style="display: none;">
+                        <h3 style="margin-bottom: var(--space-lg);">App Branding</h3>
+                        <form id="brandingForm" onsubmit="saveBranding(event)">
+                            <div class="form-group">
+                                <label>Logo URL</label>
+                                <div class="input-led-wrapper">
+                                    <input type="text" id="logoUrl" placeholder="images/logo.png">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Background URL</label>
+                                <div class="input-led-wrapper">
+                                    <input type="text" id="backgroundUrl" placeholder="images/bg.png">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>App Name</label>
+                                <div class="input-led-wrapper">
+                                    <input type="text" id="appName" placeholder="Overmind">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Primary Color</label>
+                                <div class="input-led-wrapper">
+                                    <input type="color" id="primaryColor" value="#4a9eff">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+
+                    <!-- Cameras Settings Tab -->
+                    <div class="settings-tab-content" id="cameras-settings-tab" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                            <h3 style="margin: 0;">Camera Sources</h3>
+                            <button class="btn btn-primary" onclick="showAddCameraSettingsModal()">+ Add Camera</button>
+                        </div>
+                        <div id="cameraSettingsList" class="settings-list"></div>
                     </div>
                 </div>
             </div>
@@ -340,11 +475,15 @@
             <form onsubmit="addCamera(event)">
                 <div class="form-group">
                     <label>Camera Name</label>
-                    <input type="text" id="cameraName" required placeholder="e.g., Front Door">
+                    <div class="input-led-wrapper">
+                        <input type="text" id="cameraName" required placeholder="e.g., Front Door">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Stream URL</label>
-                    <input type="url" id="cameraUrl" required placeholder="http://camera.local/stream">
+                    <div class="input-led-wrapper">
+                        <input type="url" id="cameraUrl" required placeholder="http://camera.local/stream">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Stream Type</label>
@@ -356,11 +495,15 @@
                 </div>
                 <div class="form-group">
                     <label>Username (optional)</label>
-                    <input type="text" id="cameraUser" placeholder="Username">
+                    <div class="input-led-wrapper">
+                        <input type="text" id="cameraUser" placeholder="Username">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Password (optional)</label>
-                    <input type="password" id="cameraPass" placeholder="Password">
+                    <div class="input-led-wrapper password-wrapper">
+                        <input type="password" id="cameraPass" placeholder="Password" data-toggleable>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('addCameraModal')">Cancel</button>
@@ -379,7 +522,9 @@
             <form onsubmit="createNote(event)">
                 <div class="form-group">
                     <label>Note Title</label>
-                    <input type="text" id="noteTitle" required placeholder="My Mind Map">
+                    <div class="input-led-wrapper">
+                        <input type="text" id="noteTitle" required placeholder="My Mind Map">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>
@@ -406,6 +551,155 @@
         </div>
     </div>
 
+    <!-- Persona Modal -->
+    <div class="modal" id="personaModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="personaModalTitle">Create AI Persona</h3>
+                <button class="close-btn" onclick="closeModal('personaModal')">&times;</button>
+            </div>
+            <form onsubmit="savePersona(event)" id="personaForm">
+                <input type="hidden" id="personaId">
+                <div class="form-group">
+                    <label>Persona Name</label>
+                    <div class="input-led-wrapper">
+                        <input type="text" id="personaName" required placeholder="e.g., Code Assistant">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>System Prompt</label>
+                    <textarea id="personaPrompt" required rows="6" style="width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: var(--radius-md); padding: var(--space-md); color: var(--color-text-primary); font-family: var(--font-mono); resize: vertical;" placeholder="Define the AI's behavior and personality..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Temperature (0-1)</label>
+                    <div class="input-led-wrapper">
+                        <input type="number" id="personaTemperature" step="0.1" min="0" max="1" value="0.7">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Model</label>
+                    <select id="personaModel" style="width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: var(--radius-md); padding: var(--space-md); color: var(--color-text-primary);">
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: var(--space-sm);">
+                        <input type="checkbox" id="personaEnabled" checked>
+                        <span>Enabled</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: var(--space-sm);">
+                        <input type="checkbox" id="personaDefault">
+                        <span>Set as Default</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('personaModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Persona</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Camera Settings Modal -->
+    <div class="modal" id="cameraSettingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="cameraSettingsModalTitle">Add Camera Source</h3>
+                <button class="close-btn" onclick="closeModal('cameraSettingsModal')">&times;</button>
+            </div>
+            <form onsubmit="saveCameraSettings(event)" id="cameraSettingsForm">
+                <input type="hidden" id="cameraSettingsId">
+                <div class="form-group">
+                    <label>Camera Name</label>
+                    <div class="input-led-wrapper">
+                        <input type="text" id="cameraSettingsName" required placeholder="e.g., Front Door">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Camera URL</label>
+                    <div class="input-led-wrapper">
+                        <input type="url" id="cameraSettingsUrl" required placeholder="http://192.168.1.100:8080">
+                    </div>
+                    <small style="color: var(--color-text-secondary); font-size: var(--font-size-xs); margin-top: var(--space-xs); display: block;">
+                        Only HTTP and HTTPS URLs are allowed
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: var(--space-sm);">
+                        <input type="checkbox" id="cameraSettingsEnabled" checked>
+                        <span>Enabled</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cameraSettingsModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Camera</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/app.js"></script>
+    <script src="js/ui-magic.js"></script>
+    <script src="js/settings.js"></script>
+    <script>
+        // Show admin-only features if user is admin
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.currentUser) {
+                // Update user info display
+                document.getElementById('userName').textContent = window.currentUser.displayName || window.currentUser.username;
+                
+                // Show admin-only features
+                if (window.currentUser.role === 'admin') {
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.style.display = '';
+                    });
+                }
+            }
+        });
+        
+        // Handle logout
+        async function handleLogout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/login.html';
+                } else {
+                    console.error('Logout failed');
+                    // Still redirect to login
+                    window.location.href = '/login.html';
+                }
+            } catch (err) {
+                console.error('Logout error:', err);
+                // Still redirect to login
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // Handle secure chat navigation
+        // Check if DOM is already loaded or wait for it
+        function initSecureChat() {
+            const secureChatNav = document.getElementById('secureChatNav');
+            if (secureChatNav) {
+                secureChatNav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Open secure chat in same tab
+                    window.location.href = '/chat.html';
+                });
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSecureChat);
+        } else {
+            initSecureChat();
+        }
+    </script>
 </body>
 </html>
