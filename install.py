@@ -448,7 +448,7 @@ def load_env_config():
                     key = key.strip()
                     value = value.strip()
                     # Remove quotes from values if present
-                    if value and value[0] in ('"', "'") and value[-1] == value[0]:
+                    if len(value) >= 2 and value[0] in ('"', "'") and value[-1] == value[0]:
                         value = value[1:-1]
                     if key in config:
                         config[key] = value
