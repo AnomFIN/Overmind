@@ -473,13 +473,13 @@ def main():
     print(f"Starting local model server on port {{port}}...")
     print(f"Model: {{model_path}}")
     print(f"Context size: {{context_size}}")
-    print("\\nConfiguration can be updated in .env file or settings panel")
-    print("Press Ctrl+C to stop the server\\n")
+    print("\nConfiguration can be updated in .env file or settings panel")
+    print("Press Ctrl+C to stop the server\n")
     
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
-        print("\\nModel server stopped")
+        print("\nModel server stopped")
     except Exception as e:
         print(f"Error running model server: {{e}}")
         sys.exit(1)

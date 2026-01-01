@@ -531,14 +531,15 @@ async function createLink(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             document.getElementById('linkUrl').value = '';
             document.getElementById('linkCode').value = '';
             loadLinks();
+            showNotification('Link created successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to create link: ' + err.message);
+        showNotification('Failed to create link: ' + err.message, 'error');
     }
 }
 
@@ -548,8 +549,9 @@ async function deleteLink(id) {
     try {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
         loadLinks();
+        showNotification('Link deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete link: ' + err.message);
+        showNotification('Failed to delete link: ' + err.message, 'error');
     }
 }
 
@@ -601,12 +603,13 @@ async function uploadFile(file) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             addUploadToList(data.file);
+            showNotification('File uploaded successfully', 'success');
         }
     } catch (err) {
-        alert('Upload failed: ' + err.message);
+        showNotification('Upload failed: ' + err.message, 'error');
     }
 }
 
@@ -654,8 +657,9 @@ async function deleteUpload(filename) {
         await fetch(`${API_BASE}/uploads/${filename}`, { method: 'DELETE' });
         const el = document.getElementById(`upload-${filename}`);
         if (el) el.remove();
+        showNotification('File deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete file: ' + err.message);
+        showNotification('Failed to delete file: ' + err.message, 'error');
     }
 }
 
@@ -851,7 +855,7 @@ async function addCamera(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             closeModal('addCameraModal');
             // Reset form
@@ -861,9 +865,10 @@ async function addCamera(e) {
             document.getElementById('cameraUser').value = '';
             document.getElementById('cameraPass').value = '';
             loadCameras();
+            showNotification('Camera added successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to add camera: ' + err.message);
+        showNotification('Failed to add camera: ' + err.message, 'error');
     }
 }
 
@@ -873,8 +878,9 @@ async function deleteCamera(id) {
     try {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
         loadCameras();
+        showNotification('Camera deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete camera: ' + err.message);
+        showNotification('Failed to delete camera: ' + err.message, 'error');
     }
 }
 
@@ -951,16 +957,17 @@ async function createNote(e) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             closeModal('createNoteModal');
             document.getElementById('noteTitle').value = '';
             document.getElementById('notePublic').checked = false;
             loadNotes();
             loadNote(data.note.id);
+            showNotification('Note created successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to create note: ' + err.message);
+        showNotification('Failed to create note: ' + err.message, 'error');
     }
 }
 
@@ -976,12 +983,13 @@ async function toggleNotePublic(noteId, isPublic) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             loadNotes(); // Refresh the notes grid
+            showNotification('Note visibility updated', 'success');
         }
     } catch (err) {
-        alert('Failed to update note visibility: ' + err.message);
+        showNotification('Failed to update note visibility: ' + err.message, 'error');
     }
 }
 
@@ -1011,7 +1019,7 @@ async function toggleAllNotesPublic() {
         loadNotes(); // Refresh the notes grid
         
     } catch (err) {
-        alert('Failed to toggle notes visibility: ' + err.message);
+        showNotification('Failed to toggle notes visibility: ' + err.message, 'error');
     }
 }
 
@@ -1029,7 +1037,7 @@ async function loadNote(id) {
         const note = await response.json();
         
         if (note.error) {
-            alert(note.error);
+            showNotification(note.error, 'error');
             return;
         }
         
@@ -1046,7 +1054,7 @@ async function loadNote(id) {
         document.getElementById('noteSelect').value = id;
         
     } catch (err) {
-        alert('Failed to load note: ' + err.message);
+        showNotification('Failed to load note: ' + err.message, 'error');
     }
 }
 
@@ -1177,16 +1185,17 @@ async function addNode() {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             currentNote.nodes.push(data.node);
             if (data.connection) {
                 currentNote.connections.push(data.connection);
             }
             renderMindMap();
+            showNotification('Node added successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to add node: ' + err.message);
+        showNotification('Failed to add node: ' + err.message, 'error');
     }
 }
 
@@ -1216,8 +1225,9 @@ async function deleteNode(id) {
         currentNote.nodes = currentNote.nodes.filter(n => n.id !== id);
         currentNote.connections = currentNote.connections.filter(c => c.from !== id && c.to !== id);
         renderMindMap();
+        showNotification('Node deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete node: ' + err.message);
+        showNotification('Failed to delete node: ' + err.message, 'error');
     }
 }
 
@@ -1253,14 +1263,15 @@ async function toggleNotePublic() {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             currentNote.isPublic = newPublic;
             currentNote.shareCode = data.note.shareCode;
             updatePublicToggle();
+            showNotification('Note updated successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to update note: ' + err.message);
+        showNotification('Failed to update note: ' + err.message, 'error');
     }
 }
 
@@ -1286,8 +1297,9 @@ async function deleteCurrentNote() {
         currentNote = null;
         loadNotes();
         loadNote('');
+        showNotification('Note deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete note: ' + err.message);
+        showNotification('Failed to delete note: ' + err.message, 'error');
     }
 }
 
@@ -1306,7 +1318,7 @@ async function loadSharedNote(code) {
         const note = await response.json();
         
         if (note.error) {
-            alert('Shared note not found');
+            showNotification('Shared note not found', 'error');
             return;
         }
         
@@ -1320,7 +1332,7 @@ async function loadSharedNote(code) {
         renderMindMap();
         
     } catch (err) {
-        alert('Failed to load shared note');
+        showNotification('Failed to load shared note', 'error');
     }
 }
 
@@ -1485,7 +1497,7 @@ function formatDate(isoString) {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        alert('Copied to clipboard!');
+        showNotification('Copied to clipboard!', 'success');
     }).catch(() => {
         // Fallback
         const textarea = document.createElement('textarea');
@@ -1494,6 +1506,6 @@ function copyToClipboard(text) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        alert('Copied to clipboard!');
+        showNotification('Copied to clipboard!', 'success');
     });
 }

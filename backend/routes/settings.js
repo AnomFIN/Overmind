@@ -73,16 +73,19 @@ function validateSessionSecret(secret) {
 function validateFilePath(filePath) {
     if (!filePath) return true; // Empty is allowed
     
+    // Resolve to absolute path to normalize separators
+    const resolvedPath = path.resolve(filePath);
+    
     // Check for directory traversal attempts
-    const normalized = path.normalize(filePath);
-    if (normalized.includes('..')) {
+    // Ensure the resolved path doesn't try to escape outside reasonable boundaries
+    if (resolvedPath.includes('..')) {
         return false;
     }
     
     // Check if path exists and is a directory
     try {
-        if (fs.existsSync(filePath)) {
-            const stat = fs.statSync(filePath);
+        if (fs.existsSync(resolvedPath)) {
+            const stat = fs.statSync(resolvedPath);
             if (!stat.isDirectory()) {
                 return false;
             }
