@@ -337,6 +337,94 @@ function createMatrixRain(container) {
     }, 5000);
 }
 
+// ==================== Toast Notifications ====================
+
+/**
+ * Display a toast notification
+ * @param {string} message - The notification message
+ * @param {string} type - Notification type: 'success', 'error', 'warning', or 'info'
+ * @param {number} duration - Auto-dismiss duration in ms (0 for no auto-dismiss)
+ * @param {boolean} allowHTML - Allow HTML in message (USE ONLY WITH TRUSTED CONTENT)
+ */
+function showNotification(message, type = 'info', duration = 5000, allowHTML = false) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    const titles = {
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Information'
+    };
+    
+    // Create toast structure
+    const toastIcon = document.createElement('div');
+    toastIcon.className = 'toast-icon';
+    toastIcon.textContent = icons[type] || icons.info;
+    
+    const toastContent = document.createElement('div');
+    toastContent.className = 'toast-content';
+    
+    const toastTitle = document.createElement('div');
+    toastTitle.className = 'toast-title';
+    toastTitle.textContent = titles[type] || titles.info;
+    
+    const toastMessage = document.createElement('div');
+    toastMessage.className = 'toast-message';
+    
+    // Set message content based on allowHTML flag
+    if (allowHTML) {
+        toastMessage.innerHTML = message;
+    } else {
+        toastMessage.textContent = message;
+    }
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'toast-close';
+    closeButton.textContent = '×';
+    closeButton.addEventListener('click', () => toast.remove());
+    
+    toastContent.appendChild(toastTitle);
+    toastContent.appendChild(toastMessage);
+    
+    toast.appendChild(toastIcon);
+    toast.appendChild(toastContent);
+    toast.appendChild(closeButton);
+    
+    // Add progress bar with dynamic duration
+    if (duration > 0) {
+        const progressBar = document.createElement('div');
+        progressBar.className = 'toast-progress';
+        progressBar.style.animationDuration = `${duration}ms`;
+        toast.appendChild(progressBar);
+    }
+    
+    container.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Auto-dismiss
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+    
+    return toast;
+}
+
 // ==================== Navigation ====================
 
 function initNavigation() {
@@ -1447,6 +1535,16 @@ async function saveSettings() {
         if (data.error) {
             showNotification('Failed to save settings: ' + data.error, 'error');
         } else {
+            showNotification(
+                'Settings saved successfully!<br><br>' +
+                '<strong>To apply changes:</strong><br>' +
+                '1. Stop the server (Ctrl+C in terminal)<br>' +
+                '2. Run <code>node server.js</code> again<br><br>' +
+                'Or use <code>npm restart</code> if configured.',
+                'success',
+                8000,
+                true // Allow HTML for formatted restart instructions
+            );
             showNotification('Settings saved successfully! Please restart the server to apply changes.', 'success');
             updateAIStatus();
         }
