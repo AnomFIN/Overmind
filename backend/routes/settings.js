@@ -110,33 +110,60 @@ router.post('/', (req, res) => {
             maxUploadSize,
             sessionSecret
         } = req.body;
-        
+
         // Validate required fields based on AI provider
         if (aiProvider === 'openai' && !openaiKey) {
             return res.status(400).json({ error: 'OpenAI API key is required' });
         }
-        
+
         if (aiProvider === 'local' && !localModelPath) {
             return res.status(400).json({ error: 'Local model path is required' });
         }
-        
+
+        // Validate numeric configuration values if provided
+        let validatedModelContextSize = modelContextSize;
+        if (modelContextSize !== undefined && modelContextSize !== null && modelContextSize !== '') {
+            const parsedModelContextSize = parseInt(modelContextSize, 10);
+            if (!Number.isFinite(parsedModelContextSize) || parsedModelContextSize <= 0 || parsedModelContextSize > 1000000) {
+                return res.status(400).json({ error: 'modelContextSize must be a positive integer between 1 and 1000000.' });
+            }
+            validatedModelContextSize = parsedModelContextSize;
+        }
+
+        let validatedLocalServerPort = localServerPort;
+        if (localServerPort !== undefined && localServerPort !== null && localServerPort !== '') {
+            const parsedLocalServerPort = parseInt(localServerPort, 10);
+            if (!Number.isFinite(parsedLocalServerPort) || parsedLocalServerPort <= 0 || parsedLocalServerPort > 65535) {
+                return res.status(400).json({ error: 'localServerPort must be a valid TCP port between 1 and 65535.' });
+            }
+            validatedLocalServerPort = parsedLocalServerPort;
+        }
+
+        let validatedMaxUploadSize = maxUploadSize;
+        if (maxUploadSize !== undefined && maxUploadSize !== null && maxUploadSize !== '') {
+            const parsedMaxUploadSize = parseInt(maxUploadSize, 10);
+            if (!Number.isFinite(parsedMaxUploadSize) || parsedMaxUploadSize <= 0 || parsedMaxUploadSize > 1000000000) {
+                return res.status(400).json({ error: 'maxUploadSize must be a positive integer between 1 and 1000000000.' });
+            }
+            validatedMaxUploadSize = parsedMaxUploadSize;
+        }
+
         // Write settings to .env file
         writeEnvSettings({
             aiProvider,
             openaiKey,
             localModelPath,
-            modelContextSize,
-            localServerPort,
+            modelContextSize: validatedModelContextSize,
+            localServerPort: validatedLocalServerPort,
             fileRoot,
-            maxUploadSize,
+            maxUploadSize: validatedMaxUploadSize,
             sessionSecret
         });
-        
+
         res.json({
             success: true,
             message: 'Settings saved successfully. Restart the server to apply changes.'
         });
-        
     } catch (err) {
         console.error('[Settings] Update error:', err.message);
         res.status(500).json({ error: 'Failed to save settings' });
