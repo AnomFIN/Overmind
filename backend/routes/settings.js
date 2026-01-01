@@ -133,8 +133,8 @@ router.post('/', (req, res) => {
         let validatedLocalServerPort = localServerPort;
         if (localServerPort !== undefined && localServerPort !== null && localServerPort !== '') {
             const parsedLocalServerPort = parseInt(localServerPort, 10);
-            if (!Number.isFinite(parsedLocalServerPort) || parsedLocalServerPort <= 0 || parsedLocalServerPort > 65535) {
-                return res.status(400).json({ error: 'localServerPort must be a valid TCP port between 1 and 65535.' });
+            if (!Number.isFinite(parsedLocalServerPort) || parsedLocalServerPort < 1024 || parsedLocalServerPort > 65535) {
+                return res.status(400).json({ error: 'localServerPort must be a valid TCP port between 1024 and 65535 (non-privileged ports only).' });
             }
             validatedLocalServerPort = parsedLocalServerPort;
         }
