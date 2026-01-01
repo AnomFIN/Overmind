@@ -398,6 +398,32 @@ def configure_local_model(project_dir):
     elif model_path:
         print_error(f"Model file not found: {model_path}")
         print_warning("You can configure the model path later in settings.")
+    if model_path:
+        # Validate the model path
+        if not os.path.exists(model_path):
+            print_error(f"Model file not found: {model_path}")
+            print_warning("You can configure the model path later in settings.")
+        elif not os.path.isfile(model_path):
+            print_error(f"Path is not a file: {model_path}")
+            print_warning("Please provide a path to a GGUF model file, not a directory.")
+        elif not model_path.lower().endswith('.gguf'):
+            print_error(f"Invalid file extension: {model_path}")
+            print_warning("The model file must have a .gguf extension.")
+        else:
+            # Valid model path, proceed with configuration
+            context_size = input("Context size (default 4096): ").strip() or "4096"
+            server_port = input("Server port (default 8080): ").strip() or "8080"
+            
+            create_env_file(project_dir, {
+                'AI_PROVIDER': 'local',
+                'LOCAL_MODEL_PATH': model_path,
+                'MODEL_CONTEXT_SIZE': context_size,
+                'LOCAL_SERVER_PORT': server_port
+            })
+            print_success("Local model configuration saved")
+            
+            # Create local model runner script
+            create_model_runner(project_dir, model_path, context_size, server_port)
     else:
         print_warning("Model path skipped. You can configure it later in settings.")
 
