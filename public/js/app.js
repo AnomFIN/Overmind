@@ -11,6 +11,75 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Animation cleanup trackers
+let activeIntervals = {
+    glitchEffect: null,
+    randomGlowPulses: null,
+    typingEffects: []
+};
+
+// ==================== Notification System ====================
+
+/**
+ * Show a cyberpunk-styled notification
+ */
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notificationContainer') || createNotificationContainer();
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'notification-content';
+    
+    const icon = document.createElement('span');
+    icon.className = 'notification-icon';
+    icon.textContent = getNotificationIcon(type);
+    
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'notification-message';
+    messageSpan.textContent = message;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => notification.remove());
+    
+    contentDiv.appendChild(icon);
+    contentDiv.appendChild(messageSpan);
+    notification.appendChild(contentDiv);
+    notification.appendChild(closeBtn);
+    
+    container.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+function createNotificationContainer() {
+    const container = document.createElement('div');
+    container.id = 'notificationContainer';
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    return icons[type] || icons.info;
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -32,10 +101,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==================== Neon Effects & Tech Animations ====================
 
 function initNeonEffects() {
+    // Clean up existing intervals
+    if (activeIntervals.glitchEffect) {
+        clearInterval(activeIntervals.glitchEffect);
+    }
+    
     // Add glitch effect to logo
     const logo = document.querySelector('.logo-image');
     if (logo) {
-        setInterval(() => {
+        activeIntervals.glitchEffect = setInterval(() => {
             if (Math.random() < 0.1) { // 10% chance every interval
                 logo.style.filter = 'hue-rotate(90deg) saturate(2) brightness(1.2)';
                 setTimeout(() => {
@@ -71,6 +145,11 @@ function initTechAnimations() {
 }
 
 function addParticleBackground() {
+    // Check if particles already exist
+    if (document.querySelector('.particle-background')) {
+        return; // Don't create duplicates
+    }
+    
     const particleContainer = document.createElement('div');
     particleContainer.className = 'particle-background';
     particleContainer.innerHTML = `
@@ -90,35 +169,62 @@ function addParticleBackground() {
 }
 
 function addTypingEffect() {
+    // Clean up existing typing effect intervals
+    activeIntervals.typingEffects.forEach(interval => clearInterval(interval));
+    activeIntervals.typingEffects = [];
+    
     const statusElements = document.querySelectorAll('.status-value, .system-status span');
     statusElements.forEach(element => {
+        // Check if element is still in DOM
+        if (!element.isConnected) return;
+        
         if (element.textContent && element.textContent.length > 1) {
             const text = element.textContent;
             element.textContent = '';
             
             let i = 0;
             const typeInterval = setInterval(() => {
+                // Check if element is still in DOM
+                if (!element.isConnected) {
+                    clearInterval(typeInterval);
+                    return;
+                }
+                
                 element.textContent += text[i];
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
+                    // Remove from tracking
+                    const index = activeIntervals.typingEffects.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeIntervals.typingEffects.splice(index, 1);
+                    }
                     element.style.borderRight = '2px solid var(--neon-blue)';
                     element.style.animation = 'var(--animation-pulse)';
                 }
             }, 100);
+            
+            activeIntervals.typingEffects.push(typeInterval);
         }
     });
 }
 
 function addRandomGlowPulses() {
+    // Clean up existing interval
+    if (activeIntervals.randomGlowPulses) {
+        clearInterval(activeIntervals.randomGlowPulses);
+    }
+    
     const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
     
-    setInterval(() => {
+    activeIntervals.randomGlowPulses = setInterval(() => {
         const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
-        if (randomElement && Math.random() < 0.3) {
+        if (randomElement && randomElement.isConnected && Math.random() < 0.3) {
             randomElement.style.animation = 'neonPulse 1s ease-in-out';
             setTimeout(() => {
-                randomElement.style.animation = '';
+                if (randomElement.isConnected) {
+                    randomElement.style.animation = '';
+                }
             }, 1000);
         }
     }, 3000);
@@ -252,6 +358,11 @@ function showPanel(panelName) {
     document.querySelectorAll('.panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === `panel-${panelName}`);
     });
+    
+    // Load settings if settings panel is opened
+    if (panelName === 'settings') {
+        loadSettings();
+    }
 }
 
 // ==================== Dashboard ====================
@@ -434,14 +545,17 @@ async function createLink(e) {
         const data = await response.json();
         
         if (data.error) {
+            showNotification(data.error, 'error');
             toast.error(data.error, 'Link Creation Failed');
         } else {
             document.getElementById('linkUrl').value = '';
             document.getElementById('linkCode').value = '';
             toast.success(`Link created: ${data.shortUrl}`, 'Success');
             loadLinks();
+            showNotification('Link created successfully', 'success');
         }
     } catch (err) {
+        showNotification('Failed to create link: ' + err.message, 'error');
         toast.error(err.message, 'Failed to Create Link');
     }
 }
@@ -453,7 +567,9 @@ async function deleteLink(id) {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
         toast.success('Link deleted successfully', 'Link Deleted');
         loadLinks();
+        showNotification('Link deleted successfully', 'success');
     } catch (err) {
+        showNotification('Failed to delete link: ' + err.message, 'error');
         toast.error(err.message, 'Failed to Delete Link');
     }
 }
@@ -506,12 +622,15 @@ async function uploadFile(file) {
         const data = await response.json();
         
         if (data.error) {
+            showNotification(data.error, 'error');
             toast.error(data.error, 'Upload Failed');
         } else {
             toast.success(`File uploaded: ${data.file.originalName}`, 'Upload Complete');
             addUploadToList(data.file);
+            showNotification('File uploaded successfully', 'success');
         }
     } catch (err) {
+        showNotification('Upload failed: ' + err.message, 'error');
         toast.error(err.message, 'Upload Failed');
     }
 }
@@ -560,8 +679,9 @@ async function deleteUpload(filename) {
         await fetch(`${API_BASE}/uploads/${filename}`, { method: 'DELETE' });
         const el = document.getElementById(`upload-${filename}`);
         if (el) el.remove();
-        toast.success('File deleted', 'File Deleted');
+        showNotification('File deleted successfully', 'success');
     } catch (err) {
+        showNotification('Failed to delete file: ' + err.message, 'error');
         toast.error(err.message, 'Failed to Delete File');
     }
 }
@@ -758,6 +878,7 @@ async function addCamera(e) {
         const data = await response.json();
         
         if (data.error) {
+            showNotification(data.error, 'error');
             toast.error(data.error, 'Camera Addition Failed');
         } else {
             closeModal('addCameraModal');
@@ -769,8 +890,10 @@ async function addCamera(e) {
             document.getElementById('cameraPass').value = '';
             toast.success(`Camera added: ${name}`, 'Camera Added');
             loadCameras();
+            showNotification('Camera added successfully', 'success');
         }
     } catch (err) {
+        showNotification('Failed to add camera: ' + err.message, 'error');
         toast.error(err.message, 'Failed to Add Camera');
     }
 }
@@ -782,7 +905,9 @@ async function deleteCamera(id) {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
         toast.success('Camera deleted', 'Camera Deleted');
         loadCameras();
+        showNotification('Camera deleted successfully', 'success');
     } catch (err) {
+        showNotification('Failed to delete camera: ' + err.message, 'error');
         toast.error(err.message, 'Failed to Delete Camera');
     }
 }
@@ -860,6 +985,7 @@ async function createNote(e) {
         const data = await response.json();
         
         if (data.error) {
+            showNotification(data.error, 'error');
             toast.error(data.error, 'Error');
         } else {
             closeModal('createNoteModal');
@@ -867,9 +993,10 @@ async function createNote(e) {
             document.getElementById('notePublic').checked = false;
             loadNotes();
             loadNote(data.note.id);
+            showNotification('Note created successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to create note: ' + err.message);
+        showNotification('Failed to create note: ' + err.message, 'error');
     }
 }
 
@@ -885,12 +1012,13 @@ async function toggleNotePublic(noteId, isPublic) {
         const data = await response.json();
         
         if (data.error) {
-            alert(data.error);
+            showNotification(data.error, 'error');
         } else {
             loadNotes(); // Refresh the notes grid
+            showNotification('Note visibility updated', 'success');
         }
     } catch (err) {
-        alert('Failed to update note visibility: ' + err.message);
+        showNotification('Failed to update note visibility: ' + err.message, 'error');
     }
 }
 
@@ -900,6 +1028,12 @@ async function toggleAllNotesPublic() {
         const response = await fetch(`${API_BASE}/notes`);
         const notes = await response.json();
         
+        // If all notes are currently public, make them all private; otherwise, make them all public
+        const publicCount = notes.filter(note => note.isPublic).length;
+        const makePublic = publicCount !== notes.length;
+        
+        const action = makePublic ? 'public' : 'private';
+        showNotification(`Making all notes ${action}...`, 'info');
         // Determine whether to make all notes public or all private:
         // If all are currently public, make them all private; otherwise, make them all public.
         const publicCount = notes.filter(note => note.isPublic).length;
@@ -914,10 +1048,11 @@ async function toggleAllNotesPublic() {
         );
         
         await Promise.all(promises);
+        showNotification(`All notes are now ${action}`, 'success');
         loadNotes(); // Refresh the notes grid
         
     } catch (err) {
-        alert('Failed to toggle notes visibility: ' + err.message);
+        showNotification('Failed to toggle notes visibility: ' + err.message, 'error');
     }
 }
 
@@ -935,6 +1070,7 @@ async function loadNote(id) {
         const note = await response.json();
         
         if (note.error) {
+            showNotification(note.error, 'error');
             toast.error(note.error, 'Note Error');
             return;
         }
@@ -952,7 +1088,7 @@ async function loadNote(id) {
         document.getElementById('noteSelect').value = id;
         
     } catch (err) {
-        alert('Failed to load note: ' + err.message);
+        showNotification('Failed to load note: ' + err.message, 'error');
     }
 }
 
@@ -1083,6 +1219,7 @@ async function addNode() {
         const data = await response.json();
         
         if (data.error) {
+            showNotification(data.error, 'error');
             toast.error(data.error, 'Error');
         } else {
             currentNote.nodes.push(data.node);
@@ -1090,9 +1227,10 @@ async function addNode() {
                 currentNote.connections.push(data.connection);
             }
             renderMindMap();
+            showNotification('Node added successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to add node: ' + err.message);
+        showNotification('Failed to add node: ' + err.message, 'error');
     }
 }
 
@@ -1122,8 +1260,9 @@ async function deleteNode(id) {
         currentNote.nodes = currentNote.nodes.filter(n => n.id !== id);
         currentNote.connections = currentNote.connections.filter(c => c.from !== id && c.to !== id);
         renderMindMap();
+        showNotification('Node deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete node: ' + err.message);
+        showNotification('Failed to delete node: ' + err.message, 'error');
     }
 }
 
@@ -1159,14 +1298,16 @@ async function toggleNotePublic() {
         const data = await response.json();
         
         if (data.error) {
+            showNotification(data.error, 'error');
             toast.error(data.error, 'Error');
         } else {
             currentNote.isPublic = newPublic;
             currentNote.shareCode = data.note.shareCode;
             updatePublicToggle();
+            showNotification('Note updated successfully', 'success');
         }
     } catch (err) {
-        alert('Failed to update note: ' + err.message);
+        showNotification('Failed to update note: ' + err.message, 'error');
     }
 }
 
@@ -1192,8 +1333,9 @@ async function deleteCurrentNote() {
         currentNote = null;
         loadNotes();
         loadNote('');
+        showNotification('Note deleted successfully', 'success');
     } catch (err) {
-        alert('Failed to delete note: ' + err.message);
+        showNotification('Failed to delete note: ' + err.message, 'error');
     }
 }
 
@@ -1212,6 +1354,7 @@ async function loadSharedNote(code) {
         const note = await response.json();
         
         if (note.error) {
+            showNotification('Shared note not found', 'error');
             toast.error('Shared note not found', 'Not Found');
             return;
         }
@@ -1226,7 +1369,7 @@ async function loadSharedNote(code) {
         renderMindMap();
         
     } catch (err) {
-        alert('Failed to load shared note');
+        showNotification('Failed to load shared note', 'error');
     }
 }
 
@@ -1259,6 +1402,7 @@ async function loadSettings() {
         }
     } catch (err) {
         console.error('Failed to load settings:', err);
+        showNotification('Failed to load settings: ' + err.message, 'error');
     }
     
     // Update AI status
@@ -1301,13 +1445,13 @@ async function saveSettings() {
         const data = await response.json();
         
         if (data.error) {
-            alert('Failed to save settings: ' + data.error);
+            showNotification('Failed to save settings: ' + data.error, 'error');
         } else {
-            alert('Settings saved successfully! Please restart the server to apply changes.');
+            showNotification('Settings saved successfully! Please restart the server to apply changes.', 'success');
             updateAIStatus();
         }
     } catch (err) {
-        alert('Failed to save settings: ' + err.message);
+        showNotification('Failed to save settings: ' + err.message, 'error');
     }
 }
 
@@ -1329,24 +1473,6 @@ async function updateAIStatus() {
     } catch (err) {
         statusIndicator.className = 'status-indicator';
         aiStatus.innerHTML = '<span class="status-indicator"></span>Error';
-    }
-}
-
-// Load settings when settings panel is opened
-function showPanel(panelName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.panel === panelName);
-    });
-    
-    // Update panels
-    document.querySelectorAll('.panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
-    });
-    
-    // Load settings if settings panel is opened
-    if (panelName === 'settings') {
-        loadSettings();
     }
 }
 
@@ -1408,7 +1534,7 @@ function formatDate(isoString) {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        alert('Copied to clipboard!');
+        showNotification('Copied to clipboard!', 'success');
     }).catch(() => {
         // Fallback
         const textarea = document.createElement('textarea');
@@ -1417,7 +1543,7 @@ function copyToClipboard(text) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        alert('Copied to clipboard!');
+        showNotification('Copied to clipboard!', 'success');
     });
 }
 

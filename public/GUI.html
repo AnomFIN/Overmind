@@ -328,7 +328,7 @@
                             <div class="form-group">
                                 <label>OpenAI API Key</label>
                                 <input type="password" id="openaiKey" placeholder="sk-...">
-                                <small class="form-hint">Your OpenAI API key for GPT models</small>
+                                <small class="form-hint">⚠️ Important: Use HTTPS in production to protect credentials during transmission</small>
                             </div>
                         </div>
                         
@@ -368,8 +368,8 @@
                         <h3>Security</h3>
                         <div class="form-group">
                             <label>Session Secret</label>
-                            <input type="password" id="sessionSecret" placeholder="Enter a secure secret">
-                            <small class="form-hint">Secret key for session management</small>
+                            <input type="password" id="sessionSecret" placeholder="Enter a secure secret (min 16 characters)">
+                            <small class="form-hint">⚠️ Use HTTPS in production. Secret must be at least 16 characters.</small>
                         </div>
                     </div>
                     

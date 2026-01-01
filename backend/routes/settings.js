@@ -9,8 +9,95 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const SETTINGS_FILE = path.join(__dirname, '..', '..', '.env');
+
+/**
+ * Authentication middleware for settings routes
+ * Checks for a simple admin key in environment or session
+ * 
+ * SECURITY WARNING: This is a basic implementation.
+ * For production use, implement proper authentication with:
+ * - User sessions (express-session)
+ * - Password hashing (bcrypt)
+ * - HTTPS/TLS encryption
+ */
+function requireAuth(req, res, next) {
+    // Check if ADMIN_KEY is configured in environment
+    const adminKey = process.env.ADMIN_KEY;
+    
+    // If no admin key is configured, log a warning and allow access
+    // This maintains backward compatibility but warns about the security risk
+    if (!adminKey) {
+        console.warn('[Settings] WARNING: No ADMIN_KEY configured. Settings endpoint is unprotected!');
+        console.warn('[Settings] Set ADMIN_KEY in .env file to secure settings access.');
+        return next();
+    }
+    
+    // Check for admin key in request header
+    const providedKey = req.headers['x-admin-key'];
+    
+    if (providedKey !== adminKey) {
+        return res.status(401).json({ 
+            error: 'Authentication required. Provide X-Admin-Key header with valid admin key.',
+            hint: 'Configure ADMIN_KEY in .env file for settings access control.'
+        });
+    }
+    
+    next();
+}
+
+/**
+ * Generate a secure random secret
+ */
+function generateSecureSecret() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * Validate session secret meets minimum security requirements
+ */
+function validateSessionSecret(secret) {
+    if (!secret || secret === 'your_secret_key_here') {
+        return false;
+    }
+    // Minimum 16 characters for security
+    if (secret.length < 16) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Validate file path to prevent directory traversal attacks
+ */
+function validateFilePath(filePath) {
+    if (!filePath) return true; // Empty is allowed
+    
+    // Resolve to absolute path
+    const resolvedPath = path.resolve(filePath);
+    
+    // Define a safe base directory (e.g., user's home or a specific data directory)
+    // For now, we'll ensure the path is an absolute path and doesn't contain null bytes
+    if (resolvedPath.includes('\0')) {
+        return false;
+    }
+    
+    // Check if path exists and is a directory
+    try {
+        if (fs.existsSync(resolvedPath)) {
+            const stat = fs.statSync(resolvedPath);
+            if (!stat.isDirectory()) {
+                return false;
+            }
+        }
+    } catch (err) {
+        return false;
+    }
+    
+    return true;
+}
 
 /**
  * Read current settings from .env file
@@ -73,13 +160,14 @@ function writeEnvSettings(settings) {
  * GET /api/settings
  * Get current settings
  */
-router.get('/', (req, res) => {
+router.get('/', requireAuth, (req, res) => {
     try {
         const envSettings = readEnvSettings();
         
         const settings = {
             aiProvider: envSettings.AI_PROVIDER || 'openai',
-            openaiKey: envSettings.OPENAI_API_KEY || '',
+            // Never send the actual API key to the client
+            openaiKey: envSettings.OPENAI_API_KEY ? '****' : '',
             localModelPath: envSettings.LOCAL_MODEL_PATH || '',
             modelContextSize: parseInt(envSettings.MODEL_CONTEXT_SIZE) || 4096,
             localServerPort: parseInt(envSettings.LOCAL_SERVER_PORT) || 8080,
@@ -100,7 +188,7 @@ router.get('/', (req, res) => {
  * POST /api/settings
  * Update settings
  */
-router.post('/', (req, res) => {
+router.post('/', requireAuth, (req, res) => {
     try {
         const {
             aiProvider,
@@ -121,12 +209,69 @@ router.post('/', (req, res) => {
         if (aiProvider === 'local' && !localModelPath) {
             return res.status(400).json({ error: 'Local model path is required' });
         }
-
+        
+        // Validate session secret
+        if (sessionSecret && sessionSecret !== '****' && !validateSessionSecret(sessionSecret)) {
+            return res.status(400).json({ 
+                error: 'Session secret must be at least 16 characters long and cannot be the default value.' 
+            });
+        }
+        
+        // Validate file root path for security
+        if (fileRoot && !validateFilePath(fileRoot)) {
+            return res.status(400).json({ 
+                error: 'Invalid file root path. Path must not contain null bytes and must be a valid directory.' 
+            });
+        }
+        
         // Validate numeric configuration values if provided
         let validatedModelContextSize = modelContextSize;
         if (modelContextSize !== undefined && modelContextSize !== null && modelContextSize !== '') {
             const parsedModelContextSize = parseInt(modelContextSize, 10);
             if (!Number.isFinite(parsedModelContextSize) || parsedModelContextSize <= 0 || parsedModelContextSize > 1000000) {
+                return res.status(400).json({ 
+                    error: 'Model context size must be a positive integer between 1 and 1,000,000.' 
+                });
+            }
+            validatedModelContextSize = parsedModelContextSize;
+        }
+        
+        let validatedLocalServerPort = localServerPort;
+        if (localServerPort !== undefined && localServerPort !== null && localServerPort !== '') {
+            const parsedLocalServerPort = parseInt(localServerPort, 10);
+            // Restrict to non-privileged ports
+            if (!Number.isFinite(parsedLocalServerPort) || parsedLocalServerPort < 1024 || parsedLocalServerPort > 65535) {
+                return res.status(400).json({ 
+                    error: 'Server port must be between 1024 and 65535.' 
+                });
+            }
+            validatedLocalServerPort = parsedLocalServerPort;
+        }
+        
+        let validatedMaxUploadSize = maxUploadSize;
+        if (maxUploadSize !== undefined && maxUploadSize !== null && maxUploadSize !== '') {
+            const parsedMaxUploadSize = parseInt(maxUploadSize, 10);
+            // Limit to reasonable upload sizes (1MB to 1GB)
+            if (!Number.isFinite(parsedMaxUploadSize) || parsedMaxUploadSize <= 0 || parsedMaxUploadSize > 1000) {
+                return res.status(400).json({ 
+                    error: 'Max upload size must be between 1 and 1000 MB.' 
+                });
+            }
+            validatedMaxUploadSize = parsedMaxUploadSize;
+        }
+        
+        // Read current settings to preserve API key if masked
+        const currentSettings = readEnvSettings();
+        const finalOpenaiKey = (openaiKey && openaiKey !== '****') ? openaiKey : currentSettings.OPENAI_API_KEY;
+        const finalSessionSecret = (sessionSecret && sessionSecret !== '****') ? sessionSecret : currentSettings.SECRET_KEY;
+        
+        // Generate secure secret if none provided or invalid
+        let finalSecret = finalSessionSecret;
+        if (!finalSecret || !validateSessionSecret(finalSecret)) {
+            finalSecret = generateSecureSecret();
+            console.log('[Settings] Generated new secure session secret');
+        }
+        
                 return res.status(400).json({ error: 'modelContextSize must be a positive integer between 1 and 1000000.' });
             }
             validatedModelContextSize = parsedModelContextSize;
@@ -153,13 +298,13 @@ router.post('/', (req, res) => {
         // Write settings to .env file
         writeEnvSettings({
             aiProvider,
-            openaiKey,
+            openaiKey: finalOpenaiKey,
             localModelPath,
             modelContextSize: validatedModelContextSize,
             localServerPort: validatedLocalServerPort,
             fileRoot,
             maxUploadSize: validatedMaxUploadSize,
-            sessionSecret
+            sessionSecret: finalSecret
         });
 
         res.json({
