@@ -340,22 +340,6 @@ class ChatService {
      */
     async deleteMessage(messageId, userId, forEveryone = false) {
         // Fetch message to verify permissions
-        const message = await this.storage.getMessage(messageId);
-        if (!message) {
-            throw new Error('Message not found');
-        }
-
-        // For "delete for everyone", only the sender can perform this action
-        if (forEveryone && message.senderId !== userId) {
-            throw new Error('Access denied');
-        }
-
-        // Verify user is a participant in the conversation
-        const thread = await this.storage.getThread(message.threadId);
-        if (!thread || !thread.participants || !thread.participants.includes(userId)) {
-            throw new Error('Access denied');
-        }
-        // Fetch message to verify permissions
         const messages = await this.storage.readFile('chat_messages.json');
         const message = messages.find(m => m.id === messageId);
         
