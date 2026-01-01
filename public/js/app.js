@@ -11,6 +11,9 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Interval tracking for cleanup
+const activeIntervals = [];
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -29,13 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
     addParticleBackground();
 });
 
+// Cleanup intervals on page unload
+window.addEventListener('beforeunload', () => {
+    cleanupIntervals();
+});
+
 // ==================== Neon Effects & Tech Animations ====================
+
+// Cleanup function for all active intervals
+function cleanupIntervals() {
+    activeIntervals.forEach(intervalId => clearInterval(intervalId));
+    activeIntervals.length = 0;
+}
 
 function initNeonEffects() {
     // Add glitch effect to logo
     const logo = document.querySelector('.logo-image');
     if (logo) {
-        setInterval(() => {
+        const logoInterval = setInterval(() => {
             if (Math.random() < 0.1) { // 10% chance every interval
                 logo.style.filter = 'hue-rotate(90deg) saturate(2) brightness(1.2)';
                 setTimeout(() => {
@@ -43,6 +57,7 @@ function initNeonEffects() {
                 }, 100);
             }
         }, 2000);
+        activeIntervals.push(logoInterval);
     }
     
     // Add typing effect to status indicators
@@ -113,7 +128,7 @@ function addTypingEffect() {
 function addRandomGlowPulses() {
     const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
     
-    setInterval(() => {
+    const glowInterval = setInterval(() => {
         const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
         if (randomElement && Math.random() < 0.3) {
             randomElement.style.animation = 'neonPulse 1s ease-in-out';
@@ -122,6 +137,7 @@ function addRandomGlowPulses() {
             }, 1000);
         }
     }, 3000);
+    activeIntervals.push(glowInterval);
 }
 
 function createRippleEffect(element) {
