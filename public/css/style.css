@@ -665,11 +665,6 @@ html, body {
     padding: 20px 30px;
     overflow-y: auto;
     position: relative;
-    background-image: url('/overmind-logotp.png');
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 40%;
-    background-attachment: local;
 }
 
 .chat-messages::before {
