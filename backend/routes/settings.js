@@ -9,7 +9,6 @@ const fs = require('fs');
 const path = require('path');
 
 const SETTINGS_FILE = path.join(__dirname, '..', '..', '.env');
-const CONFIG_FILE = path.join(__dirname, '..', '..', 'data', 'config.json');
 
 /**
  * Read current settings from .env file
