@@ -80,6 +80,10 @@
                     <span class="nav-icon">🗺️</span>
                     <span class="nav-text">Mind Map</span>
                 </li>
+                <li class="nav-item" id="secureChatNav">
+                    <span class="nav-icon">🔐</span>
+                    <span class="nav-text">Secure Chat</span>
+                </li>
                 <li class="nav-item admin-only" data-panel="settings" style="display: none;">
                     <span class="nav-icon">⚙️</span>
                     <span class="nav-text">Settings</span>
@@ -574,6 +578,25 @@
                 // Still redirect to login
                 window.location.href = '/login.html';
             }
+        }
+        
+        // Handle secure chat navigation
+        // Check if DOM is already loaded or wait for it
+        function initSecureChat() {
+            const secureChatNav = document.getElementById('secureChatNav');
+            if (secureChatNav) {
+                secureChatNav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Open secure chat in same tab
+                    window.location.href = '/chat.html';
+                });
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSecureChat);
+        } else {
+            initSecureChat();
         }
     </script>
 </body>

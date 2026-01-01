@@ -29,6 +29,10 @@ class JsonStorageAdapter extends StorageAdapter {
             'friend_requests.json',
             'chat_threads.json',
             'chat_messages.json',
+            'chat_keys.json',
+            'chat_files.json',
+            'chat_typing_status.json',
+            'chat_read_receipts.json',
             'mindmaps.json',
             'mindmap_nodes.json',
             'mindmap_edges.json',
@@ -763,6 +767,273 @@ class JsonStorageAdapter extends StorageAdapter {
         cameras.splice(index, 1);
         await this.writeFile('cameras.json', cameras);
         return true;
+    }
+
+    // E2E Encrypted Chat operations
+
+    /**
+     * Store user's encryption keys
+     */
+    async storeUserKeys(userId, publicKey, encryptedPrivateKey) {
+        const keys = await this.readFile('chat_keys.json');
+        
+        // Check if user already has keys
+        const existingIndex = keys.findIndex(k => k.userId === userId);
+        
+        const keyData = {
+            id: existingIndex >= 0 ? keys[existingIndex].id : uuidv4(),
+            userId,
+            publicKey,
+            encryptedPrivateKey,
+            createdAt: existingIndex >= 0 ? keys[existingIndex].createdAt : new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        if (existingIndex >= 0) {
+            keys[existingIndex] = keyData;
+        } else {
+            keys.push(keyData);
+        }
+        
+        await this.writeFile('chat_keys.json', keys);
+        return keyData;
+    }
+
+    /**
+     * Get user's public key
+     */
+    async getUserPublicKey(userId) {
+        const keys = await this.readFile('chat_keys.json');
+        const userKey = keys.find(k => k.userId === userId);
+        return userKey ? userKey.publicKey : null;
+    }
+
+    /**
+     * Get user's encrypted private key (for the user to decrypt client-side)
+     */
+    async getUserKeys(userId) {
+        const keys = await this.readFile('chat_keys.json');
+        return keys.find(k => k.userId === userId) || null;
+    }
+
+    /**
+     * Store encrypted file
+     */
+    async storeEncryptedFile(fileData) {
+        const files = await this.readFile('chat_files.json');
+        const file = {
+            id: uuidv4(),
+            filename: fileData.filename,
+            originalName: fileData.originalName,
+            encryptedContent: fileData.encryptedContent,
+            encryptionKey: fileData.encryptionKey,
+            iv: fileData.iv,
+            mimeType: fileData.mimeType,
+            size: fileData.size,
+            uploadedBy: fileData.uploadedBy,
+            createdAt: new Date().toISOString()
+        };
+        files.push(file);
+        await this.writeFile('chat_files.json', files);
+        return file;
+    }
+
+    /**
+     * Get encrypted file
+     */
+    async getEncryptedFile(fileId) {
+        const files = await this.readFile('chat_files.json');
+        return files.find(f => f.id === fileId) || null;
+    }
+
+    /**
+     * Delete encrypted file
+     */
+    async deleteEncryptedFile(fileId) {
+        const files = await this.readFile('chat_files.json');
+        const index = files.findIndex(f => f.id === fileId);
+        if (index === -1) return false;
+        
+        files.splice(index, 1);
+        await this.writeFile('chat_files.json', files);
+        return true;
+    }
+
+    /**
+     * Update typing status
+     */
+    async updateTypingStatus(conversationId, userId, isTyping) {
+        const statuses = await this.readFile('chat_typing_status.json');
+        const index = statuses.findIndex(s => s.conversationId === conversationId && s.userId === userId);
+        
+        const status = {
+            id: index >= 0 ? statuses[index].id : uuidv4(),
+            conversationId,
+            userId,
+            isTyping,
+            updatedAt: new Date().toISOString()
+        };
+        
+        if (index >= 0) {
+            statuses[index] = status;
+        } else {
+            statuses.push(status);
+        }
+        
+        await this.writeFile('chat_typing_status.json', statuses);
+        return status;
+    }
+
+    /**
+     * Get typing status for conversation
+     */
+    async getTypingStatus(conversationId) {
+        const statuses = await this.readFile('chat_typing_status.json');
+        // Only return recent typing statuses (within last 10 seconds)
+        const cutoff = new Date(Date.now() - 10000);
+        return statuses.filter(s => 
+            s.conversationId === conversationId && 
+            s.isTyping && 
+            new Date(s.updatedAt) > cutoff
+        );
+    }
+
+    /**
+     * Create read receipt
+     */
+    async createReadReceipt(messageId, userId) {
+        const receipts = await this.readFile('chat_read_receipts.json');
+        
+        // Check if receipt already exists
+        const existing = receipts.find(r => r.messageId === messageId && r.userId === userId);
+        if (existing) {
+            return existing;
+        }
+        
+        const receipt = {
+            id: uuidv4(),
+            messageId,
+            userId,
+            readAt: new Date().toISOString()
+        };
+        
+        receipts.push(receipt);
+        await this.writeFile('chat_read_receipts.json', receipts);
+        return receipt;
+    }
+
+    /**
+     * Get read receipts for message
+     */
+    async getReadReceipts(messageId) {
+        const receipts = await this.readFile('chat_read_receipts.json');
+        return receipts.filter(r => r.messageId === messageId);
+    }
+
+    /**
+     * Mark message as delivered
+     */
+    async markMessageDelivered(messageId) {
+        const messages = await this.readFile('chat_messages.json');
+        const message = messages.find(m => m.id === messageId);
+        
+        if (message && !message.deliveredAt) {
+            message.deliveredAt = new Date().toISOString();
+            await this.writeFile('chat_messages.json', messages);
+        }
+        
+        return true;
+    }
+
+    /**
+     * Delete message (soft delete with flags)
+     */
+    async deleteMessage(messageId, userId, forEveryone = false) {
+        const messages = await this.readFile('chat_messages.json');
+        const message = messages.find(m => m.id === messageId);
+        
+        if (!message) {
+            return false;
+        }
+        
+        if (forEveryone && message.senderId === userId) {
+            // Delete for everyone
+            message.deletedAt = new Date().toISOString();
+            message.deletedForEveryone = true;
+            message.content = '[Message deleted]';
+            // Clear encryption metadata to avoid leaking encryption parameters
+            if (message.encryptionMetadata) {
+                message.encryptionMetadata = {};
+            }
+            // Clear encryption metadata to avoid leaking encryption parameters
+            if (message.encryptionMetadata) {
+                message.encryptionMetadata = {};
+            }
+        } else {
+            // Delete for self only
+            if (!message.deletedFor) {
+                message.deletedFor = [];
+            }
+            if (!message.deletedFor.includes(userId)) {
+                message.deletedFor.push(userId);
+            }
+        }
+        
+        await this.writeFile('chat_messages.json', messages);
+        return true;
+    }
+
+    /**
+     * Enhanced createMessage with encryption metadata and file support
+     */
+    async createMessageWithEncryption(messageData) {
+        const messages = await this.readFile('chat_messages.json');
+        const message = {
+            id: uuidv4(),
+            threadId: messageData.threadId,
+            senderId: messageData.senderId,
+            content: messageData.content, // Encrypted content
+            encryptionMetadata: messageData.encryptionMetadata || {},
+            messageType: messageData.messageType || 'text',
+            fileId: messageData.fileId || null,
+            createdAt: new Date().toISOString(),
+            deliveredAt: null,
+            deletedAt: null,
+            deletedForEveryone: false,
+            deletedFor: [],
+            readBy: []
+        };
+        messages.push(message);
+        await this.writeFile('chat_messages.json', messages);
+        
+        // Update thread timestamp
+        const threads = await this.readFile('chat_threads.json');
+        const thread = threads.find(t => t.id === messageData.threadId);
+        if (thread) {
+            thread.updatedAt = new Date().toISOString();
+            thread.lastMessageId = message.id;
+            await this.writeFile('chat_threads.json', threads);
+        }
+        
+        return message;
+    }
+
+    /**
+     * Get messages with filtering for deleted messages
+     */
+    async getMessagesForUser(threadId, userId, limit = 50, offset = 0) {
+        const messages = await this.readFile('chat_messages.json');
+        const threadMessages = messages
+            .filter(m => {
+                if (m.threadId !== threadId) return false;
+                // Filter out messages deleted for this user
+                if (m.deletedForEveryone) return false;
+                if (m.deletedFor && m.deletedFor.includes(userId)) return false;
+                return true;
+            })
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+            .slice(offset, offset + limit);
+        return threadMessages;
     }
 }
 

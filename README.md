@@ -1,12 +1,13 @@
 # AnomHome Overmind
 
-**Version 1.01** - Enterprise-grade authentication, settings management, and mobile optimization
+**Version 1.1** - End-to-End Encrypted Chat, Enterprise Authentication, and Mobile Optimization
 
 **AnomHome Overmind** is a self-hosted personal dashboard that works on both Linux servers and standard web hosting.
 
 It combines:
 
 - 🔐 **User Authentication** - Secure login with bcrypt password hashing
+- 💬 **Secure Chat** - End-to-end encrypted messaging with friends
 - ⚙️ **Settings Management** - AI personas, branding, camera sources (Admin only)
 - 🧠 **OpenAI Console** - Configurable AI personas with custom system prompts
 - 🔗 **Link Shortener** - Fast URL shortening with click tracking
@@ -21,7 +22,21 @@ It combines:
 
 ---
 
-## What's New in v1.01
+## What's New in v1.1
+
+### 🔐 End-to-End Encrypted Chat
+- **Zero-Knowledge Encryption**: Messages encrypted client-side before reaching server
+- **RSA + AES Encryption**: 2048-bit RSA key pairs with AES-256-GCM for messages
+- **Encrypted File Sharing**: Share files up to 10MB with full encryption
+- **Real-Time Updates**: WebSocket-powered instant message delivery
+- **Typing Indicators**: See when friends are typing (without revealing content)
+- **Read Receipts**: Know when messages are delivered and read
+- **Message Deletion**: Delete messages for yourself or for everyone
+- **Friends System**: Only chat with approved friends for added security
+- **WhatsApp-Style UI**: Modern, familiar chat interface with dark mode support
+- **Mobile Responsive**: Full chat experience on mobile devices
+
+See [CHAT_SECURITY.md](./CHAT_SECURITY.md) for detailed security documentation.
 
 ### 🔐 Authentication & Security
 - **User Management**: Register/login with username or email
@@ -39,10 +54,21 @@ It combines:
 - **Responsive MindMap**: Works perfectly on mobile devices (tested on iPhone 390px width)
 - **Touch Controls**: Pinch-to-zoom and pan gestures
 - **Zoom Buttons**: +, -, and "Fit to Screen" controls
+- **Mobile Chat**: Full-featured chat interface optimized for mobile
 
 ---
 
 ## Features
+
+- **Secure Chat** (NEW!)
+  - End-to-end encrypted messaging between friends
+  - Messages encrypted with RSA-OAEP (2048-bit) + AES-256-GCM
+  - Real-time delivery via WebSocket connections
+  - Encrypted file attachments (up to 10MB)
+  - Typing indicators and read receipts
+  - Message history with full persistence
+  - WhatsApp/Messenger-style modern UI
+  - Zero-knowledge server architecture
 
 - **OpenAI console**
   - Chat interface backed by OpenAI API.
@@ -51,7 +77,7 @@ It combines:
 
 - **Link shortener**
   - Create short codes for any URL.
-- JSON-based storage with optional expiry.
+  - JSON-based storage with optional expiry.
   - Redirect endpoint and basic click stats.
 
 - **15-minute temp uploads**
