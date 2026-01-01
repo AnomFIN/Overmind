@@ -560,6 +560,7 @@ class ChatApp {
                     encryptedContent: encrypted.encryptedContent,
                     encryptionKey: encrypted.key,
                     iv: encrypted.iv,
+                    iv: encrypted.iv,
                     mimeType: file.type,
                     size: file.size
                 })
