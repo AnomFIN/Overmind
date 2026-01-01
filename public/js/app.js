@@ -1227,8 +1227,36 @@ async function loadSharedNote(code) {
 // ==================== Settings ====================
 
 async function loadSettings() {
+    const adminToken = document.getElementById('adminToken').value;
+    
+    if (!adminToken) {
+        alert('Please enter your admin token to view settings');
+        return;
+    }
+    
     try {
-        const response = await fetch(`${API_BASE}/settings`);
+        const response = await fetch(`${API_BASE}/settings`, {
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            }
+        });
+        
+        if (response.status === 401) {
+            alert('Admin token is required. Please enter your admin token.');
+            return;
+        }
+        
+        if (response.status === 403) {
+            alert('Invalid admin token. Please check your token and try again.');
+            return;
+        }
+        
+        if (response.status === 503) {
+            const data = await response.json();
+            alert(data.message || 'Authentication not configured on server');
+            return;
+        }
+        
         if (response.ok) {
             const settings = await response.json();
             
@@ -1250,9 +1278,12 @@ async function loadSettings() {
             
             // Security
             document.getElementById('sessionSecret').value = settings.sessionSecret || '';
+        } else {
+            alert('Failed to load settings. Please try again.');
         }
     } catch (err) {
         console.error('Failed to load settings:', err);
+        alert('Failed to load settings: ' + err.message);
     }
     
     // Update AI status
@@ -1274,6 +1305,13 @@ function toggleAIProvider() {
 }
 
 async function saveSettings() {
+    const adminToken = document.getElementById('adminToken').value;
+    
+    if (!adminToken) {
+        alert('Please enter your admin token to save settings');
+        return;
+    }
+    
     const settings = {
         aiProvider: document.getElementById('aiProvider').value,
         openaiKey: document.getElementById('openaiKey').value,
@@ -1288,9 +1326,28 @@ async function saveSettings() {
     try {
         const response = await fetch(`${API_BASE}/settings`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
             body: JSON.stringify(settings)
         });
+        
+        if (response.status === 401) {
+            alert('Admin token is required. Please enter your admin token.');
+            return;
+        }
+        
+        if (response.status === 403) {
+            alert('Invalid admin token. Please check your token and try again.');
+            return;
+        }
+        
+        if (response.status === 503) {
+            const data = await response.json();
+            alert(data.message || 'Authentication not configured on server');
+            return;
+        }
         
         const data = await response.json();
         
@@ -1338,10 +1395,8 @@ function showPanel(panelName) {
         panel.classList.toggle('active', panel.id === `panel-${panelName}`);
     });
     
-    // Load settings if settings panel is opened
-    if (panelName === 'settings') {
-        loadSettings();
-    }
+    // Note: Settings are no longer auto-loaded. Users must click "Load Settings" 
+    // after entering their admin token for security reasons.
 }
 
 // ==================== Modals ====================
