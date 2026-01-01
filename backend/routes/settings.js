@@ -151,30 +151,25 @@ router.post('/', (req, res) => {
         // Validate fileRoot to prevent directory traversal attacks
         let validatedFileRoot = fileRoot;
         if (fileRoot !== undefined && fileRoot !== null && fileRoot !== '') {
-            // Normalize the path to resolve any relative components
-            const normalizedPath = path.normalize(fileRoot);
+            // Resolve the path to get the absolute, normalized path
+            const resolvedPath = path.resolve(fileRoot);
             
-            // Check if path is absolute
-            if (!path.isAbsolute(normalizedPath)) {
+            // Check if path is absolute (should always be true after resolve, but double-check)
+            if (!path.isAbsolute(resolvedPath)) {
                 return res.status(400).json({ error: 'fileRoot must be an absolute path.' });
             }
             
-            // Check for directory traversal patterns
-            if (normalizedPath.includes('..')) {
-                return res.status(400).json({ error: 'fileRoot cannot contain directory traversal patterns (..).' });
-            }
-            
             // Verify the path exists and is a directory
-            if (fs.existsSync(normalizedPath)) {
-                const stats = fs.statSync(normalizedPath);
+            try {
+                const stats = fs.statSync(resolvedPath);
                 if (!stats.isDirectory()) {
                     return res.status(400).json({ error: 'fileRoot must be a valid directory path.' });
                 }
-            } else {
-                return res.status(400).json({ error: 'fileRoot directory does not exist.' });
+            } catch (err) {
+                return res.status(400).json({ error: 'fileRoot directory does not exist or is not accessible.' });
             }
             
-            validatedFileRoot = normalizedPath;
+            validatedFileRoot = resolvedPath;
         }
 
         // Write settings to .env file
