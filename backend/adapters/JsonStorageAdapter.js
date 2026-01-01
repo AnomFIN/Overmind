@@ -965,6 +965,10 @@ class JsonStorageAdapter extends StorageAdapter {
             if (message.encryptionMetadata) {
                 message.encryptionMetadata = {};
             }
+            // Clear encryption metadata to avoid leaking encryption parameters
+            if (message.encryptionMetadata) {
+                message.encryptionMetadata = {};
+            }
         } else {
             // Delete for self only
             if (!message.deletedFor) {
