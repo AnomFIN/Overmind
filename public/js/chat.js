@@ -92,10 +92,16 @@ class ChatApp {
             // Get public key to upload
             const publicKey = await encryptionManager.getPublicKeyString();
 
-            // For now, we use a simple password derived from user data
-            // TODO: In production, prompt user for a password to encrypt their private key
-            const password = this.sessionToken; // Temporary - should be user-provided password
+            // Prompt user for a password to encrypt their private key
+            // NOTE: This password should be kept secret by the user and is independent of the session token.
+            const password = window.prompt(
+                'Set a password to protect your encryption keys.\n\n' +
+                'You will need this password to decrypt your messages on this or other devices.'
+            );
 
+            if (!password) {
+                throw new Error('An encryption password is required to generate and store your keys.');
+            }
             // Encrypt private key with password
             const encryptedPrivateKey = await encryptionManager.getEncryptedPrivateKey(password);
 
