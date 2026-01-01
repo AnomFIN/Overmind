@@ -83,6 +83,35 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 git clone https://github.com/<your-org>/anomhome-overmind.git
 cd anomhome-overmind
 python3 install.py
+```
+
+### Environment setup
+
+**Important:** Before running the application, you must configure your environment variables:
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and fill in your values:
+   - `OPENAI_API_KEY` - Your OpenAI API key (required for AI chat)
+   - `SECRET_KEY` - A random, secure string for session management
+   - Other optional settings as needed
+
+3. **Security notice:**
+   - The `.env` file is already in `.gitignore` to prevent accidental commits
+   - Never commit `.env` files to version control
+   - Keep your API keys and secrets secure
+   - Use strong, random values for `SECRET_KEY` in production
+
+### Running the application
+
+```bash
+npm start
+```
+
+Access the dashboard at `http://localhost:3000`
 
 ## Cameras: motion recorder
 - Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
