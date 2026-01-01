@@ -239,6 +239,7 @@ html, body {
     transform: translateX(8px);
     box-shadow: var(--shadow-neon-strong);
     animation: neonPulse 3s ease-in-out infinite;
+    will-change: transform, box-shadow;
 }
 
 .nav-item.active::before {
@@ -664,11 +665,6 @@ html, body {
     padding: 20px 30px;
     overflow-y: auto;
     position: relative;
-    background-image: url('/overmind-logotp.png');
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 40%;
-    background-attachment: local;
 }
 
 .chat-messages::before {
@@ -678,7 +674,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('/overmind-logotp.png');
+    background-image: url('/overmind-logotp.png'), url('/overmind-logotp-fallback.svg');
     background-position: center;
     background-repeat: no-repeat;
     background-size: 40%;
@@ -1649,4 +1645,118 @@ html, body {
     .files-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
+}
+
+/* ==================== Notification System ==================== */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.notification {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transform: translateX(450px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.notification-icon {
+    font-size: 20px;
+    font-weight: bold;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.notification-message {
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.notification-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.notification-close:hover {
+    color: var(--text-primary);
+}
+
+.notification-success {
+    border-left: 4px solid var(--accent-success);
+}
+
+.notification-success .notification-icon {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--accent-success);
+}
+
+.notification-error {
+    border-left: 4px solid var(--accent-danger);
+}
+
+.notification-error .notification-icon {
+    background: rgba(255, 51, 102, 0.2);
+    color: var(--accent-danger);
+}
+
+.notification-warning {
+    border-left: 4px solid var(--accent-warning);
+}
+
+.notification-warning .notification-icon {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--accent-warning);
+}
+
+.notification-info {
+    border-left: 4px solid var(--neon-blue);
+}
+
+.notification-info .notification-icon {
+    background: rgba(0, 212, 255, 0.2);
+    color: var(--neon-blue);
 }

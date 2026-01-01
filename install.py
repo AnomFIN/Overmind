@@ -304,18 +304,37 @@ def configure_local_model(project_dir):
     # Check if llama-cpp-python is available
     try:
         import subprocess
-        result = subprocess.run([sys.executable, "-c", "import llama_cpp"], 
-                              capture_output=True, text=True)
+        result = subprocess.run(
+            [sys.executable, "-c", "import llama_cpp"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
         if result.returncode != 0:
             print_warning("llama-cpp-python not found. Installing...")
             install_llama_cpp()
+    except subprocess.TimeoutExpired:
+        print_warning("Timeout while checking llama-cpp-python. Attempting installation...")
+        install_llama_cpp()
     except Exception as e:
         print_warning(f"Could not check llama-cpp-python: {e}")
         install_llama_cpp()
     
     model_path = input("Enter path to your GGUF model file (or press Enter to skip): ").strip()
     
-    if model_path and os.path.exists(model_path):
+    # Validate model path if provided
+    if model_path:
+        if not os.path.exists(model_path):
+            print_error(f"Model file not found: {model_path}")
+            return None
+        if not os.path.isfile(model_path):
+            print_error(f"Path is not a file: {model_path}")
+            return None
+        if not model_path.lower().endswith('.gguf'):
+            print_warning(f"File does not have .gguf extension: {model_path}")
+            proceed = input("Continue anyway? (y/n): ").strip().lower()
+            if proceed != 'y':
+                return None
         context_size = input("Context size (default 4096): ").strip() or "4096"
         server_port = input("Server port (default 8080): ").strip() or "8080"
         
@@ -405,19 +424,41 @@ def create_model_runner(project_dir, model_path, context_size, server_port):
 """
 Local GGUF Model Server Runner
 Starts a local llama-cpp-python server for Overmind
+Reads configuration from .env file
 """
 
 import subprocess
 import sys
 import os
+from pathlib import Path
+
+def load_env():
+    """Load settings from .env file."""
+    env_file = Path(__file__).parent / ".env"
+    env_vars = {{}}
+    
+    if env_file.exists():
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    env_vars[key.strip()] = value.strip()
+    
+    return env_vars
 
 def main():
-    model_path = "{model_path}"
-    context_size = {context_size}
-    port = {server_port}
+    # Load configuration from .env file
+    env_vars = load_env()
+    
+    # Use .env values or fall back to installation defaults
+    model_path = env_vars.get('LOCAL_MODEL_PATH', "{model_path}")
+    context_size = int(env_vars.get('MODEL_CONTEXT_SIZE', {context_size}))
+    port = int(env_vars.get('LOCAL_SERVER_PORT', {server_port}))
     
     if not os.path.exists(model_path):
         print(f"Error: Model file not found: {{model_path}}")
+        print("Please update LOCAL_MODEL_PATH in .env file or settings panel")
         sys.exit(1)
     
     cmd = [
@@ -432,12 +473,13 @@ def main():
     print(f"Starting local model server on port {{port}}...")
     print(f"Model: {{model_path}}")
     print(f"Context size: {{context_size}}")
-    print("\nPress Ctrl+C to stop the server\n")
+    print("\\nConfiguration can be updated in .env file or settings panel")
+    print("Press Ctrl+C to stop the server\\n")
     
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
-        print("\nModel server stopped")
+        print("\\nModel server stopped")
     except Exception as e:
         print(f"Error running model server: {{e}}")
         sys.exit(1)

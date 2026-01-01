@@ -11,6 +11,61 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Animation cleanup trackers
+let activeIntervals = {
+    glitchEffect: null,
+    randomGlowPulses: null,
+    typingEffects: []
+};
+
+// ==================== Notification System ====================
+
+/**
+ * Show a cyberpunk-styled notification
+ */
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notificationContainer') || createNotificationContainer();
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${getNotificationIcon(type)}</span>
+            <span class="notification-message">${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+function createNotificationContainer() {
+    const container = document.createElement('div');
+    container.id = 'notificationContainer';
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    return icons[type] || icons.info;
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -32,10 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==================== Neon Effects & Tech Animations ====================
 
 function initNeonEffects() {
+    // Clean up existing intervals
+    if (activeIntervals.glitchEffect) {
+        clearInterval(activeIntervals.glitchEffect);
+    }
+    
     // Add glitch effect to logo
     const logo = document.querySelector('.logo-image');
     if (logo) {
-        setInterval(() => {
+        activeIntervals.glitchEffect = setInterval(() => {
             if (Math.random() < 0.1) { // 10% chance every interval
                 logo.style.filter = 'hue-rotate(90deg) saturate(2) brightness(1.2)';
                 setTimeout(() => {
@@ -71,6 +131,11 @@ function initTechAnimations() {
 }
 
 function addParticleBackground() {
+    // Check if particles already exist
+    if (document.querySelector('.particle-background')) {
+        return; // Don't create duplicates
+    }
+    
     const particleContainer = document.createElement('div');
     particleContainer.className = 'particle-background';
     particleContainer.innerHTML = `
@@ -90,35 +155,62 @@ function addParticleBackground() {
 }
 
 function addTypingEffect() {
+    // Clean up existing typing effect intervals
+    activeIntervals.typingEffects.forEach(interval => clearInterval(interval));
+    activeIntervals.typingEffects = [];
+    
     const statusElements = document.querySelectorAll('.status-value, .system-status span');
     statusElements.forEach(element => {
+        // Check if element is still in DOM
+        if (!element.isConnected) return;
+        
         if (element.textContent && element.textContent.length > 1) {
             const text = element.textContent;
             element.textContent = '';
             
             let i = 0;
             const typeInterval = setInterval(() => {
+                // Check if element is still in DOM
+                if (!element.isConnected) {
+                    clearInterval(typeInterval);
+                    return;
+                }
+                
                 element.textContent += text[i];
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
+                    // Remove from tracking
+                    const index = activeIntervals.typingEffects.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeIntervals.typingEffects.splice(index, 1);
+                    }
                     element.style.borderRight = '2px solid var(--neon-blue)';
                     element.style.animation = 'var(--animation-pulse)';
                 }
             }, 100);
+            
+            activeIntervals.typingEffects.push(typeInterval);
         }
     });
 }
 
 function addRandomGlowPulses() {
+    // Clean up existing interval
+    if (activeIntervals.randomGlowPulses) {
+        clearInterval(activeIntervals.randomGlowPulses);
+    }
+    
     const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
     
-    setInterval(() => {
+    activeIntervals.randomGlowPulses = setInterval(() => {
         const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
-        if (randomElement && Math.random() < 0.3) {
+        if (randomElement && randomElement.isConnected && Math.random() < 0.3) {
             randomElement.style.animation = 'neonPulse 1s ease-in-out';
             setTimeout(() => {
-                randomElement.style.animation = '';
+                if (randomElement.isConnected) {
+                    randomElement.style.animation = '';
+                }
             }, 1000);
         }
     }, 3000);
@@ -252,6 +344,11 @@ function showPanel(panelName) {
     document.querySelectorAll('.panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === `panel-${panelName}`);
     });
+    
+    // Load settings if settings panel is opened
+    if (panelName === 'settings') {
+        loadSettings();
+    }
 }
 
 // ==================== Dashboard ====================
@@ -894,9 +991,12 @@ async function toggleAllNotesPublic() {
         const response = await fetch(`${API_BASE}/notes`);
         const notes = await response.json();
         
-        // Determine if majority are public or private
+        // If all notes are currently public, make them all private; otherwise, make them all public
         const publicCount = notes.filter(note => note.isPublic).length;
-        const makePublic = publicCount < notes.length / 2;
+        const makePublic = publicCount !== notes.length;
+        
+        const action = makePublic ? 'public' : 'private';
+        showNotification(`Making all notes ${action}...`, 'info');
         
         const promises = notes.map(note => 
             fetch(`${API_BASE}/notes/${note.id}`, {
@@ -907,6 +1007,7 @@ async function toggleAllNotesPublic() {
         );
         
         await Promise.all(promises);
+        showNotification(`All notes are now ${action}`, 'success');
         loadNotes(); // Refresh the notes grid
         
     } catch (err) {
@@ -1252,6 +1353,7 @@ async function loadSettings() {
         }
     } catch (err) {
         console.error('Failed to load settings:', err);
+        showNotification('Failed to load settings: ' + err.message, 'error');
     }
     
     // Update AI status
@@ -1294,13 +1396,13 @@ async function saveSettings() {
         const data = await response.json();
         
         if (data.error) {
-            alert('Failed to save settings: ' + data.error);
+            showNotification('Failed to save settings: ' + data.error, 'error');
         } else {
-            alert('Settings saved successfully! Please restart the server to apply changes.');
+            showNotification('Settings saved successfully! Please restart the server to apply changes.', 'success');
             updateAIStatus();
         }
     } catch (err) {
-        alert('Failed to save settings: ' + err.message);
+        showNotification('Failed to save settings: ' + err.message, 'error');
     }
 }
 
@@ -1322,24 +1424,6 @@ async function updateAIStatus() {
     } catch (err) {
         statusIndicator.className = 'status-indicator';
         aiStatus.innerHTML = '<span class="status-indicator"></span>Error';
-    }
-}
-
-// Load settings when settings panel is opened
-function showPanel(panelName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.panel === panelName);
-    });
-    
-    // Update panels
-    document.querySelectorAll('.panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
-    });
-    
-    // Load settings if settings panel is opened
-    if (panelName === 'settings') {
-        loadSettings();
     }
 }
 
