@@ -238,7 +238,8 @@ html, body {
     color: white;
     transform: translateX(8px);
     box-shadow: var(--shadow-neon-strong);
-    animation: neonPulse 3s ease-in-out infinite;
+    animation: neonPulse 6s ease-in-out infinite;
+    will-change: transform, box-shadow;
 }
 
 .nav-item.active::before {
