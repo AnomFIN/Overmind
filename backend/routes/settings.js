@@ -307,7 +307,6 @@ router.post('/', requireAuth, (req, res) => {
             fileRoot,
             maxUploadSize: validatedMaxUploadSize,
             sessionSecret: finalSecret
-            sessionSecret
         });
 
         res.json({
