@@ -7,6 +7,7 @@ const crypto = require('crypto');
 
 /**
  * Constant-time string comparison to prevent timing attacks
+ * Uses crypto.timingSafeEqual with proper length handling
  * @param {string} a - First string to compare
  * @param {string} b - Second string to compare
  * @returns {boolean} - True if strings match
@@ -16,22 +17,32 @@ function timingSafeEqual(a, b) {
         return false;
     }
     
-    // If lengths differ, return false (still do comparison to maintain constant time)
-    if (a.length !== b.length) {
-        // Use dummy comparison to maintain timing
-        const dummyA = Buffer.from(a || 'x');
-        const dummyB = Buffer.from(a || 'y'); // Same length as dummyA
+    // Convert strings to buffers
+    const bufferA = Buffer.from(a, 'utf8');
+    const bufferB = Buffer.from(b, 'utf8');
+    
+    // If lengths differ, pad the shorter buffer to maintain constant time
+    // This prevents timing attacks based on length differences
+    if (bufferA.length !== bufferB.length) {
+        // Create equal-length buffers for constant-time comparison
+        const maxLength = Math.max(bufferA.length, bufferB.length);
+        const paddedA = Buffer.alloc(maxLength);
+        const paddedB = Buffer.alloc(maxLength);
+        
+        bufferA.copy(paddedA);
+        bufferB.copy(paddedB);
+        
         try {
-            crypto.timingSafeEqual(dummyA, dummyB);
+            // This will return false due to different original lengths
+            // but maintains constant time
+            crypto.timingSafeEqual(paddedA, paddedB);
         } catch (e) {
-            // Expected to throw
+            // If an error occurs, the comparison failed
         }
         return false;
     }
     
     try {
-        const bufferA = Buffer.from(a);
-        const bufferB = Buffer.from(b);
         return crypto.timingSafeEqual(bufferA, bufferB);
     } catch (e) {
         return false;
