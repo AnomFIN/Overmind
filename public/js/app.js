@@ -11,6 +11,9 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Animation intervals for cleanup
+let glitchInterval = null;
+let glowPulseInterval = null;
 // ==================== Toast Notification System ====================
 
 /**
@@ -146,6 +149,18 @@ document.addEventListener('DOMContentLoaded', () => {
     addParticleBackground();
 });
 
+// Cleanup intervals on page unload
+window.addEventListener('beforeunload', () => {
+    if (glitchInterval) {
+        clearInterval(glitchInterval);
+        glitchInterval = null;
+    }
+    if (glowPulseInterval) {
+        clearInterval(glowPulseInterval);
+        glowPulseInterval = null;
+    }
+});
+
 // ==================== Neon Effects & Tech Animations ====================
 
 function initNeonEffects() {
@@ -157,6 +172,19 @@ function initNeonEffects() {
     // Add glitch effect to logo
     const logo = document.querySelector('.logo-image');
     if (logo) {
+        // Clear any existing interval
+        if (glitchInterval) {
+            clearInterval(glitchInterval);
+        }
+        
+        glitchInterval = setInterval(() => {
+            // Check if logo still exists in DOM
+            if (!document.body.contains(logo)) {
+                clearInterval(glitchInterval);
+                glitchInterval = null;
+                return;
+            }
+            
         activeIntervals.glitchEffect = setInterval(() => {
             if (Math.random() < 0.1) { // 10% chance every interval
                 logo.style.filter = 'hue-rotate(90deg) saturate(2) brightness(1.2)';
@@ -265,6 +293,14 @@ function addRandomGlowPulses() {
     
     const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
     
+    // Clear any existing interval
+    if (glowPulseInterval) {
+        clearInterval(glowPulseInterval);
+    }
+    
+    glowPulseInterval = setInterval(() => {
+        const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
+        if (randomElement && document.body.contains(randomElement) && Math.random() < 0.3) {
     activeIntervals.randomGlowPulses = setInterval(() => {
         const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
         if (randomElement && randomElement.isConnected && Math.random() < 0.3) {
