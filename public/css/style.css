@@ -42,6 +42,7 @@
     --animation-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
     --animation-pulse: pulse 2s infinite;
     --animation-glow: glow 3s ease-in-out infinite alternate;
+    --chat-bg-image: url('/overmind-logotp.png');
 }
 
 /* Keyframe Animations */
@@ -660,6 +661,12 @@ html, body {
     padding: var(--space-lg) var(--space-xl);
     overflow-y: auto;
     position: relative;
+    background-color: var(--bg-primary);
+    background-image: var(--chat-bg-image);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 40%;
+    background-attachment: local;
 }
 
 .chat-messages::before {
@@ -669,7 +676,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('/overmind-logotp.png');
+    background-image: var(--chat-bg-image);
     background-position: center;
     background-repeat: no-repeat;
     background-size: 40%;
