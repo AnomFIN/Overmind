@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const https = require('https');
+const http = require('http');
 
 // Chat history storage (in-memory for simplicity)
 const chatHistory = new Map();
@@ -58,6 +59,11 @@ function makeOpenAIRequest(apiKey, messages) {
 }
 
 /**
+ * Make HTTP request to local model server
+ * llama-cpp-python server provides OpenAI-compatible API
+ */
+function makeLocalModelRequest(messages, port) {
+    return new Promise((resolve, reject) => {
  * Make request to local llama-cpp-python server
  */
 function makeLocalModelRequest(messages, port) {
@@ -100,6 +106,7 @@ function makeLocalModelRequest(messages, port) {
         });
 
         req.on('error', (err) => {
+            reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}`));
             reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}. Make sure the server is running.`));
         });
         req.write(data);
