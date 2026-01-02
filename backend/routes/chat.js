@@ -64,6 +64,12 @@ function makeOpenAIRequest(apiKey, messages) {
  */
 function makeLocalModelRequest(messages, port) {
     return new Promise((resolve, reject) => {
+ * Make request to local llama-cpp-python server
+ */
+function makeLocalModelRequest(messages, port) {
+    return new Promise((resolve, reject) => {
+        const http = require('http');
+        
         const data = JSON.stringify({
             messages: messages,
             max_tokens: 2000,
@@ -101,6 +107,7 @@ function makeLocalModelRequest(messages, port) {
 
         req.on('error', (err) => {
             reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}`));
+            reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}. Make sure the server is running.`));
         });
         req.write(data);
         req.end();
