@@ -1520,7 +1520,6 @@ async function loadSettings() {
         }
     } catch (err) {
         console.error('Failed to load settings:', err);
-        alert('Failed to load settings: ' + err.message);
         showNotification('Failed to load settings: ' + err.message, 'error');
     }
     
