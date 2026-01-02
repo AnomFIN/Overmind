@@ -395,13 +395,14 @@ To secure your installation:
 4. Use this token in the Settings panel UI to view and modify system settings.
 
 **Note**: Without setting `ADMIN_TOKEN`, the settings endpoint will return a 503 error with setup instructions.
-2. Edit `.env` and fill in your values:
+
+5. Edit `.env` and fill in your values:
    - `AI_PROVIDER` - The AI provider to use for chat (for example, `openai`)
    - `OPENAI_API_KEY` - Your OpenAI API key (required for AI chat when `AI_PROVIDER` is set to `openai`)
    - `SECRET_KEY` - A random, secure string for session management
    - Other optional settings as needed
 
-3. **Security notice:**
+6. **Security notice:**
    - The `.env` file is already in `.gitignore` to prevent accidental commits
    - Never commit `.env` files to version control
    - Keep your API keys and secrets secure

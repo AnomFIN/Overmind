@@ -1463,8 +1463,31 @@ async function loadSharedNote(code) {
 
 // ==================== Settings ====================
 
-// Security note: The admin token is read from the password field for this request only.
-// Do NOT store this token in localStorage, sessionStorage, cookies, or any other persistent client-side storage.
+/**
+ * Handle authentication errors from settings API
+ * @param {Response} response - Fetch API response object
+ * @returns {Promise<boolean>} - Returns true if there was an auth error, false otherwise
+ */
+async function handleSettingsAuthError(response) {
+    if (response.status === 401) {
+        alert('Admin token is required. Please enter your admin token.');
+        return true;
+    }
+    
+    if (response.status === 403) {
+        alert('Invalid admin token. Please check your token and try again.');
+        return true;
+    }
+    
+    if (response.status === 503) {
+        const data = await response.json();
+        alert(data.message || 'Authentication not configured on server');
+        return true;
+    }
+    
+    return false;
+}
+
 // Security note: The admin token is read from the password field for this request only.
 // Do NOT store this token in localStorage, sessionStorage, cookies, or any other persistent client-side storage.
 async function loadSettings() {
@@ -1482,19 +1505,8 @@ async function loadSettings() {
             }
         });
         
-        if (response.status === 401) {
-            alert('Admin token is required. Please enter your admin token.');
-            return;
-        }
-        
-        if (response.status === 403) {
-            alert('Invalid admin token. Please check your token and try again.');
-            return;
-        }
-        
-        if (response.status === 503) {
-            const data = await response.json();
-            alert(data.message || 'Authentication not configured on server');
+        // Handle authentication errors
+        if (await handleSettingsAuthError(response)) {
             return;
         }
         
@@ -1574,19 +1586,8 @@ async function saveSettings() {
             body: JSON.stringify(settings)
         });
         
-        if (response.status === 401) {
-            alert('Admin token is required. Please enter your admin token.');
-            return;
-        }
-        
-        if (response.status === 403) {
-            alert('Invalid admin token. Please check your token and try again.');
-            return;
-        }
-        
-        if (response.status === 503) {
-            const data = await response.json();
-            alert(data.message || 'Authentication not configured on server');
+        // Handle authentication errors
+        if (await handleSettingsAuthError(response)) {
             return;
         }
         

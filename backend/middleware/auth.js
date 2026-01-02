@@ -3,6 +3,41 @@
  * Protects sensitive endpoints from unauthorized access
  */
 
+const crypto = require('crypto');
+
+/**
+ * Constant-time string comparison to prevent timing attacks
+ * @param {string} a - First string to compare
+ * @param {string} b - Second string to compare
+ * @returns {boolean} - True if strings match
+ */
+function timingSafeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') {
+        return false;
+    }
+    
+    // If lengths differ, return false (still do comparison to maintain constant time)
+    if (a.length !== b.length) {
+        // Use dummy comparison to maintain timing
+        const dummyA = Buffer.from(a || 'x');
+        const dummyB = Buffer.from(a || 'y'); // Same length as dummyA
+        try {
+            crypto.timingSafeEqual(dummyA, dummyB);
+        } catch (e) {
+            // Expected to throw
+        }
+        return false;
+    }
+    
+    try {
+        const bufferA = Buffer.from(a);
+        const bufferB = Buffer.from(b);
+        return crypto.timingSafeEqual(bufferA, bufferB);
+    } catch (e) {
+        return false;
+    }
+}
+
 /**
  * Verify admin token for settings access
  * Checks for ADMIN_TOKEN in environment and Authorization header
@@ -33,8 +68,8 @@ function requireAuth(req, res, next) {
         ? authHeader.substring(7) 
         : authHeader;
     
-    // Verify token matches
-    if (token !== adminToken) {
+    // Verify token matches using constant-time comparison to prevent timing attacks
+    if (!timingSafeEqual(token, adminToken)) {
         return res.status(403).json({
             error: 'Invalid credentials',
             message: 'The provided admin token is incorrect'
@@ -45,13 +80,9 @@ function requireAuth(req, res, next) {
     next();
 }
 
-module.exports = {
-    requireAuth
- * Verifies user sessions and protects routes
- */
-
 /**
  * Create authentication middleware
+ * Verifies user sessions and protects routes
  */
 function createAuthMiddleware(authService) {
     return async (req, res, next) => {
@@ -132,6 +163,7 @@ function createOptionalAuthMiddleware(authService) {
 }
 
 module.exports = {
+    requireAuth,
     createAuthMiddleware,
     createOptionalAuthMiddleware
 };
