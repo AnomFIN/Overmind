@@ -361,12 +361,11 @@ cd anomhome-overmind
 python3 install.py
 ```
 
-### Security Configuration
+### Security
 
 **Important**: The settings endpoint (`/api/settings`) is protected by token-based authentication to prevent unauthorized access to sensitive configuration like API keys.
 
 To secure your installation:
-### Security notes
 
 **⚠️ Important: Protect your .env file**
 
