@@ -1463,6 +1463,8 @@ async function loadSharedNote(code) {
 
 // ==================== Settings ====================
 
+// Security note: The admin token is read from the password field for this request only.
+// Do NOT store this token in localStorage, sessionStorage, cookies, or any other persistent client-side storage.
 async function loadSettings() {
     const adminToken = document.getElementById('adminToken').value;
     
