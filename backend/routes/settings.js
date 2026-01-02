@@ -194,7 +194,6 @@ function writeEnvSettings(settings) {
     content += `MAX_UPLOAD_SIZE=${settings.maxUploadSize || 100}\n\n`;
     
     content += '# Security\n';
-    content += `SECRET_KEY=${settings.sessionSecret || 'your_secret_key_here'}\n`;
     content += `ADMIN_TOKEN=${process.env.ADMIN_TOKEN || ''}\n`;
     // Validate and write session secret - never use weak defaults
     const validation = validateSessionSecret(settings.sessionSecret);
