@@ -7,3 +7,8 @@
 
 # No required Python packages for basic functionality
 # Add any Python dependencies here if needed for custom extensions
+# Server management TUI (palvelin.py)
+textual>=0.50.0
+psutil>=5.9.0
+httpx>=0.24.0
+rich>=13.0.0
