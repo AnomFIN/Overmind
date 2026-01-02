@@ -2,10 +2,10 @@
   "name": "anomhome-overmind",
   "version": "1.0.0",
   "description": "AnomHome Overmind: A self-hosted home dashboard for Linux",
-  "main": "backend/server.js",
+  "main": "backend/serverIntegrated.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "node --watch backend/server.js",
+    "start": "node backend/serverIntegrated.js",
+    "dev": "node --watch backend/serverIntegrated.js",
     "test": "node --test backend/tests/*.test.js"
   },
   "engines": {
@@ -22,9 +22,13 @@
   "author": "AnomFIN",
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.21.0",
     "multer": "^2.0.2",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
   }
 }
