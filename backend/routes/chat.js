@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const https = require('https');
+const http = require('http');
 
 // Chat history storage (in-memory for simplicity)
 const chatHistory = new Map();
@@ -52,6 +53,62 @@ function makeOpenAIRequest(apiKey, messages) {
         });
 
         req.on('error', reject);
+        req.write(data);
+        req.end();
+    });
+}
+
+/**
+ * Make HTTP request to local model server
+ * llama-cpp-python server provides OpenAI-compatible API
+ */
+function makeLocalModelRequest(messages, port) {
+    return new Promise((resolve, reject) => {
+ * Make request to local llama-cpp-python server
+ */
+function makeLocalModelRequest(messages, port) {
+    return new Promise((resolve, reject) => {
+        const http = require('http');
+        
+        const data = JSON.stringify({
+            messages: messages,
+            max_tokens: 2000,
+            temperature: 0.7,
+            stream: false
+        });
+
+        const options = {
+            hostname: '127.0.0.1',
+            port: port,
+            path: '/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+
+        const req = http.request(options, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    const response = JSON.parse(body);
+                    if (res.statusCode !== 200) {
+                        reject(new Error(response.error?.message || `Local model server error: ${res.statusCode}`));
+                    } else {
+                        resolve(response);
+                    }
+                } catch (e) {
+                    reject(new Error('Invalid JSON response from local model server'));
+                }
+            });
+        });
+
+        req.on('error', (err) => {
+            reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}`));
+            reject(new Error(`Failed to connect to local model server on port ${port}: ${err.message}. Make sure the server is running.`));
+        });
         req.write(data);
         req.end();
     });
