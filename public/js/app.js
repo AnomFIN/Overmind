@@ -11,6 +11,8 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Interval tracking for cleanup
+const activeIntervals = [];
 // Animation intervals for cleanup
 let glitchInterval = null;
 let glowPulseInterval = null;
@@ -151,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cleanup intervals on page unload
 window.addEventListener('beforeunload', () => {
+    cleanupIntervals();
     if (glitchInterval) {
         clearInterval(glitchInterval);
         glitchInterval = null;
@@ -163,6 +166,12 @@ window.addEventListener('beforeunload', () => {
 
 // ==================== Neon Effects & Tech Animations ====================
 
+// Cleanup function for all active intervals
+function cleanupIntervals() {
+    activeIntervals.forEach(intervalId => clearInterval(intervalId));
+    activeIntervals.length = 0;
+}
+
 function initNeonEffects() {
     // Clean up existing intervals
     if (activeIntervals.glitchEffect) {
@@ -172,6 +181,7 @@ function initNeonEffects() {
     // Add glitch effect to logo
     const logo = document.querySelector('.logo-image');
     if (logo) {
+        const logoInterval = setInterval(() => {
         // Clear any existing interval
         if (glitchInterval) {
             clearInterval(glitchInterval);
@@ -193,6 +203,7 @@ function initNeonEffects() {
                 }, 100);
             }
         }, 2000);
+        activeIntervals.push(logoInterval);
     }
     
     // Add typing effect to status indicators
@@ -293,6 +304,7 @@ function addRandomGlowPulses() {
     
     const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
     
+    const glowInterval = setInterval(() => {
     // Clear any existing interval
     if (glowPulseInterval) {
         clearInterval(glowPulseInterval);
@@ -312,6 +324,7 @@ function addRandomGlowPulses() {
             }, 1000);
         }
     }, 3000);
+    activeIntervals.push(glowInterval);
 }
 
 function createRippleEffect(element) {
