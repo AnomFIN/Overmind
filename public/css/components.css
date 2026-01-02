@@ -1,0 +1,848 @@
+/**
+ * Overmind Design System - Components
+ * Ship intelligence, not excuses.
+ * 
+ * Premium UI components: inputs, buttons, cards, modals, toasts, nav
+ */
+
+/* ==================== LED Border Inputs ==================== */
+
+.input-led,
+input[type="text"].led,
+input[type="url"].led,
+input[type="email"].led,
+input[type="password"].led,
+input[type="search"].led,
+textarea.led,
+select.led {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-bg-tertiary);
+  border: var(--border-width-led) solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-normal), 
+              transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+  background-clip: padding-box;
+  background-image: linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary));
+  background-origin: border-box;
+}
+
+/* LED border effect using box-shadow */
+.input-led::before,
+input.led::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--gradient-led-primary);
+  border-radius: var(--radius-md);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+  pointer-events: none;
+}
+
+/* Wrapper approach for LED border (more reliable) */
+.input-led-wrapper {
+  position: relative;
+  display: block;
+}
+
+.input-led-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: var(--border-width-led);
+  background: var(--gradient-led-primary);
+  border-radius: var(--radius-md);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.3;
+  transition: var(--transition-glow);
+  pointer-events: none;
+}
+
+.input-led-wrapper input,
+.input-led-wrapper textarea,
+.input-led-wrapper select {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-bg-tertiary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-normal);
+}
+
+/* Hover state - glow increases */
+.input-led-wrapper:hover::before {
+  opacity: 0.5;
+  box-shadow: var(--shadow-glow-primary);
+}
+
+/* Focus state - full glow + scale */
+.input-led-wrapper:focus-within::before {
+  opacity: 0.8;
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.input-led-wrapper:focus-within input,
+.input-led-wrapper:focus-within textarea,
+.input-led-wrapper:focus-within select {
+  transform: scale(var(--scale-focus));
+  background: var(--color-bg-elevated);
+}
+
+/* Invalid/Error state */
+.input-led-wrapper.error::before {
+  background: var(--gradient-led-danger);
+  opacity: 0.7;
+  box-shadow: var(--shadow-glow-danger);
+}
+
+/* Success state */
+.input-led-wrapper.success::before {
+  background: var(--gradient-led-success);
+  opacity: 0.7;
+  box-shadow: var(--shadow-glow-success);
+}
+
+/* Warning state */
+.input-led-wrapper.warning::before {
+  background: var(--gradient-led-warning);
+  opacity: 0.7;
+  box-shadow: var(--shadow-glow-warning);
+}
+
+/* Disabled state */
+.input-led-wrapper input:disabled,
+.input-led-wrapper textarea:disabled,
+.input-led-wrapper select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-led-wrapper.disabled::before {
+  opacity: 0.2;
+}
+
+/* Keypress shake animation */
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(calc(-1 * var(--shake-distance))); }
+  75% { transform: translateX(var(--shake-distance)); }
+}
+
+.input-led-wrapper.shake {
+  animation: input-shake 120ms var(--ease-out);
+}
+
+/* Remove shake for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .input-led-wrapper.shake {
+    animation: none;
+  }
+  
+  .input-led-wrapper:focus-within input,
+  .input-led-wrapper:focus-within textarea {
+    transform: none;
+  }
+}
+
+/* ==================== Premium Buttons ==================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-normal), 
+              transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  transform: translateY(var(--lift-hover));
+  box-shadow: var(--shadow-lift);
+  border-color: var(--color-border-secondary);
+}
+
+.btn:active {
+  transform: translateY(var(--lift-active)) scale(var(--scale-active));
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Primary button - LED glow */
+.btn-primary {
+  background: var(--gradient-led-primary);
+  color: white;
+  border: none;
+  box-shadow: 0 0 0 var(--color-accent-primary-glow);
+}
+
+.btn-primary:hover {
+  box-shadow: var(--shadow-glow-primary), var(--shadow-lift);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-secondary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent-primary);
+}
+
+/* Danger button */
+.btn-danger {
+  background: var(--gradient-led-danger);
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  box-shadow: var(--shadow-glow-danger), var(--shadow-lift);
+}
+
+/* Success button */
+.btn-success {
+  background: var(--gradient-led-success);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  box-shadow: var(--shadow-glow-success), var(--shadow-lift);
+}
+
+/* Button sizes */
+.btn-small {
+  padding: 6px 12px;
+  font-size: var(--font-size-xs);
+}
+
+.btn-large {
+  padding: 14px 28px;
+  font-size: var(--font-size-base);
+}
+
+/* Loading state */
+.btn-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Shimmer effect for loading (optional premium touch) */
+.btn-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  to { left: 100%; }
+}
+
+/* ==================== Glass Cards & Panels ==================== */
+
+.card-glass {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-normal);
+}
+
+/* Noise overlay for glass effect */
+.card-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--noise-texture);
+  opacity: var(--noise-opacity);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.card-glass:hover {
+  border-color: var(--color-glass-highlight);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+/* ==================== Status Pills ==================== */
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 12px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-pill-online {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-pill-offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-pill-local {
+  background: rgba(74, 158, 255, 0.15);
+  color: var(--color-accent-primary);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+}
+
+.status-pill-secured {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ==================== Toast Notifications ==================== */
+
+.toast-container {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-text-primary);
+  min-width: 300px;
+  max-width: 400px;
+  pointer-events: auto;
+  animation: toast-slide-in 0.3s var(--ease-out);
+}
+
+.toast.toast-exit {
+  animation: toast-slide-out 0.2s var(--ease-in) forwards;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+.toast-icon {
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast-content {
+  flex-grow: 1;
+}
+
+.toast-title {
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: 2px;
+}
+
+.toast-message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-color);
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.toast-success {
+  border-left: 3px solid var(--color-success);
+}
+
+.toast-error {
+  border-left: 3px solid var(--color-danger);
+}
+
+.toast-warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.toast-info {
+  border-left: 3px solid var(--color-info);
+}
+
+/* ==================== Skeleton Loaders ==================== */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-elevated) 50%,
+    var(--color-bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: var(--space-sm);
+}
+
+.skeleton-title {
+  height: 1.5em;
+  width: 60%;
+  margin-bottom: var(--space-md);
+}
+
+.skeleton-card {
+  height: 200px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+/* ==================== Modal Overlay ==================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(var(--blur-heavy));
+  -webkit-backdrop-filter: blur(var(--blur-heavy));
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-lg);
+  animation: modal-fade-in 0.2s var(--ease-out);
+}
+
+.modal.active {
+  display: flex;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: var(--shadow-xl);
+  animation: modal-scale-in 0.2s var(--ease-out);
+}
+
+@keyframes modal-scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-large {
+  max-width: 800px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xl);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: var(--transition-color);
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ==================== Form Elements ==================== */
+
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.form-group label.required::after {
+  content: '*';
+  color: var(--color-danger);
+  margin-left: 4px;
+}
+
+.form-error {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}
+
+.form-help {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border-primary);
+}
+
+/* ==================== Toggle Switch ==================== */
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-full);
+  transition: var(--transition-normal);
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--color-text-tertiary);
+  border-radius: 50%;
+  transition: var(--transition-normal);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--gradient-led-primary);
+  border-color: transparent;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+  background: white;
+}
+
+.toggle-switch input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ==================== Password Input with Toggle ==================== */
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-color);
+}
+
+.password-toggle:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+}
+
+.password-wrapper input {
+  padding-right: 60px;
+}
+
+/* ==================== Password Strength Meter ==================== */
+
+.password-strength {
+  margin-top: var(--space-sm);
+}
+
+.password-strength-bar {
+  height: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.password-strength-fill {
+  height: 100%;
+  transition: var(--transition-normal);
+  border-radius: var(--radius-full);
+}
+
+.password-strength-fill.weak {
+  width: 33%;
+  background: var(--color-danger);
+}
+
+.password-strength-fill.medium {
+  width: 66%;
+  background: var(--color-warning);
+}
+
+.password-strength-fill.strong {
+  width: 100%;
+  background: var(--color-success);
+}
+
+.password-strength-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* ==================== Caps Lock Warning ==================== */
+
+.caps-lock-warning {
+  display: none;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-warning);
+  font-size: var(--font-size-xs);
+}
+
+.caps-lock-warning.active {
+  display: flex;
+}
+
+/* ==================== Responsive Adjustments ==================== */
+
+@media (max-width: 720px) {
+  .toast-container {
+    left: var(--space-md);
+    right: var(--space-md);
+  }
+  
+  .toast {
+    min-width: 0;
+    max-width: 100%;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    margin: var(--space-md);
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+}
