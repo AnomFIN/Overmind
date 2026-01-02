@@ -11,6 +11,54 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// ==================== Toast Notification System ====================
+
+/**
+ * Show a toast notification with cyberpunk styling
+ * @param {string} message - The message to display
+ * @param {string} type - Type of notification: 'success', 'error', 'warning', 'info'
+ * @param {number} duration - Duration in milliseconds (default: 4000)
+ */
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    // Icon based on type
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-content">
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Add to container
+    container.appendChild(toast);
+    
+    // Auto-remove after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.add('removing');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300); // Match animation duration
+        }, duration);
+    }
+    
+    return toast;
 // Animation cleanup trackers
 let activeIntervals = {
     glitchEffect: null,
@@ -633,6 +681,7 @@ async function createLink(e) {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
             toast.error(data.error, 'Link Creation Failed');
         } else {
@@ -640,6 +689,10 @@ async function createLink(e) {
             document.getElementById('linkCode').value = '';
             toast.success(`Link created: ${data.shortUrl}`, 'Success');
             loadLinks();
+            showToast('Link created successfully!', 'success', 2000);
+        }
+    } catch (err) {
+        showToast('Failed to create link: ' + err.message, 'error');
             showNotification('Link created successfully', 'success');
         }
     } catch (err) {
@@ -655,6 +708,9 @@ async function deleteLink(id) {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
         toast.success('Link deleted successfully', 'Link Deleted');
         loadLinks();
+        showToast('Link deleted successfully', 'success', 2000);
+    } catch (err) {
+        showToast('Failed to delete link: ' + err.message, 'error');
         showNotification('Link deleted successfully', 'success');
     } catch (err) {
         showNotification('Failed to delete link: ' + err.message, 'error');
@@ -710,11 +766,16 @@ async function uploadFile(file) {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
             toast.error(data.error, 'Upload Failed');
         } else {
             toast.success(`File uploaded: ${data.file.originalName}`, 'Upload Complete');
             addUploadToList(data.file);
+            showToast('File uploaded successfully', 'success', 2000);
+        }
+    } catch (err) {
+        showToast('Upload failed: ' + err.message, 'error');
             showNotification('File uploaded successfully', 'success');
         }
     } catch (err) {
@@ -767,6 +828,9 @@ async function deleteUpload(filename) {
         await fetch(`${API_BASE}/uploads/${filename}`, { method: 'DELETE' });
         const el = document.getElementById(`upload-${filename}`);
         if (el) el.remove();
+        showToast('File deleted successfully', 'success', 2000);
+    } catch (err) {
+        showToast('Failed to delete file: ' + err.message, 'error');
         showNotification('File deleted successfully', 'success');
     } catch (err) {
         showNotification('Failed to delete file: ' + err.message, 'error');
@@ -966,6 +1030,7 @@ async function addCamera(e) {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
             toast.error(data.error, 'Camera Addition Failed');
         } else {
@@ -978,6 +1043,10 @@ async function addCamera(e) {
             document.getElementById('cameraPass').value = '';
             toast.success(`Camera added: ${name}`, 'Camera Added');
             loadCameras();
+            showToast('Camera added successfully', 'success', 2000);
+        }
+    } catch (err) {
+        showToast('Failed to add camera: ' + err.message, 'error');
             showNotification('Camera added successfully', 'success');
         }
     } catch (err) {
@@ -993,6 +1062,9 @@ async function deleteCamera(id) {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
         toast.success('Camera deleted', 'Camera Deleted');
         loadCameras();
+        showToast('Camera deleted successfully', 'success', 2000);
+    } catch (err) {
+        showToast('Failed to delete camera: ' + err.message, 'error');
         showNotification('Camera deleted successfully', 'success');
     } catch (err) {
         showNotification('Failed to delete camera: ' + err.message, 'error');
@@ -1073,6 +1145,7 @@ async function createNote(e) {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
             toast.error(data.error, 'Error');
         } else {
@@ -1084,6 +1157,7 @@ async function createNote(e) {
             showNotification('Note created successfully', 'success');
         }
     } catch (err) {
+        showToast('Failed to create note: ' + err.message, 'error');
         showNotification('Failed to create note: ' + err.message, 'error');
     }
 }
@@ -1100,12 +1174,14 @@ async function toggleNotePublic(noteId, isPublic) {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
         } else {
             loadNotes(); // Refresh the notes grid
             showNotification('Note visibility updated', 'success');
         }
     } catch (err) {
+        showToast('Failed to update note visibility: ' + err.message, 'error');
         showNotification('Failed to update note visibility: ' + err.message, 'error');
     }
 }
@@ -1140,6 +1216,7 @@ async function toggleAllNotesPublic() {
         loadNotes(); // Refresh the notes grid
         
     } catch (err) {
+        showToast('Failed to toggle notes visibility: ' + err.message, 'error');
         showNotification('Failed to toggle notes visibility: ' + err.message, 'error');
     }
 }
@@ -1158,6 +1235,7 @@ async function loadNote(id) {
         const note = await response.json();
         
         if (note.error) {
+            showToast(note.error, 'error');
             showNotification(note.error, 'error');
             toast.error(note.error, 'Note Error');
             return;
@@ -1176,6 +1254,7 @@ async function loadNote(id) {
         document.getElementById('noteSelect').value = id;
         
     } catch (err) {
+        showToast('Failed to load note: ' + err.message, 'error');
         showNotification('Failed to load note: ' + err.message, 'error');
     }
 }
@@ -1307,6 +1386,7 @@ async function addNode() {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
             toast.error(data.error, 'Error');
         } else {
@@ -1318,6 +1398,7 @@ async function addNode() {
             showNotification('Node added successfully', 'success');
         }
     } catch (err) {
+        showToast('Failed to add node: ' + err.message, 'error');
         showNotification('Failed to add node: ' + err.message, 'error');
     }
 }
@@ -1350,6 +1431,7 @@ async function deleteNode(id) {
         renderMindMap();
         showNotification('Node deleted successfully', 'success');
     } catch (err) {
+        showToast('Failed to delete node: ' + err.message, 'error');
         showNotification('Failed to delete node: ' + err.message, 'error');
     }
 }
@@ -1386,6 +1468,7 @@ async function toggleNotePublic() {
         const data = await response.json();
         
         if (data.error) {
+            showToast(data.error, 'error');
             showNotification(data.error, 'error');
             toast.error(data.error, 'Error');
         } else {
@@ -1395,6 +1478,7 @@ async function toggleNotePublic() {
             showNotification('Note updated successfully', 'success');
         }
     } catch (err) {
+        showToast('Failed to update note: ' + err.message, 'error');
         showNotification('Failed to update note: ' + err.message, 'error');
     }
 }
@@ -1423,6 +1507,7 @@ async function deleteCurrentNote() {
         loadNote('');
         showNotification('Note deleted successfully', 'success');
     } catch (err) {
+        showToast('Failed to delete note: ' + err.message, 'error');
         showNotification('Failed to delete note: ' + err.message, 'error');
     }
 }
@@ -1442,6 +1527,7 @@ async function loadSharedNote(code) {
         const note = await response.json();
         
         if (note.error) {
+            showToast('Shared note not found', 'error');
             showNotification('Shared note not found', 'error');
             toast.error('Shared note not found', 'Not Found');
             return;
@@ -1457,6 +1543,7 @@ async function loadSharedNote(code) {
         renderMindMap();
         
     } catch (err) {
+        showToast('Failed to load shared note', 'error');
         showNotification('Failed to load shared note', 'error');
     }
 }
@@ -1594,6 +1681,13 @@ async function saveSettings() {
         const data = await response.json();
         
         if (data.error) {
+            showToast('Failed to save settings: ' + data.error, 'error');
+        } else {
+            showToast('Settings saved successfully! Please restart the server to apply changes.', 'success', 6000);
+            updateAIStatus();
+        }
+    } catch (err) {
+        showToast('Failed to save settings: ' + err.message, 'error');
             showNotification('Failed to save settings: ' + data.error, 'error');
         } else {
             showNotification(
@@ -1715,6 +1809,7 @@ function formatDate(isoString) {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!', 'success', 2000);
         showNotification('Copied to clipboard!', 'success');
     }).catch(() => {
         // Fallback
@@ -1724,6 +1819,7 @@ function copyToClipboard(text) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
+        showToast('Copied to clipboard!', 'success', 2000);
         showNotification('Copied to clipboard!', 'success');
     });
 }
