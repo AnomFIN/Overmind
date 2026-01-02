@@ -1632,21 +1632,27 @@ async function updateAIStatus() {
 }
 
 // Load settings when settings panel is opened
-function showPanel(panelName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.panel === panelName);
-    });
-    
-    // Update panels
-    document.querySelectorAll('.panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
-    });
-    
-    // Note: Settings are no longer auto-loaded. Users must click "Load Settings" 
-    // after entering their admin token for security reasons.
-}
+(function (originalShowPanel) {
+    window.showPanel = function (panelName) {
+        // Call original implementation if it exists
+        if (typeof originalShowPanel === 'function') {
+            originalShowPanel(panelName);
+        }
 
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.panel === panelName);
+        });
+        
+        // Update panels
+        document.querySelectorAll('.panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `panel-${panelName}`);
+        });
+        
+        // Note: Settings are no longer auto-loaded. Users must click "Load Settings" 
+        // after entering their admin token for security reasons.
+    };
+})(window.showPanel);
 // ==================== Modals ====================
 
 function closeModal(modalId) {
