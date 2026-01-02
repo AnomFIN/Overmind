@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const { requireAuth } = require('../middleware/auth');
 const crypto = require('crypto');
 
 const SETTINGS_FILE = path.join(__dirname, '..', '..', '.env');
@@ -193,6 +194,7 @@ function writeEnvSettings(settings) {
     content += `MAX_UPLOAD_SIZE=${settings.maxUploadSize || 100}\n\n`;
     
     content += '# Security\n';
+    content += `ADMIN_TOKEN=${process.env.ADMIN_TOKEN || ''}\n`;
     // Validate and write session secret - never use weak defaults
     const validation = validateSessionSecret(settings.sessionSecret);
     if (validation.valid) {
@@ -210,6 +212,7 @@ function writeEnvSettings(settings) {
 /**
  * GET /api/settings
  * Get current settings
+ * Requires authentication
  */
 router.get('/', requireAuth, (req, res) => {
     try {
@@ -238,6 +241,7 @@ router.get('/', requireAuth, (req, res) => {
 /**
  * POST /api/settings
  * Update settings
+ * Requires authentication
  */
 router.post('/', requireAuth, (req, res) => {
     try {

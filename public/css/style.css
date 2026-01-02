@@ -1626,6 +1626,12 @@ body.is-admin .admin-only {
     transform: translateY(-2px);
 }
 
+/* Button Group */
+.btn-group {
+    display: flex;
+    gap: 10px;
+}
+
 /* Enhanced Form Elements */
 .form-group input[type="text"],
 .form-group input[type="url"],

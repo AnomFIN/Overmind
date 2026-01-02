@@ -1463,9 +1463,53 @@ async function loadSharedNote(code) {
 
 // ==================== Settings ====================
 
+/**
+ * Handle authentication errors from settings API
+ * @param {Response} response - Fetch API response object
+ * @returns {Promise<boolean>} - Returns true if there was an auth error, false otherwise
+ */
+async function handleSettingsAuthError(response) {
+    if (response.status === 401) {
+        alert('Admin token is required. Please enter your admin token.');
+        return true;
+    }
+    
+    if (response.status === 403) {
+        alert('Invalid admin token. Please check your token and try again.');
+        return true;
+    }
+    
+    if (response.status === 503) {
+        const data = await response.json();
+        alert(data.message || 'Authentication not configured on server');
+        return true;
+    }
+    
+    return false;
+}
+
+// Security note: The admin token is read from the password field for this request only.
+// Do NOT store this token in localStorage, sessionStorage, cookies, or any other persistent client-side storage.
 async function loadSettings() {
+    const adminToken = document.getElementById('adminToken').value;
+    
+    if (!adminToken) {
+        alert('Please enter your admin token to view settings');
+        return;
+    }
+    
     try {
-        const response = await fetch(`${API_BASE}/settings`);
+        const response = await fetch(`${API_BASE}/settings`, {
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            }
+        });
+        
+        // Handle authentication errors
+        if (await handleSettingsAuthError(response)) {
+            return;
+        }
+        
         if (response.ok) {
             const settings = await response.json();
             
@@ -1487,6 +1531,8 @@ async function loadSettings() {
             
             // Security
             document.getElementById('sessionSecret').value = settings.sessionSecret || '';
+        } else {
+            alert('Failed to load settings. Please try again.');
         }
     } catch (err) {
         console.error('Failed to load settings:', err);
@@ -1512,6 +1558,13 @@ function toggleAIProvider() {
 }
 
 async function saveSettings() {
+    const adminToken = document.getElementById('adminToken').value;
+    
+    if (!adminToken) {
+        alert('Please enter your admin token to save settings');
+        return;
+    }
+    
     const settings = {
         aiProvider: document.getElementById('aiProvider').value,
         openaiKey: document.getElementById('openaiKey').value,
@@ -1526,9 +1579,17 @@ async function saveSettings() {
     try {
         const response = await fetch(`${API_BASE}/settings`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
             body: JSON.stringify(settings)
         });
+        
+        // Handle authentication errors
+        if (await handleSettingsAuthError(response)) {
+            return;
+        }
         
         const data = await response.json();
         
@@ -1574,6 +1635,28 @@ async function updateAIStatus() {
     }
 }
 
+// Load settings when settings panel is opened
+(function (originalShowPanel) {
+    window.showPanel = function (panelName) {
+        // Call original implementation if it exists
+        if (typeof originalShowPanel === 'function') {
+            originalShowPanel(panelName);
+        }
+
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.panel === panelName);
+        });
+        
+        // Update panels
+        document.querySelectorAll('.panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `panel-${panelName}`);
+        });
+        
+        // Note: Settings are no longer auto-loaded. Users must click "Load Settings" 
+        // after entering their admin token for security reasons.
+    };
+})(window.showPanel);
 // ==================== Modals ====================
 
 function closeModal(modalId) {

@@ -361,7 +361,11 @@ cd anomhome-overmind
 python3 install.py
 ```
 
-### Security notes
+### Security
+
+**Important**: The settings endpoint (`/api/settings`) is protected by token-based authentication to prevent unauthorized access to sensitive configuration like API keys.
+
+To secure your installation:
 
 **⚠️ Important: Protect your .env file**
 
@@ -378,13 +382,27 @@ python3 install.py
    cp .env.example .env
    ```
 
-2. Edit `.env` and fill in your values:
+2. Generate a secure admin token:
+   ```bash
+   openssl rand -hex 32
+   ```
+
+3. Add the token to your `.env` file:
+   ```
+   ADMIN_TOKEN=your_generated_token_here
+   ```
+
+4. Use this token in the Settings panel UI to view and modify system settings.
+
+**Note**: Without setting `ADMIN_TOKEN`, the settings endpoint will return a 503 error with setup instructions.
+
+5. Edit `.env` and fill in your values:
    - `AI_PROVIDER` - The AI provider to use for chat (for example, `openai`)
    - `OPENAI_API_KEY` - Your OpenAI API key (required for AI chat when `AI_PROVIDER` is set to `openai`)
    - `SECRET_KEY` - A random, secure string for session management
    - Other optional settings as needed
 
-3. **Security notice:**
+6. **Security notice:**
    - The `.env` file is already in `.gitignore` to prevent accidental commits
    - Never commit `.env` files to version control
    - Keep your API keys and secrets secure
