@@ -59,6 +59,73 @@ function showToast(message, type = 'info', duration = 4000) {
     }
     
     return toast;
+// Animation cleanup trackers
+let activeIntervals = {
+    glitchEffect: null,
+    randomGlowPulses: null,
+    typingEffects: []
+};
+
+// ==================== Notification System ====================
+
+/**
+ * Show a cyberpunk-styled notification
+ */
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notificationContainer') || createNotificationContainer();
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'notification-content';
+    
+    const icon = document.createElement('span');
+    icon.className = 'notification-icon';
+    icon.textContent = getNotificationIcon(type);
+    
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'notification-message';
+    messageSpan.textContent = message;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => notification.remove());
+    
+    contentDiv.appendChild(icon);
+    contentDiv.appendChild(messageSpan);
+    notification.appendChild(contentDiv);
+    notification.appendChild(closeBtn);
+    
+    container.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+function createNotificationContainer() {
+    const container = document.createElement('div');
+    container.id = 'notificationContainer';
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    return icons[type] || icons.info;
 }
 
 // Initialize on page load
@@ -82,10 +149,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==================== Neon Effects & Tech Animations ====================
 
 function initNeonEffects() {
+    // Clean up existing intervals
+    if (activeIntervals.glitchEffect) {
+        clearInterval(activeIntervals.glitchEffect);
+    }
+    
     // Add glitch effect to logo
     const logo = document.querySelector('.logo-image');
     if (logo) {
-        setInterval(() => {
+        activeIntervals.glitchEffect = setInterval(() => {
             if (Math.random() < 0.1) { // 10% chance every interval
                 logo.style.filter = 'hue-rotate(90deg) saturate(2) brightness(1.2)';
                 setTimeout(() => {
@@ -121,6 +193,11 @@ function initTechAnimations() {
 }
 
 function addParticleBackground() {
+    // Check if particles already exist
+    if (document.querySelector('.particle-background')) {
+        return; // Don't create duplicates
+    }
+    
     const particleContainer = document.createElement('div');
     particleContainer.className = 'particle-background';
     particleContainer.innerHTML = `
@@ -140,35 +217,62 @@ function addParticleBackground() {
 }
 
 function addTypingEffect() {
+    // Clean up existing typing effect intervals
+    activeIntervals.typingEffects.forEach(interval => clearInterval(interval));
+    activeIntervals.typingEffects = [];
+    
     const statusElements = document.querySelectorAll('.status-value, .system-status span');
     statusElements.forEach(element => {
+        // Check if element is still in DOM
+        if (!element.isConnected) return;
+        
         if (element.textContent && element.textContent.length > 1) {
             const text = element.textContent;
             element.textContent = '';
             
             let i = 0;
             const typeInterval = setInterval(() => {
+                // Check if element is still in DOM
+                if (!element.isConnected) {
+                    clearInterval(typeInterval);
+                    return;
+                }
+                
                 element.textContent += text[i];
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
+                    // Remove from tracking
+                    const index = activeIntervals.typingEffects.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeIntervals.typingEffects.splice(index, 1);
+                    }
                     element.style.borderRight = '2px solid var(--neon-blue)';
                     element.style.animation = 'var(--animation-pulse)';
                 }
             }, 100);
+            
+            activeIntervals.typingEffects.push(typeInterval);
         }
     });
 }
 
 function addRandomGlowPulses() {
+    // Clean up existing interval
+    if (activeIntervals.randomGlowPulses) {
+        clearInterval(activeIntervals.randomGlowPulses);
+    }
+    
     const glowElements = document.querySelectorAll('.nav-item, .btn, .dashboard-card');
     
-    setInterval(() => {
+    activeIntervals.randomGlowPulses = setInterval(() => {
         const randomElement = glowElements[Math.floor(Math.random() * glowElements.length)];
-        if (randomElement && Math.random() < 0.3) {
+        if (randomElement && randomElement.isConnected && Math.random() < 0.3) {
             randomElement.style.animation = 'neonPulse 1s ease-in-out';
             setTimeout(() => {
-                randomElement.style.animation = '';
+                if (randomElement.isConnected) {
+                    randomElement.style.animation = '';
+                }
             }, 1000);
         }
     }, 3000);
@@ -281,6 +385,94 @@ function createMatrixRain(container) {
     }, 5000);
 }
 
+// ==================== Toast Notifications ====================
+
+/**
+ * Display a toast notification
+ * @param {string} message - The notification message
+ * @param {string} type - Notification type: 'success', 'error', 'warning', or 'info'
+ * @param {number} duration - Auto-dismiss duration in ms (0 for no auto-dismiss)
+ * @param {boolean} allowHTML - Allow HTML in message (USE ONLY WITH TRUSTED CONTENT)
+ */
+function showNotification(message, type = 'info', duration = 5000, allowHTML = false) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    const titles = {
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Information'
+    };
+    
+    // Create toast structure
+    const toastIcon = document.createElement('div');
+    toastIcon.className = 'toast-icon';
+    toastIcon.textContent = icons[type] || icons.info;
+    
+    const toastContent = document.createElement('div');
+    toastContent.className = 'toast-content';
+    
+    const toastTitle = document.createElement('div');
+    toastTitle.className = 'toast-title';
+    toastTitle.textContent = titles[type] || titles.info;
+    
+    const toastMessage = document.createElement('div');
+    toastMessage.className = 'toast-message';
+    
+    // Set message content based on allowHTML flag
+    if (allowHTML) {
+        toastMessage.innerHTML = message;
+    } else {
+        toastMessage.textContent = message;
+    }
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'toast-close';
+    closeButton.textContent = '×';
+    closeButton.addEventListener('click', () => toast.remove());
+    
+    toastContent.appendChild(toastTitle);
+    toastContent.appendChild(toastMessage);
+    
+    toast.appendChild(toastIcon);
+    toast.appendChild(toastContent);
+    toast.appendChild(closeButton);
+    
+    // Add progress bar with dynamic duration
+    if (duration > 0) {
+        const progressBar = document.createElement('div');
+        progressBar.className = 'toast-progress';
+        progressBar.style.animationDuration = `${duration}ms`;
+        toast.appendChild(progressBar);
+    }
+    
+    container.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Auto-dismiss
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+    
+    return toast;
+}
+
 // ==================== Navigation ====================
 
 function initNavigation() {
@@ -302,6 +494,11 @@ function showPanel(panelName) {
     document.querySelectorAll('.panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === `panel-${panelName}`);
     });
+    
+    // Load settings if settings panel is opened
+    if (panelName === 'settings') {
+        loadSettings();
+    }
 }
 
 // ==================== Dashboard ====================
@@ -485,14 +682,22 @@ async function createLink(e) {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
+            toast.error(data.error, 'Link Creation Failed');
         } else {
             document.getElementById('linkUrl').value = '';
             document.getElementById('linkCode').value = '';
+            toast.success(`Link created: ${data.shortUrl}`, 'Success');
             loadLinks();
             showToast('Link created successfully!', 'success', 2000);
         }
     } catch (err) {
         showToast('Failed to create link: ' + err.message, 'error');
+            showNotification('Link created successfully', 'success');
+        }
+    } catch (err) {
+        showNotification('Failed to create link: ' + err.message, 'error');
+        toast.error(err.message, 'Failed to Create Link');
     }
 }
 
@@ -501,10 +706,15 @@ async function deleteLink(id) {
     
     try {
         await fetch(`${API_BASE}/links/${id}`, { method: 'DELETE' });
+        toast.success('Link deleted successfully', 'Link Deleted');
         loadLinks();
         showToast('Link deleted successfully', 'success', 2000);
     } catch (err) {
         showToast('Failed to delete link: ' + err.message, 'error');
+        showNotification('Link deleted successfully', 'success');
+    } catch (err) {
+        showNotification('Failed to delete link: ' + err.message, 'error');
+        toast.error(err.message, 'Failed to Delete Link');
     }
 }
 
@@ -557,12 +767,20 @@ async function uploadFile(file) {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
+            toast.error(data.error, 'Upload Failed');
         } else {
+            toast.success(`File uploaded: ${data.file.originalName}`, 'Upload Complete');
             addUploadToList(data.file);
             showToast('File uploaded successfully', 'success', 2000);
         }
     } catch (err) {
         showToast('Upload failed: ' + err.message, 'error');
+            showNotification('File uploaded successfully', 'success');
+        }
+    } catch (err) {
+        showNotification('Upload failed: ' + err.message, 'error');
+        toast.error(err.message, 'Upload Failed');
     }
 }
 
@@ -613,6 +831,10 @@ async function deleteUpload(filename) {
         showToast('File deleted successfully', 'success', 2000);
     } catch (err) {
         showToast('Failed to delete file: ' + err.message, 'error');
+        showNotification('File deleted successfully', 'success');
+    } catch (err) {
+        showNotification('Failed to delete file: ' + err.message, 'error');
+        toast.error(err.message, 'Failed to Delete File');
     }
 }
 
@@ -809,6 +1031,8 @@ async function addCamera(e) {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
+            toast.error(data.error, 'Camera Addition Failed');
         } else {
             closeModal('addCameraModal');
             // Reset form
@@ -817,11 +1041,17 @@ async function addCamera(e) {
             document.getElementById('cameraType').value = 'mjpeg';
             document.getElementById('cameraUser').value = '';
             document.getElementById('cameraPass').value = '';
+            toast.success(`Camera added: ${name}`, 'Camera Added');
             loadCameras();
             showToast('Camera added successfully', 'success', 2000);
         }
     } catch (err) {
         showToast('Failed to add camera: ' + err.message, 'error');
+            showNotification('Camera added successfully', 'success');
+        }
+    } catch (err) {
+        showNotification('Failed to add camera: ' + err.message, 'error');
+        toast.error(err.message, 'Failed to Add Camera');
     }
 }
 
@@ -830,10 +1060,15 @@ async function deleteCamera(id) {
     
     try {
         await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' });
+        toast.success('Camera deleted', 'Camera Deleted');
         loadCameras();
         showToast('Camera deleted successfully', 'success', 2000);
     } catch (err) {
         showToast('Failed to delete camera: ' + err.message, 'error');
+        showNotification('Camera deleted successfully', 'success');
+    } catch (err) {
+        showNotification('Failed to delete camera: ' + err.message, 'error');
+        toast.error(err.message, 'Failed to Delete Camera');
     }
 }
 
@@ -911,15 +1146,19 @@ async function createNote(e) {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
+            toast.error(data.error, 'Error');
         } else {
             closeModal('createNoteModal');
             document.getElementById('noteTitle').value = '';
             document.getElementById('notePublic').checked = false;
             loadNotes();
             loadNote(data.note.id);
+            showNotification('Note created successfully', 'success');
         }
     } catch (err) {
         showToast('Failed to create note: ' + err.message, 'error');
+        showNotification('Failed to create note: ' + err.message, 'error');
     }
 }
 
@@ -936,11 +1175,14 @@ async function toggleNotePublic(noteId, isPublic) {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
         } else {
             loadNotes(); // Refresh the notes grid
+            showNotification('Note visibility updated', 'success');
         }
     } catch (err) {
         showToast('Failed to update note visibility: ' + err.message, 'error');
+        showNotification('Failed to update note visibility: ' + err.message, 'error');
     }
 }
 
@@ -950,6 +1192,12 @@ async function toggleAllNotesPublic() {
         const response = await fetch(`${API_BASE}/notes`);
         const notes = await response.json();
         
+        // If all notes are currently public, make them all private; otherwise, make them all public
+        const publicCount = notes.filter(note => note.isPublic).length;
+        const makePublic = publicCount !== notes.length;
+        
+        const action = makePublic ? 'public' : 'private';
+        showNotification(`Making all notes ${action}...`, 'info');
         // Determine whether to make all notes public or all private:
         // If all are currently public, make them all private; otherwise, make them all public.
         const publicCount = notes.filter(note => note.isPublic).length;
@@ -964,10 +1212,12 @@ async function toggleAllNotesPublic() {
         );
         
         await Promise.all(promises);
+        showNotification(`All notes are now ${action}`, 'success');
         loadNotes(); // Refresh the notes grid
         
     } catch (err) {
         showToast('Failed to toggle notes visibility: ' + err.message, 'error');
+        showNotification('Failed to toggle notes visibility: ' + err.message, 'error');
     }
 }
 
@@ -986,6 +1236,8 @@ async function loadNote(id) {
         
         if (note.error) {
             showToast(note.error, 'error');
+            showNotification(note.error, 'error');
+            toast.error(note.error, 'Note Error');
             return;
         }
         
@@ -1003,6 +1255,7 @@ async function loadNote(id) {
         
     } catch (err) {
         showToast('Failed to load note: ' + err.message, 'error');
+        showNotification('Failed to load note: ' + err.message, 'error');
     }
 }
 
@@ -1134,15 +1387,19 @@ async function addNode() {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
+            toast.error(data.error, 'Error');
         } else {
             currentNote.nodes.push(data.node);
             if (data.connection) {
                 currentNote.connections.push(data.connection);
             }
             renderMindMap();
+            showNotification('Node added successfully', 'success');
         }
     } catch (err) {
         showToast('Failed to add node: ' + err.message, 'error');
+        showNotification('Failed to add node: ' + err.message, 'error');
     }
 }
 
@@ -1172,8 +1429,10 @@ async function deleteNode(id) {
         currentNote.nodes = currentNote.nodes.filter(n => n.id !== id);
         currentNote.connections = currentNote.connections.filter(c => c.from !== id && c.to !== id);
         renderMindMap();
+        showNotification('Node deleted successfully', 'success');
     } catch (err) {
         showToast('Failed to delete node: ' + err.message, 'error');
+        showNotification('Failed to delete node: ' + err.message, 'error');
     }
 }
 
@@ -1210,13 +1469,17 @@ async function toggleNotePublic() {
         
         if (data.error) {
             showToast(data.error, 'error');
+            showNotification(data.error, 'error');
+            toast.error(data.error, 'Error');
         } else {
             currentNote.isPublic = newPublic;
             currentNote.shareCode = data.note.shareCode;
             updatePublicToggle();
+            showNotification('Note updated successfully', 'success');
         }
     } catch (err) {
         showToast('Failed to update note: ' + err.message, 'error');
+        showNotification('Failed to update note: ' + err.message, 'error');
     }
 }
 
@@ -1242,8 +1505,10 @@ async function deleteCurrentNote() {
         currentNote = null;
         loadNotes();
         loadNote('');
+        showNotification('Note deleted successfully', 'success');
     } catch (err) {
         showToast('Failed to delete note: ' + err.message, 'error');
+        showNotification('Failed to delete note: ' + err.message, 'error');
     }
 }
 
@@ -1263,6 +1528,8 @@ async function loadSharedNote(code) {
         
         if (note.error) {
             showToast('Shared note not found', 'error');
+            showNotification('Shared note not found', 'error');
+            toast.error('Shared note not found', 'Not Found');
             return;
         }
         
@@ -1277,14 +1544,59 @@ async function loadSharedNote(code) {
         
     } catch (err) {
         showToast('Failed to load shared note', 'error');
+        showNotification('Failed to load shared note', 'error');
     }
 }
 
 // ==================== Settings ====================
 
+/**
+ * Handle authentication errors from settings API
+ * @param {Response} response - Fetch API response object
+ * @returns {Promise<boolean>} - Returns true if there was an auth error, false otherwise
+ */
+async function handleSettingsAuthError(response) {
+    if (response.status === 401) {
+        alert('Admin token is required. Please enter your admin token.');
+        return true;
+    }
+    
+    if (response.status === 403) {
+        alert('Invalid admin token. Please check your token and try again.');
+        return true;
+    }
+    
+    if (response.status === 503) {
+        const data = await response.json();
+        alert(data.message || 'Authentication not configured on server');
+        return true;
+    }
+    
+    return false;
+}
+
+// Security note: The admin token is read from the password field for this request only.
+// Do NOT store this token in localStorage, sessionStorage, cookies, or any other persistent client-side storage.
 async function loadSettings() {
+    const adminToken = document.getElementById('adminToken').value;
+    
+    if (!adminToken) {
+        alert('Please enter your admin token to view settings');
+        return;
+    }
+    
     try {
-        const response = await fetch(`${API_BASE}/settings`);
+        const response = await fetch(`${API_BASE}/settings`, {
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            }
+        });
+        
+        // Handle authentication errors
+        if (await handleSettingsAuthError(response)) {
+            return;
+        }
+        
         if (response.ok) {
             const settings = await response.json();
             
@@ -1306,9 +1618,12 @@ async function loadSettings() {
             
             // Security
             document.getElementById('sessionSecret').value = settings.sessionSecret || '';
+        } else {
+            alert('Failed to load settings. Please try again.');
         }
     } catch (err) {
         console.error('Failed to load settings:', err);
+        showNotification('Failed to load settings: ' + err.message, 'error');
     }
     
     // Update AI status
@@ -1330,6 +1645,13 @@ function toggleAIProvider() {
 }
 
 async function saveSettings() {
+    const adminToken = document.getElementById('adminToken').value;
+    
+    if (!adminToken) {
+        alert('Please enter your admin token to save settings');
+        return;
+    }
+    
     const settings = {
         aiProvider: document.getElementById('aiProvider').value,
         openaiKey: document.getElementById('openaiKey').value,
@@ -1344,9 +1666,17 @@ async function saveSettings() {
     try {
         const response = await fetch(`${API_BASE}/settings`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
             body: JSON.stringify(settings)
         });
+        
+        // Handle authentication errors
+        if (await handleSettingsAuthError(response)) {
+            return;
+        }
         
         const data = await response.json();
         
@@ -1358,6 +1688,23 @@ async function saveSettings() {
         }
     } catch (err) {
         showToast('Failed to save settings: ' + err.message, 'error');
+            showNotification('Failed to save settings: ' + data.error, 'error');
+        } else {
+            showNotification(
+                'Settings saved successfully!<br><br>' +
+                '<strong>To apply changes:</strong><br>' +
+                '1. Stop the server (Ctrl+C in terminal)<br>' +
+                '2. Run <code>node server.js</code> again<br><br>' +
+                'Or use <code>npm restart</code> if configured.',
+                'success',
+                8000,
+                true // Allow HTML for formatted restart instructions
+            );
+            showNotification('Settings saved successfully! Please restart the server to apply changes.', 'success');
+            updateAIStatus();
+        }
+    } catch (err) {
+        showNotification('Failed to save settings: ' + err.message, 'error');
     }
 }
 
@@ -1383,23 +1730,27 @@ async function updateAIStatus() {
 }
 
 // Load settings when settings panel is opened
-function showPanel(panelName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.panel === panelName);
-    });
-    
-    // Update panels
-    document.querySelectorAll('.panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
-    });
-    
-    // Load settings if settings panel is opened
-    if (panelName === 'settings') {
-        loadSettings();
-    }
-}
+(function (originalShowPanel) {
+    window.showPanel = function (panelName) {
+        // Call original implementation if it exists
+        if (typeof originalShowPanel === 'function') {
+            originalShowPanel(panelName);
+        }
 
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.panel === panelName);
+        });
+        
+        // Update panels
+        document.querySelectorAll('.panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `panel-${panelName}`);
+        });
+        
+        // Note: Settings are no longer auto-loaded. Users must click "Load Settings" 
+        // after entering their admin token for security reasons.
+    };
+})(window.showPanel);
 // ==================== Modals ====================
 
 function closeModal(modalId) {
@@ -1459,6 +1810,7 @@ function formatDate(isoString) {
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         showToast('Copied to clipboard!', 'success', 2000);
+        showNotification('Copied to clipboard!', 'success');
     }).catch(() => {
         // Fallback
         const textarea = document.createElement('textarea');
@@ -1468,5 +1820,122 @@ function copyToClipboard(text) {
         document.execCommand('copy');
         document.body.removeChild(textarea);
         showToast('Copied to clipboard!', 'success', 2000);
+        showNotification('Copied to clipboard!', 'success');
     });
 }
+
+// MindMap Zoom and Pan functionality
+let mindmapZoom = 1;
+let mindmapPanX = 0;
+let mindmapPanY = 0;
+let isPanning = false;
+let lastPanX = 0;
+let lastPanY = 0;
+
+function applyMindmapTransform() {
+    const container = document.getElementById('mindmapNodes');
+    if (!container) return;
+    
+    container.style.transform = `translate(${mindmapPanX}px, ${mindmapPanY}px) scale(${mindmapZoom})`;
+    container.style.transformOrigin = '0 0';
+}
+
+function zoomInMindmap() {
+    mindmapZoom = Math.min(mindmapZoom * 1.2, 3);
+    applyMindmapTransform();
+}
+
+function zoomOutMindmap() {
+    mindmapZoom = Math.max(mindmapZoom / 1.2, 0.3);
+    applyMindmapTransform();
+}
+
+function resetZoomMindmap() {
+    mindmapZoom = 1;
+    mindmapPanX = 0;
+    mindmapPanY = 0;
+    applyMindmapTransform();
+}
+
+// Setup mindmap pan and pinch zoom for mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('mindmapContainer');
+    if (!container) return;
+    
+    // Mouse pan
+    container.addEventListener('mousedown', function(e) {
+        if (e.target === container || e.target.tagName === 'svg' || e.target.id === 'mindmapNodes') {
+            isPanning = true;
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+            container.style.cursor = 'grabbing';
+        }
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (isPanning) {
+            const dx = e.clientX - lastPanX;
+            const dy = e.clientY - lastPanY;
+            mindmapPanX += dx;
+            mindmapPanY += dy;
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+            applyMindmapTransform();
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (isPanning) {
+            isPanning = false;
+            container.style.cursor = '';
+        }
+    });
+    
+    // Touch pan
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let initialPinchDistance = 0;
+    let initialZoom = 1;
+    
+    container.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+            // Pinch zoom start
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+            initialZoom = mindmapZoom;
+        }
+    }, { passive: true });
+    
+    container.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 1) {
+            // Pan
+            const dx = e.touches[0].clientX - touchStartX;
+            const dy = e.touches[0].clientY - touchStartY;
+            mindmapPanX += dx;
+            mindmapPanY += dy;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            applyMindmapTransform();
+        } else if (e.touches.length === 2) {
+            // Pinch zoom
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const scale = distance / initialPinchDistance;
+            mindmapZoom = Math.max(0.3, Math.min(3, initialZoom * scale));
+            applyMindmapTransform();
+        }
+    }, { passive: true });
+    
+    // Mouse wheel zoom
+    container.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        mindmapZoom = Math.max(0.3, Math.min(3, mindmapZoom * delta));
+        applyMindmapTransform();
+    });
+});
