@@ -350,6 +350,28 @@ router.post('/', requireAuth, (req, res) => {
             validatedMaxUploadSize = parsedMaxUploadSize;
         }
 
+        // Validate fileRoot to prevent directory traversal attacks
+        let validatedFileRoot = fileRoot;
+        if (fileRoot !== undefined && fileRoot !== null && fileRoot !== '') {
+            // Resolve the path to get the absolute, normalized path
+            const resolvedPath = path.resolve(fileRoot);
+            
+            // Check if path is absolute (should always be true after resolve, but double-check)
+            if (!path.isAbsolute(resolvedPath)) {
+                return res.status(400).json({ error: 'fileRoot must be an absolute path.' });
+            }
+            
+            // Verify the path exists and is a directory
+            try {
+                const stats = fs.statSync(resolvedPath);
+                if (!stats.isDirectory()) {
+                    return res.status(400).json({ error: 'fileRoot must be a valid directory path.' });
+                }
+            } catch (err) {
+                return res.status(400).json({ error: 'fileRoot directory does not exist or is not accessible.' });
+            }
+            
+            validatedFileRoot = resolvedPath;
         // Validate or generate session secret
         let validatedSessionSecret = sessionSecret;
         if (sessionSecret && sessionSecret !== '****') {
@@ -380,7 +402,7 @@ router.post('/', requireAuth, (req, res) => {
             localModelPath,
             modelContextSize: validatedModelContextSize,
             localServerPort: validatedLocalServerPort,
-            fileRoot,
+            fileRoot: validatedFileRoot,
             maxUploadSize: validatedMaxUploadSize,
             sessionSecret: validatedSessionSecret
             sessionSecret: finalSecret
