@@ -64,11 +64,11 @@ function makeOpenAIRequest(apiKey, messages) {
  */
 function makeLocalModelRequest(messages, port) {
     return new Promise((resolve, reject) => {
-        // Format request for llama-server (built with CMake)
+        // Format request for llama-server (built with CMake) - local AI compatible
         const data = JSON.stringify({
-            model: 'local', // llama-server ignores this but expects it
+            model: 'local-llama', // Local AI standard format
             messages: messages,
-            max_tokens: 2000,
+            max_tokens: 256, // Standard default for local AI
             temperature: 0.7,
             stream: false
         });
@@ -112,7 +112,14 @@ function makeLocalModelRequest(messages, port) {
                     if (res.statusCode !== 200) {
                         console.error('[Chat] llama-server HTTP error:', res.statusCode, response);
                         const errorMsg = response.error?.message || response.detail || response.message || `HTTP ${res.statusCode}`;
-                        reject(new Error(`llama-server error: ${errorMsg}`));
+                        // Return the response in OpenAI-compatible format
+                        resolve({
+                            choices: [{
+                                message: {
+                                    content: `[Error ${res.statusCode}] ${errorMsg}`
+                                }
+                            }]
+                        });
                     } else {
                         console.log('[Chat] llama-server response structure:', JSON.stringify(response, null, 2));
                         resolve(response);
@@ -127,12 +134,21 @@ function makeLocalModelRequest(messages, port) {
         // Add timeout handling (30 seconds for CMake-built llama-server)
         req.setTimeout(30000, () => {
             req.destroy();
-            reject(new Error('llama-server request timeout (30s) - check if server is running'));
+            reject(new Error('Local AI llama-server timeout (30s) - server is running but not responding. Check model loading status or try restarting llama-server.'));
         });
 
         req.on('error', (err) => {
             console.error('[Chat] llama-server connection error:', err.message);
-            reject(new Error(`llama-server connection failed: ${err.message} - check if server is running on port ${port}`));
+            // Local AI detailed error reporting
+            let errorDetails = err.message;
+            if (err.code === 'ECONNREFUSED') {
+                errorDetails = `Connection refused - llama-server not running on port ${port}. Start llama-server with: ./llama-server --port ${port}`;
+            } else if (err.code === 'ENOTFOUND') {
+                errorDetails = `Host not found - check if llama-server is configured correctly`;
+            } else if (err.code === 'ETIMEDOUT') {
+                errorDetails = `Connection timeout - llama-server is taking too long to respond`;
+            }
+            reject(new Error(`Local AI llama-server error: ${errorDetails}`));
         });
         
         req.write(data);
@@ -210,35 +226,39 @@ router.post('/', async (req, res) => {
             response = await makeLocalModelRequest(messages, port);
             
             // Handle different possible response structures from local models
-            // llama-server can return various formats depending on configuration
+            // Ensure compatibility with local AI expectations
             if (response.choices && response.choices.length > 0) {
                 const choice = response.choices[0];
                 if (choice.message && choice.message.content) {
-                    // OpenAI-compatible format
-                    assistantMessage = choice.message.content;
+                    // OpenAI-compatible format (preferred by local AI)
+                    assistantMessage = choice.message.content.trim();
                 } else if (choice.text) {
                     // Text completion format
-                    assistantMessage = choice.text;
+                    assistantMessage = choice.text.trim();
                 } else if (typeof choice === 'string') {
                     // Simple string response
-                    assistantMessage = choice;
+                    assistantMessage = choice.trim();
                 }
-            } else if (response.response) {
+            } else if (response.content && typeof response.content === 'string') {
+                // Direct content field (Local AI common format)
+                assistantMessage = response.content.trim();
+            } else if (response.response && typeof response.response === 'string') {
                 // Direct response field
-                assistantMessage = response.response;
-            } else if (response.content) {
-                // Content field
-                assistantMessage = response.content;
+                assistantMessage = response.response.trim();
             } else if (response.message) {
                 // Message field (some llama-server variants)
-                assistantMessage = typeof response.message === 'string' ? response.message : response.message.content;
+                assistantMessage = typeof response.message === 'string' 
+                    ? response.message.trim() 
+                    : (response.message.content || '').trim();
             } else if (typeof response === 'string') {
-                // Plain text response
-                assistantMessage = response;
-            } else {
-                // Log the full response for debugging
-                console.warn('[Chat] Unexpected llama-server response format:', JSON.stringify(response, null, 2));
-                throw new Error(`Unexpected response format from llama-server. Response: ${JSON.stringify(response)}`);
+                // Plain text response (simplest case)
+                assistantMessage = response.trim();
+            }
+            
+            // Fallback: return [no response] for empty responses
+            if (!assistantMessage) {
+                console.warn('[Chat] No content found in response:', JSON.stringify(response, null, 2));
+                assistantMessage = '[no response]'; // Standard fallback
             }
         } else {
             throw new Error(`Unsupported AI provider: ${aiProvider}`);
@@ -274,11 +294,12 @@ router.delete('/:sessionId', (req, res) => {
  * GET /api/chat/status
  * Check if AI provider is configured
  */
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
     const aiProvider = process.env.AI_PROVIDER || 'openai';
     
     let configured = false;
     let message = '';
+    let details = {};
     
     if (aiProvider === 'openai') {
         const apiKey = process.env.OPENAI_API_KEY;
@@ -286,19 +307,28 @@ router.get('/status', (req, res) => {
         message = configured ? 'OpenAI API is configured' : 'OpenAI API key not set';
     } else if (aiProvider === 'local') {
         const modelPath = process.env.LOCAL_MODEL_PATH;
-        const serverPort = process.env.LOCAL_SERVER_PORT;
+        const serverPort = process.env.LOCAL_SERVER_PORT || 8080;
         configured = !!(modelPath || serverPort);
         
         if (configured) {
-            if (modelPath && serverPort) {
-                message = `JugiAI configured with model: ${modelPath} and port: ${serverPort}`;
-            } else if (modelPath) {
-                message = `JugiAI configured with model: ${modelPath}`;
-            } else {
-                message = `JugiAI configured on port: ${serverPort}`;
+            // Test Local AI connection (quick test)
+            try {
+                const testResult = await testLocalAIQuick('localhost', serverPort);
+                if (testResult.success) {
+                    message = `Local AI active on port ${serverPort} (${testResult.responseTime}ms)`;
+                    details.responseTime = testResult.responseTime;
+                    details.serverActive = true;
+                } else {
+                    message = `Local AI configured on port ${serverPort} but not responding: ${testResult.error}`;
+                    details.serverActive = false;
+                    details.error = testResult.error;
+                }
+            } catch (err) {
+                message = `Local AI configured on port ${serverPort} (connection not tested)`;
+                details.testSkipped = true;
             }
         } else {
-            message = 'JugiAI not configured - set LOCAL_SERVER_PORT (e.g., 8080) in environment or settings';
+            message = 'Local AI not configured - set LOCAL_SERVER_PORT (e.g., 8081) in environment or settings';
         }
     } else {
         message = `Unknown AI provider: ${aiProvider}`;
@@ -307,8 +337,52 @@ router.get('/status', (req, res) => {
     res.json({
         configured,
         message,
-        provider: aiProvider
+        provider: aiProvider,
+        details
     });
 });
+
+/**
+ * Quick Local AI connection test (non-blocking)
+ */
+function testLocalAIQuick(host = 'localhost', port = 8080) {
+    return new Promise((resolve) => {
+        const payload = JSON.stringify({
+            model: 'local',
+            messages: [{ role: 'user', content: 'test' }],
+            max_tokens: 1
+        });
+
+        const options = {
+            hostname: host,
+            port: port,
+            path: '/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload)
+            }
+        };
+
+        const startTime = Date.now();
+        const req = http.request(options, (res) => {
+            const responseTime = Date.now() - startTime;
+            resolve({ success: res.statusCode === 200, responseTime });
+            req.destroy(); // Close immediately
+        });
+
+        req.setTimeout(3000, () => {
+            req.destroy();
+            resolve({ success: false, error: 'timeout', responseTime: Date.now() - startTime });
+        });
+
+        req.on('error', (err) => {
+            resolve({ success: false, error: err.code || err.message, responseTime: Date.now() - startTime });
+        });
+
+        req.write(payload);
+        req.end();
+    });
+}
 
 module.exports = router;

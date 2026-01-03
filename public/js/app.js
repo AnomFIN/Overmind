@@ -309,11 +309,11 @@ async function checkChatStatus() {
         
         const statusEl = document.getElementById('chatStatus');
         if (data.configured) {
-            const providerName = data.provider === 'local' ? 'JugiAI (Local AI)' : 'OpenAI API';
+            const providerName = data.provider === 'local' ? 'Local AI' : 'OpenAI API';
             statusEl.innerHTML = `<span class="text-success">✓ ${providerName} connected</span>`;
             
             // Update current provider state
-            currentAIProvider = data.provider === 'local' ? 'jugiai' : 'openai';
+            currentAIProvider = data.provider === 'local' ? 'local' : 'openai';
             const toggle = document.getElementById('aiProviderToggle');
             if (toggle) {
                 toggle.checked = currentAIProvider === 'jugiai';
@@ -321,9 +321,9 @@ async function checkChatStatus() {
             
         } else {
             const hint = data.provider === 'local' 
-                ? 'Configure LOCAL_SERVER_PORT for JugiAI in settings'
+                ? 'Configure LOCAL_SERVER_PORT for Local AI in settings'
                 : 'Add OPENAI_API_KEY to .env file';
-            statusEl.innerHTML = `<span class="text-warning">⚠ ${data.provider === 'local' ? 'JugiAI (Local AI)' : 'OpenAI API'} not configured - ${hint}</span>`;
+            statusEl.innerHTML = `<span class="text-warning">⚠ ${data.provider === 'local' ? 'Local AI' : 'OpenAI API'} not configured - ${hint}</span>`;
         }
     } catch (err) {
         document.getElementById('chatStatus').innerHTML = 
@@ -349,9 +349,10 @@ async function sendMessage(e) {
     // Add user message
     appendMessage('user', message);
     
-    // Add loading indicator
+    // Add loading indicator with provider name
     const loadingId = 'loading-' + Date.now();
-    appendMessage('assistant', '...', loadingId);
+    const provider = currentAIProvider === 'local' ? 'Local AI' : 'OpenAI';
+    appendMessage('assistant', `[${provider} thinking...]`, loadingId);
     
     try {
         const response = await fetch(`${API_BASE}/chat`, {
@@ -367,12 +368,14 @@ async function sendMessage(e) {
         if (loadingEl) loadingEl.remove();
         
         if (data.error) {
-            // Show more helpful error messages for JugiAI vs OpenAI
+            // JugiAI-style error handling with clear ERROR prefix
             let errorMsg = data.error;
             if (errorMsg.includes('llama-server') || errorMsg.includes('Local server') || errorMsg.includes('local model')) {
-                errorMsg = `JugiAI Error: ${errorMsg}`;
+                errorMsg = `ERROR: JugiAI - ${errorMsg}`;
             } else if (errorMsg.includes('OpenAI') || errorMsg.includes('API key')) {
-                errorMsg = `OpenAI Error: ${errorMsg}`;
+                errorMsg = `ERROR: OpenAI - ${errorMsg}`;
+            } else {
+                errorMsg = `ERROR: ${errorMsg}`;
             }
             appendMessage('assistant', errorMsg);
         } else {
@@ -381,7 +384,11 @@ async function sendMessage(e) {
     } catch (err) {
         const loadingEl = document.getElementById(loadingId);
         if (loadingEl) loadingEl.remove();
-        appendMessage('assistant', `Error: ${err.message}`);
+        
+        // Error reporting with correct provider name
+        const provider = currentAIProvider === 'local' ? 'Local AI' : 'OpenAI';
+        appendMessage('assistant', `ERROR: ${provider} - ${err.message}`);
+        console.error(`${provider} error:`, err);
     }
 }
 
@@ -392,6 +399,9 @@ function appendMessage(role, content, id) {
     if (id) div.id = id;
     div.innerHTML = `<div class="message-content">${escapeHtml(content)}</div>`;
     messagesEl.appendChild(div);
+    
+    // JugiAI-style smooth scrolling
+    div.scrollIntoView({ behavior: 'smooth', block: 'end' });
     messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
@@ -413,7 +423,7 @@ function initAIProviderToggle() {
     const toggle = document.getElementById('aiProviderToggle');
     if (toggle) {
         // Set initial state based on current provider
-        toggle.checked = currentAIProvider === 'jugiai';
+        toggle.checked = currentAIProvider === 'local';
         updateProviderUI(currentAIProvider);
     }
 }
