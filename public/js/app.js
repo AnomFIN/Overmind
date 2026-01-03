@@ -309,7 +309,7 @@ async function checkChatStatus() {
         
         const statusEl = document.getElementById('chatStatus');
         if (data.configured) {
-            const providerName = data.provider === 'local' ? 'Local AI' : 'OpenAI API';
+            const providerName = data.provider === 'local' ? 'AnomAI' : 'OpenAI API';
             statusEl.innerHTML = `<span class="text-success">✓ ${providerName} connected</span>`;
             
             // Update current provider state
@@ -321,9 +321,9 @@ async function checkChatStatus() {
             
         } else {
             const hint = data.provider === 'local' 
-                ? 'Configure LOCAL_SERVER_PORT for Local AI in settings'
+                ? 'Configure LOCAL_SERVER_PORT for AnomAI in settings'
                 : 'Add OPENAI_API_KEY to .env file';
-            statusEl.innerHTML = `<span class="text-warning">⚠ ${data.provider === 'local' ? 'Local AI' : 'OpenAI API'} not configured - ${hint}</span>`;
+            statusEl.innerHTML = `<span class="text-warning">⚠ ${data.provider === 'local' ? 'AnomAI' : 'OpenAI API'} not configured - ${hint}</span>`;
         }
     } catch (err) {
         document.getElementById('chatStatus').innerHTML = 
@@ -351,7 +351,7 @@ async function sendMessage(e) {
     
     // Add loading indicator with provider name
     const loadingId = 'loading-' + Date.now();
-    const provider = currentAIProvider === 'local' ? 'Local AI' : 'OpenAI';
+    const provider = currentAIProvider === 'local' ? 'AnomAI' : 'OpenAI';
     appendMessage('assistant', `[${provider} thinking...]`, loadingId);
     
     try {
@@ -386,7 +386,7 @@ async function sendMessage(e) {
         if (loadingEl) loadingEl.remove();
         
         // Error reporting with correct provider name
-        const provider = currentAIProvider === 'local' ? 'Local AI' : 'OpenAI';
+        const provider = currentAIProvider === 'local' ? 'AnomAI' : 'OpenAI';
         appendMessage('assistant', `ERROR: ${provider} - ${err.message}`);
         console.error(`${provider} error:`, err);
     }
