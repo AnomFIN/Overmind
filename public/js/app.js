@@ -11,6 +11,8 @@ let currentNote = null;
 let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
+// Track active typing effect intervals for cleanup
+let activeTypingIntervals = [];
 // Interval tracking for cleanup
 const activeIntervals = [];
 // Animation intervals for cleanup
@@ -271,6 +273,14 @@ function addTypingEffect() {
             
             let i = 0;
             const typeInterval = setInterval(() => {
+                // Check if element is still in the DOM
+                if (!document.body.contains(element)) {
+                    clearInterval(typeInterval);
+                    // Remove from tracking array
+                    const index = activeTypingIntervals.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeTypingIntervals.splice(index, 1);
+                    }
                 // Check if element is still in DOM
                 if (!element.isConnected) {
                     clearInterval(typeInterval);
@@ -281,6 +291,10 @@ function addTypingEffect() {
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
+                    // Remove from tracking array
+                    const index = activeTypingIntervals.indexOf(typeInterval);
+                    if (index > -1) {
+                        activeTypingIntervals.splice(index, 1);
                     // Remove from tracking
                     const index = activeIntervals.typingEffects.indexOf(typeInterval);
                     if (index > -1) {
@@ -291,9 +305,19 @@ function addTypingEffect() {
                 }
             }, 100);
             
+            // Track this interval for cleanup
+            activeTypingIntervals.push(typeInterval);
             activeIntervals.typingEffects.push(typeInterval);
         }
     });
+}
+
+function clearTypingEffects() {
+    // Clear all active typing intervals
+    activeTypingIntervals.forEach(interval => {
+        clearInterval(interval);
+    });
+    activeTypingIntervals = [];
 }
 
 function addRandomGlowPulses() {
@@ -1779,6 +1803,25 @@ async function updateAIStatus() {
 }
 
 // Load settings when settings panel is opened
+function showPanel(panelName) {
+    // Clear any active typing effects before switching panels
+    clearTypingEffects();
+    
+    // Update nav
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.panel === panelName);
+    });
+    
+    // Update panels
+    document.querySelectorAll('.panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `panel-${panelName}`);
+    });
+    
+    // Load settings if settings panel is opened
+    if (panelName === 'settings') {
+        loadSettings();
+    }
+}
 (function (originalShowPanel) {
     window.showPanel = function (panelName) {
         // Call original implementation if it exists
