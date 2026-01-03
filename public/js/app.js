@@ -234,6 +234,9 @@ function initTechAnimations() {
 }
 
 function addParticleBackground() {
+    // Check if particles already exist to prevent duplicates
+    if (document.querySelector('.particle-background')) {
+        return;
     // Check if particles already exist
     if (document.querySelector('.particle-background')) {
         return; // Don't create duplicates
