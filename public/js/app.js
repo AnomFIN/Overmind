@@ -303,9 +303,13 @@ async function checkChatStatus() {
         
         const statusEl = document.getElementById('chatStatus');
         if (data.configured) {
-            statusEl.innerHTML = '<span class="text-success">✓ OpenAI API connected</span>';
+            const providerName = data.provider === 'local' ? 'Local AI' : 'OpenAI API';
+            statusEl.innerHTML = `<span class="text-success">✓ ${providerName} connected</span>`;
         } else {
-            statusEl.innerHTML = '<span class="text-warning">⚠ OpenAI API not configured - Add OPENAI_API_KEY to .env</span>';
+            const hint = data.provider === 'local' 
+                ? 'Configure LOCAL_MODEL_PATH or LOCAL_SERVER_PORT in settings'
+                : 'Add OPENAI_API_KEY to .env file';
+            statusEl.innerHTML = `<span class="text-warning">⚠ ${data.provider === 'local' ? 'Local AI' : 'OpenAI API'} not configured - ${hint}</span>`;
         }
     } catch (err) {
         document.getElementById('chatStatus').innerHTML = 

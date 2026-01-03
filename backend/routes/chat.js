@@ -87,16 +87,28 @@ function makeLocalModelRequest(messages, port) {
             res.on('data', chunk => body += chunk);
             res.on('end', () => {
                 try {
+                    if (body.trim() === '') {
+                        reject(new Error('Empty response from local model server'));
+                        return;
+                    }
+                    
                     const response = JSON.parse(body);
                     if (res.statusCode !== 200) {
-                        reject(new Error(response.error?.message || `Local server error: ${res.statusCode}`));
+                        const errorMsg = response.error?.message || response.detail || `Server returned ${res.statusCode}: ${body.substring(0, 200)}`;
+                        reject(new Error(`Local server error: ${errorMsg}`));
                     } else {
                         resolve(response);
                     }
                 } catch (e) {
-                    reject(new Error('Invalid JSON response from local model server'));
+                    reject(new Error(`Invalid JSON response from local model server: ${e.message}. Response: ${body.substring(0, 200)}`));
                 }
             });
+        });
+        
+        // Add timeout handling
+        req.setTimeout(30000, () => {
+            req.destroy();
+            reject(new Error('Local model server request timeout (30s)'));
         });
 
         req.on('error', (err) => {
@@ -133,10 +145,13 @@ router.post('/', async (req, res) => {
             }
         } else if (aiProvider === 'local') {
             const modelPath = process.env.LOCAL_MODEL_PATH;
-            if (!modelPath) {
+            const serverPort = process.env.LOCAL_SERVER_PORT;
+            
+            // Check if we have either a model path or server port configured
+            if (!modelPath && !serverPort) {
                 return res.status(503).json({ 
-                    error: 'Local model path not configured',
-                    hint: 'Configure LOCAL_MODEL_PATH in settings or switch to OpenAI'
+                    error: 'Local model not configured',
+                    hint: 'Configure either LOCAL_MODEL_PATH or LOCAL_SERVER_PORT in settings, or switch to OpenAI'
                 });
             }
         }
@@ -173,7 +188,17 @@ router.post('/', async (req, res) => {
         } else if (aiProvider === 'local') {
             const port = process.env.LOCAL_SERVER_PORT || 8080;
             response = await makeLocalModelRequest(messages, port);
-            assistantMessage = response.choices[0].message.content;
+            
+            // Handle different possible response structures from local models
+            if (response.choices && response.choices[0]) {
+                assistantMessage = response.choices[0].message?.content || response.choices[0].text;
+            } else if (response.response) {
+                assistantMessage = response.response;
+            } else if (response.content) {
+                assistantMessage = response.content;
+            } else {
+                throw new Error('Unexpected response format from local model server');
+            }
         } else {
             throw new Error(`Unsupported AI provider: ${aiProvider}`);
         }
@@ -220,8 +245,20 @@ router.get('/status', (req, res) => {
         message = configured ? 'OpenAI API is configured' : 'OpenAI API key not set';
     } else if (aiProvider === 'local') {
         const modelPath = process.env.LOCAL_MODEL_PATH;
-        configured = !!modelPath;
-        message = configured ? 'Local model is configured' : 'Local model path not set';
+        const serverPort = process.env.LOCAL_SERVER_PORT;
+        configured = !!(modelPath || serverPort);
+        
+        if (configured) {
+            if (modelPath && serverPort) {
+                message = `Local model configured with path: ${modelPath} and port: ${serverPort}`;
+            } else if (modelPath) {
+                message = `Local model configured with path: ${modelPath}`;
+            } else {
+                message = `Local model server configured on port: ${serverPort}`;
+            }
+        } else {
+            message = 'Local model not configured - set LOCAL_MODEL_PATH or LOCAL_SERVER_PORT';
+        }
     } else {
         message = `Unknown AI provider: ${aiProvider}`;
     }
