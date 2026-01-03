@@ -311,7 +311,10 @@
             <div class="panel" id="panel-settings">
                 <header class="panel-header">
                     <h2>System Settings</h2>
-                    <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="loadSettings()">Load Settings</button>
+                        <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+                    </div>
                 </header>
                 <div class="panel-content settings-panel">
                     <div class="settings-section">
@@ -328,7 +331,7 @@
                             <div class="form-group">
                                 <label>OpenAI API Key</label>
                                 <input type="password" id="openaiKey" placeholder="sk-...">
-                                <small class="form-hint">Your OpenAI API key for GPT models</small>
+                                <small class="form-hint">⚠️ Important: Use HTTPS in production to protect credentials during transmission</small>
                             </div>
                         </div>
                         
@@ -367,9 +370,14 @@
                     <div class="settings-section">
                         <h3>Security</h3>
                         <div class="form-group">
-                            <label>Session Secret</label>
-                            <input type="password" id="sessionSecret" placeholder="Enter a secure secret">
-                            <small class="form-hint">Secret key for session management</small>
+                            <label for="adminToken">Admin Token</label>
+                            <input type="password" id="adminToken" placeholder="Enter your admin token to access settings">
+                            <small class="form-hint">Required to view and modify system settings. Store this securely in your .env file.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="sessionSecret">Session Secret</label>
+                            <input type="password" id="sessionSecret" placeholder="Enter a secure secret (min 16 characters)">
+                            <small class="form-hint">⚠️ Use HTTPS in production. Secret must be at least 16 characters.</small>
                         </div>
                     </div>
                     
@@ -551,6 +559,8 @@
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
     <!-- Persona Modal -->
     <div class="modal" id="personaModal">
         <div class="modal-content modal-large">
