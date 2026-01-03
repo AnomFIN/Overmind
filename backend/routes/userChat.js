@@ -13,39 +13,60 @@ const activeConnections = new Map();
 
 /**
  * POST /api/user-chat/join
- * Join or create a chat room
+ * Join or create a chat room with enhanced ID support
  */
 router.post('/join', (req, res) => {
     try {
-        const { roomId, username } = req.body;
+        const { roomId, username, joinMethod } = req.body;
         
         if (!roomId || !username) {
             return res.status(400).json({ error: 'Room ID and username are required' });
         }
         
-        // Validate room ID (alphanumeric only for security)
-        if (!/^[a-zA-Z0-9]{3,20}$/.test(roomId)) {
-            return res.status(400).json({ 
-                error: 'Room ID must be 3-20 alphanumeric characters only' 
-            });
+        // Enhanced validation for different ID types
+        let actualRoomId = roomId;
+        
+        if (joinMethod === 'user') {
+            // For user IDs, allow more flexible characters (emails, etc.)
+            if (!/^[a-zA-Z0-9@._-]{2,50}$/.test(roomId)) {
+                return res.status(400).json({ 
+                    error: 'User ID contains invalid characters' 
+                });
+            }
+            // Convert user chat to a direct room format
+            const participants = [username.toLowerCase(), roomId.toLowerCase()].sort();
+            actualRoomId = `direct_${participants[0]}_${participants[1]}`;
+        } else {
+            // Room ID validation - allow underscores and dashes
+            if (!/^[a-zA-Z0-9_-]{2,50}$/.test(roomId)) {
+                return res.status(400).json({ 
+                    error: 'Room ID must be 2-50 characters (letters, numbers, _, -)'
+                });
+            }
+            actualRoomId = roomId.toUpperCase();
         }
         
         // Create room if it doesn't exist
-        if (!chatRooms.has(roomId)) {
-            chatRooms.set(roomId, {
-                id: roomId,
+        if (!chatRooms.has(actualRoomId)) {
+            chatRooms.set(actualRoomId, {
+                id: actualRoomId,
+                type: joinMethod === 'user' ? 'direct' : 'room',
                 created: new Date().toISOString(),
                 members: new Set(),
-                messages: [] // Encrypted messages
+                messages: [], // Encrypted messages
+                originalTarget: joinMethod === 'user' ? roomId : null
             });
         }
         
-        const room = chatRooms.get(roomId);
+        const room = chatRooms.get(actualRoomId);
         room.members.add(username);
         
         res.json({
             success: true,
-            roomId: roomId,
+            roomId: actualRoomId,
+            originalRoomId: roomId,
+            joinMethod: joinMethod || 'room',
+            roomType: room.type,
             memberCount: room.members.size,
             joinedAt: new Date().toISOString()
         });

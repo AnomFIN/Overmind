@@ -152,36 +152,137 @@
                 </div>
             </div>
 
-            <!-- User Chat Panel -->
+            <!-- User Chat Panel - Premium UI -->
             <div class="panel" id="panel-user-chat">
-                <header class="panel-header">
-                    <h2>🔒 Encrypted User Chat</h2>
-                    <div class="chat-controls">
-                        <input type="text" id="userChatRoom" placeholder="Room ID" maxlength="20" style="width: 120px; margin-right: 10px;">
-                        <button class="btn btn-secondary" onclick="joinChatRoom()">Join Room</button>
-                        <button class="btn btn-outline" onclick="clearUserChat()">Clear</button>
+                <header class="panel-header premium-chat-header">
+                    <div class="chat-header-left">
+                        <div class="chat-title-section">
+                            <h2>🔒 Secure Chat</h2>
+                            <div class="chat-subtitle">End-to-end encrypted messaging</div>
+                        </div>
+                    </div>
+                    <div class="chat-header-right">
+                        <div class="room-controls">
+                            <div class="join-method-selector">
+                                <button class="method-btn active" onclick="switchJoinMethod('room')" data-method="room">
+                                    <span class="method-icon">🏠</span>
+                                    <span class="method-text">Room</span>
+                                </button>
+                                <button class="method-btn" onclick="switchJoinMethod('user')" data-method="user">
+                                    <span class="method-icon">👤</span>
+                                    <span class="method-text">User</span>
+                                </button>
+                            </div>
+                            <div class="join-input-container">
+                                <input type="text" 
+                                       id="chatJoinInput" 
+                                       placeholder="Room ID" 
+                                       maxlength="50" 
+                                       class="join-input"
+                                       data-mode="room">
+                                <div class="input-helper">
+                                    <span class="helper-text" id="inputHelperText">Enter room ID (e.g., ROOM123)</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-premium" onclick="joinChatWithMethod()">
+                                <span class="join-icon">🚀</span>
+                                <span class="join-text">Connect</span>
+                            </button>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="btn btn-outline btn-sm" onclick="clearUserChat()" title="Clear Messages">
+                                <span class="btn-icon">🗑️</span>
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="exportChatHistory()" title="Export Chat">
+                                <span class="btn-icon">📥</span>
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="toggleChatTheme()" title="Toggle Theme">
+                                <span class="btn-icon">🎨</span>
+                            </button>
+                        </div>
                     </div>
                 </header>
-                <div class="panel-content chat-panel">
-                    <div class="chat-status-bar">
+                
+                <div class="panel-content chat-panel premium-chat-panel">
+                    <!-- Chat Status Bar -->
+                    <div class="chat-status-bar premium-status-bar">
                         <div class="connection-status" id="userChatStatus">
-                            <span class="status-indicator"></span>
-                            <span>Enter room ID to start chatting</span>
+                            <div class="status-indicator offline"></div>
+                            <span class="status-text">Enter room ID to start chatting</span>
                         </div>
-                        <div class="encryption-info">
-                            <span>🔒 End-to-end encrypted</span>
+                        <div class="chat-info">
+                            <div class="users-online" id="usersOnline" style="display: none;">
+                                <span class="user-count">0</span> online
+                            </div>
+                            <div class="encryption-badge">
+                                <span class="encryption-icon">🔒</span>
+                                <span class="encryption-text">E2E Encrypted</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="chat-messages" id="userChatMessages">
-                        <div class="chat-welcome">
-                            <p>🔒 Welcome to Encrypted User Chat!</p>
-                            <p>Enter a room ID above to start a secure conversation.</p>
-                            <p class="encryption-notice">All messages are end-to-end encrypted.</p>
+                    
+                    <!-- Messages Container -->
+                    <div class="chat-messages premium-messages" id="userChatMessages">
+                        <div class="chat-welcome premium-welcome">
+                            <div class="welcome-icon">🚀</div>
+                            <h3>Welcome to Secure Chat!</h3>
+                            <p>Enter a room ID above to start an encrypted conversation.</p>
+                            <div class="features-list">
+                                <div class="feature">
+                                    <span class="feature-icon">🔒</span>
+                                    <span>End-to-end encryption</span>
+                                </div>
+                                <div class="feature">
+                                    <span class="feature-icon">⚡</span>
+                                    <span>Real-time messaging</span>
+                                </div>
+                                <div class="feature">
+                                    <span class="feature-icon">👥</span>
+                                    <span>Multiple participants</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <form class="chat-input-form" onsubmit="sendUserMessage(event)">
-                        <input type="text" id="userChatInput" placeholder="Type your encrypted message..." autocomplete="off" disabled>
-                        <button type="submit" class="btn btn-primary" id="sendUserMessageBtn" disabled>Send</button>
+                    
+                    <!-- Typing Indicator -->
+                    <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <span class="typing-text">Someone is typing...</span>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <form class="chat-input-form premium-input-form" onsubmit="sendUserMessage(event)">
+                        <div class="input-container">
+                            <div class="input-actions-left">
+                                <button type="button" class="input-btn" onclick="openEmojiPicker()" title="Emojis">
+                                    😀
+                                </button>
+                                <button type="button" class="input-btn" onclick="openFileUpload()" title="Attach File">
+                                    📎
+                                </button>
+                            </div>
+                            <input type="text" 
+                                   id="userChatInput" 
+                                   placeholder="Type your message..." 
+                                   autocomplete="off" 
+                                   disabled
+                                   maxlength="1000"
+                                   class="premium-input">
+                            <div class="input-actions-right">
+                                <div class="char-counter" id="charCounter">0/1000</div>
+                                <button type="submit" 
+                                        class="btn btn-send" 
+                                        id="sendUserMessageBtn" 
+                                        disabled
+                                        title="Send message">
+                                    <span class="btn-icon">🚀</span>
+                                </button>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>

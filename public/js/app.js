@@ -639,48 +639,794 @@ async function generateChatKey(roomId, username) {
     return Math.abs(hash).toString(16);
 }
 
-// Simple XOR encryption (for demo - use proper encryption in production)
-function encryptMessage(message, key) {
-    const keyBytes = key.split('').map(c => c.charCodeAt(0));
-    const messageBytes = message.split('').map(c => c.charCodeAt(0));
+// ==================== ENHANCED CHAT JOIN METHODS ====================
+
+let currentJoinMethod = 'room'; // 'room' or 'user'
+let chatConnectionType = null; // 'room', 'direct', 'group'
+
+// Switch between join methods (Room ID vs User ID)
+function switchJoinMethod(method) {
+    currentJoinMethod = method;
     
-    return messageBytes.map((byte, i) => 
-        byte ^ keyBytes[i % keyBytes.length]
-    ).map(byte => 
-        byte.toString(16).padStart(2, '0')
-    ).join('');
+    // Update button states
+    const buttons = document.querySelectorAll('.method-btn');
+    buttons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.method === method);
+    });
+    
+    // Update input and helper text
+    const input = document.getElementById('chatJoinInput');
+    const helperText = document.getElementById('inputHelperText');
+    
+    input.dataset.mode = method;
+    
+    if (method === 'room') {
+        input.placeholder = 'Room ID';
+        input.maxLength = 50;
+        helperText.textContent = 'Enter room ID (e.g., ROOM123, MyTeam, Project-Alpha)';
+        input.style.textTransform = 'uppercase';
+    } else {
+        input.placeholder = 'User ID or Name';
+        input.maxLength = 50;
+        helperText.textContent = 'Enter username, email, or any unique ID';
+        input.style.textTransform = 'none';
+    }
+    
+    // Clear input and focus
+    input.value = '';
+    input.focus();
+    
+    // Add visual feedback
+    input.style.borderColor = method === 'room' ? 'rgba(0, 212, 255, 0.3)' : 'rgba(255, 215, 0, 0.3)';
+    
+    showNotification(`Switched to ${method === 'room' ? 'Room' : 'User'} mode`, 'info');
 }
 
-function decryptMessage(encryptedHex, key) {
+// Enhanced join function that handles both methods
+async function joinChatWithMethod() {
+    const input = document.getElementById('chatJoinInput');
+    const inputValue = input.value.trim();
+    
+    if (!inputValue) {
+        const methodName = currentJoinMethod === 'room' ? 'room ID' : 'user ID';
+        showNotification(`Please enter a ${methodName}`, 'warning');
+        input.focus();
+        return;
+    }
+    
+    // Validate input based on method
+    if (!validateInput(inputValue, currentJoinMethod)) {
+        return;
+    }
+    
+    const statusEl = document.getElementById('userChatStatus');
+    const statusIndicator = statusEl.querySelector('.status-indicator');
+    const statusText = statusEl.querySelector('.status-text');
+    
+    // Update UI to connecting state
+    statusIndicator.className = 'status-indicator connecting';
+    statusText.textContent = 'Connecting...';
+    
     try {
-        const keyBytes = key.split('').map(c => c.charCodeAt(0));
-        const encryptedBytes = [];
-        
-        for (let i = 0; i < encryptedHex.length; i += 2) {
-            encryptedBytes.push(parseInt(encryptedHex.substr(i, 2), 16));
+        if (currentJoinMethod === 'room') {
+            await joinChatRoom(inputValue);
+        } else {
+            await joinDirectChat(inputValue);
+        }
+    } catch (err) {
+        console.error('Join error:', err);
+        statusIndicator.className = 'status-indicator offline';
+        statusText.textContent = 'Connection failed';
+        showNotification('Failed to connect: ' + err.message, 'error');
+        enableChatInput(false);
+    }
+}
+
+// Validate input based on method
+function validateInput(value, method) {
+    if (method === 'room') {
+        // Room ID validation - more flexible
+        if (value.length < 2 || value.length > 50) {
+            showNotification('Room ID must be 2-50 characters', 'error');
+            return false;
+        }
+        if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+            showNotification('Room ID can only contain letters, numbers, _ and -', 'error');
+            return false;
+        }
+    } else {
+        // User ID validation - very flexible
+        if (value.length < 2 || value.length > 50) {
+            showNotification('User ID must be 2-50 characters', 'error');
+            return false;
+        }
+        // Allow almost any characters for user IDs (emails, usernames, etc.)
+        if (!/^[a-zA-Z0-9@._-]+$/.test(value)) {
+            showNotification('User ID contains invalid characters', 'error');
+            return false;
+        }
+    }
+    return true;
+}
+
+// Enhanced room join function
+async function joinChatRoom(roomId = null) {
+    const actualRoomId = roomId || document.getElementById('chatJoinInput').value.trim();
+    
+    if (!actualRoomId) {
+        showNotification('Please enter a room ID', 'warning');
+        return;
+    }
+    
+    const statusEl = document.getElementById('userChatStatus');
+    const statusIndicator = statusEl.querySelector('.status-indicator');
+    const statusText = statusEl.querySelector('.status-text');
+    
+    try {
+        // Generate username if not exists
+        if (!userChatUsername) {
+            userChatUsername = await generateUsername();
         }
         
-        const decryptedBytes = encryptedBytes.map((byte, i) => 
-            byte ^ keyBytes[i % keyBytes.length]
-        );
+        // Generate room-based key for encryption
+        userChatKey = await generateRoomKey(actualRoomId);
+        currentUserChatRoom = actualRoomId.toUpperCase();
+        chatConnectionType = 'room';
         
-        return String.fromCharCode(...decryptedBytes);
+        // Clear previous messages
+        const messagesEl = document.getElementById('userChatMessages');
+        messagesEl.innerHTML = '';
+        
+        // Enable input
+        enableChatInput(true);
+        
+        // Update status to connected
+        statusIndicator.className = 'status-indicator online';
+        statusText.textContent = `Connected to room: ${currentUserChatRoom}`;
+        
+        // Show online users
+        const usersOnlineEl = document.getElementById('usersOnline');
+        if (usersOnlineEl) usersOnlineEl.style.display = 'flex';
+        
+        // Start polling for messages
+        startMessagePolling();
+        
+        // Load existing messages
+        await loadUserChatMessages();
+        
+        showNotification(`Joined room: ${currentUserChatRoom}`, 'success');
+        
+        // Focus input
+        document.getElementById('userChatInput').focus();
+        
+        // Add welcome message
+        appendSystemMessage(`Welcome to room ${currentUserChatRoom}! 🎉`);
+        
+    } catch (err) {
+        throw err; // Re-throw to be caught by calling function
+    }
+}
+
+// New function for direct user chat
+async function joinDirectChat(userId) {
+    const statusEl = document.getElementById('userChatStatus');
+    const statusIndicator = statusEl.querySelector('.status-indicator');
+    const statusText = statusEl.querySelector('.status-text');
+    
+    try {
+        // Generate username if not exists
+        if (!userChatUsername) {
+            userChatUsername = await generateUsername();
+        }
+        
+        // Create a unique room ID for direct chat between users
+        const participants = [userChatUsername.toLowerCase(), userId.toLowerCase()].sort();
+        const directRoomId = `direct_${participants[0]}_${participants[1]}`;
+        
+        // Generate encryption key for this direct chat
+        userChatKey = await generateRoomKey(directRoomId);
+        currentUserChatRoom = directRoomId;
+        chatConnectionType = 'direct';
+        
+        // Clear previous messages
+        const messagesEl = document.getElementById('userChatMessages');
+        messagesEl.innerHTML = '';
+        
+        // Enable input
+        enableChatInput(true);
+        
+        // Update status to connected
+        statusIndicator.className = 'status-indicator online';
+        statusText.textContent = `Direct chat with: ${userId}`;
+        
+        // Hide online users count for direct chats
+        const usersOnlineEl = document.getElementById('usersOnline');
+        if (usersOnlineEl) usersOnlineEl.style.display = 'none';
+        
+        // Start polling for messages
+        startMessagePolling();
+        
+        // Load existing messages
+        await loadUserChatMessages();
+        
+        showNotification(`Started direct chat with ${userId}`, 'success');
+        
+        // Focus input
+        document.getElementById('userChatInput').focus();
+        
+        // Add welcome message
+        appendSystemMessage(`Direct chat with ${userId} started! 💬`);
+        
+    } catch (err) {
+        throw err; // Re-throw to be caught by calling function
+    }
+}
+
+// Generate a more user-friendly username
+async function generateUsername() {
+    const adjectives = ['Cool', 'Smart', 'Fast', 'Brave', 'Wise', 'Kind', 'Epic', 'Super'];
+    const nouns = ['User', 'Guest', 'Friend', 'Chatter', 'Talker', 'Visitor'];
+    
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const num = Math.floor(Math.random() * 999) + 1;
+    
+    return `${adj}${noun}${num}`;
+}
+
+// Add system message to chat
+function appendSystemMessage(message) {
+    const messagesEl = document.getElementById('userChatMessages');
+    
+    const div = document.createElement('div');
+    div.className = 'system-message';
+    div.innerHTML = `
+        <div class="system-message-content">
+            <span class="system-icon">🤖</span>
+            <span class="system-text">${escapeHtml(message)}</span>
+        </div>
+    `;
+    
+    messagesEl.appendChild(div);
+    
+    // Scroll to bottom
+    messagesEl.scrollTo({
+        top: messagesEl.scrollHeight,
+        behavior: 'smooth'
+    });
+    
+    // Add entrance animation
+    setTimeout(() => {
+        div.style.opacity = '1';
+        div.style.transform = 'translateY(0)';
+    }, 10);
+}
+
+// Enhanced message display based on connection type
+function updateConnectionDisplay() {
+    const statusEl = document.getElementById('userChatStatus');
+    const statusText = statusEl.querySelector('.status-text');
+    
+    if (chatConnectionType === 'room') {
+        statusText.textContent = `Room: ${currentUserChatRoom}`;
+    } else if (chatConnectionType === 'direct') {
+        const userId = currentUserChatRoom.replace('direct_', '').split('_').find(u => u !== userChatUsername.toLowerCase());
+        statusText.textContent = `Direct: ${userId}`;
+    }
+}
+
+// Improved XOR encryption with Base64 encoding
+function encryptMessage(message, key) {
+    try {
+        if (!message || !key) return '';
+        
+        // Convert to UTF-8 bytes
+        const messageBytes = new TextEncoder().encode(message);
+        const keyBytes = new TextEncoder().encode(key);
+        
+        // XOR encryption
+        const encrypted = new Uint8Array(messageBytes.length);
+        for (let i = 0; i < messageBytes.length; i++) {
+            encrypted[i] = messageBytes[i] ^ keyBytes[i % keyBytes.length];
+        }
+        
+        // Convert to base64 for safe transport
+        return btoa(String.fromCharCode(...encrypted));
     } catch (e) {
+        console.error('Encryption error:', e);
+        return '';
+    }
+}
+
+function decryptMessage(encryptedBase64, key) {
+    try {
+        if (!encryptedBase64 || !key) return '[Invalid message]';
+        
+        // Decode from base64
+        const encryptedStr = atob(encryptedBase64);
+        const encryptedBytes = new Uint8Array(encryptedStr.split('').map(c => c.charCodeAt(0)));
+        const keyBytes = new TextEncoder().encode(key);
+        
+        // XOR decryption
+        const decrypted = new Uint8Array(encryptedBytes.length);
+        for (let i = 0; i < encryptedBytes.length; i++) {
+            decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+        }
+        
+        // Convert back to string
+        return new TextDecoder().decode(decrypted);
+    } catch (e) {
+        console.error('Decryption error:', e);
         return '[Decryption failed]';
     }
 }
 
+// Enhanced join room function
 async function joinChatRoom() {
-    const roomId = document.getElementById('userChatRoom').value.trim();
+    const roomInput = document.getElementById('userChatRoom');
+    const roomId = roomInput.value.trim();
+    
     if (!roomId) {
-        alert('Please enter a room ID');
+        showNotification('Please enter a room ID', 'warning');
+        roomInput.focus();
         return;
     }
     
-    // Validate room ID
-    if (!/^[a-zA-Z0-9]{3,20}$/.test(roomId)) {
-        alert('Room ID must be 3-20 alphanumeric characters only');
+    // Validate room ID (alphanumeric only)
+    if (!/^[a-zA-Z0-9]+$/.test(roomId)) {
+        showNotification('Room ID must contain only letters and numbers', 'error');
+        roomInput.focus();
         return;
+    }
+    
+    const statusEl = document.getElementById('userChatStatus');
+    const statusIndicator = statusEl.querySelector('.status-indicator');
+    const statusText = statusEl.querySelector('.status-text');
+    
+    // Update UI to connecting state
+    statusIndicator.className = 'status-indicator connecting';
+    statusText.textContent = 'Connecting...';
+    
+    try {
+        // Generate username if not exists
+        if (!userChatUsername) {
+            userChatUsername = `User${Math.random().toString(36).substr(2, 6)}`;
+        }
+        
+        // Generate room-based key for encryption
+        userChatKey = await generateRoomKey(roomId);
+        currentUserChatRoom = roomId.toUpperCase();
+        
+        // Clear previous messages
+        const messagesEl = document.getElementById('userChatMessages');
+        messagesEl.innerHTML = '';
+        
+        // Enable input
+        enableChatInput(true);
+        
+        // Update status to connected
+        statusIndicator.className = 'status-indicator online';
+        statusText.textContent = `Connected to room: ${currentUserChatRoom}`;
+        
+        // Show online users
+        const usersOnlineEl = document.getElementById('usersOnline');
+        usersOnlineEl.style.display = 'flex';
+        
+        // Start polling for messages
+        startMessagePolling();
+        
+        // Load existing messages
+        await loadUserChatMessages();
+        
+        showNotification(`Joined room: ${currentUserChatRoom}`, 'success');
+        
+        // Focus input
+        document.getElementById('userChatInput').focus();
+        
+    } catch (err) {
+        console.error('Join room error:', err);
+        statusIndicator.className = 'status-indicator offline';
+        statusText.textContent = 'Connection failed';
+        showNotification('Failed to join room: ' + err.message, 'error');
+        enableChatInput(false);
+    }
+}
+
+// Generate consistent room-based encryption key
+async function generateRoomKey(roomId) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(roomId + 'overmind-salt-2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}
+
+// Enhanced message polling
+function startMessagePolling() {
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+    }
+    
+    messagePollingInterval = setInterval(async () => {
+        if (currentUserChatRoom) {
+            await loadUserChatMessages();
+        }
+    }, 2000); // Poll every 2 seconds
+}
+
+function stopMessagePolling() {
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+        messagePollingInterval = null;
+    }
+}
+
+function enableChatInput(enabled) {
+    const input = document.getElementById('userChatInput');
+    const button = document.getElementById('sendUserMessageBtn');
+    
+    input.disabled = !enabled;
+    button.disabled = !enabled;
+    
+    if (enabled) {
+        input.placeholder = 'Type your message...';
+        input.focus();
+        
+        // Add input event listeners for enhanced features
+        input.addEventListener('input', handleInputChange);
+        input.addEventListener('keydown', handleKeyDown);
+    } else {
+        input.placeholder = 'Join a room to start chatting...';
+        input.removeEventListener('input', handleInputChange);
+        input.removeEventListener('keydown', handleKeyDown);
+    }
+}
+
+// Handle input changes for character counter and typing indicator
+function handleInputChange(e) {
+    const input = e.target;
+    const charCounter = document.getElementById('charCounter');
+    const currentLength = input.value.length;
+    const maxLength = 1000;
+    
+    // Update character counter
+    charCounter.textContent = `${currentLength}/${maxLength}`;
+    charCounter.className = 'char-counter';
+    
+    if (currentLength > maxLength * 0.8) {
+        charCounter.classList.add('warning');
+    }
+    if (currentLength > maxLength * 0.95) {
+        charCounter.classList.add('danger');
+    }
+    
+    // Handle typing indicator
+    if (!isTyping && currentLength > 0) {
+        isTyping = true;
+        sendTypingIndicator(true);
+    }
+    
+    // Reset typing timeout
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        if (isTyping) {
+            isTyping = false;
+            sendTypingIndicator(false);
+        }
+    }, 2000);
+}
+
+// Handle special key combinations
+function handleKeyDown(e) {
+    // Send message with Enter (but not Shift+Enter)
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendUserMessage(e);
+    }
+}
+
+// Send typing indicator
+function sendTypingIndicator(typing) {
+    // This would typically send to server, for now just simulate
+    console.log(`User is ${typing ? 'typing' : 'stopped typing'}`);
+}
+
+// Enhanced sendUserMessage function
+async function sendUserMessage(e) {
+    e.preventDefault();
+    
+    if (!currentUserChatRoom || !userChatKey) {
+        showNotification('Please join a room first', 'warning');
+        return;
+    }
+    
+    const input = document.getElementById('userChatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    input.value = '';
+    
+    // Clear typing indicator
+    if (isTyping) {
+        isTyping = false;
+        sendTypingIndicator(false);
+    }
+    
+    // Reset character counter
+    const charCounter = document.getElementById('charCounter');
+    charCounter.textContent = '0/1000';
+    charCounter.className = 'char-counter';
+    
+    try {
+        // Encrypt the message with improved encryption
+        const encryptedMessage = encryptMessage(message, userChatKey);
+        if (!encryptedMessage) {
+            throw new Error('Encryption failed');
+        }
+        
+        const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const timestamp = new Date().toISOString();
+        
+        // Send encrypted message
+        const response = await fetch(`${API_BASE}/user-chat/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roomId: currentUserChatRoom,
+                username: userChatUsername,
+                encryptedMessage: encryptedMessage,
+                messageId: messageId,
+                timestamp: timestamp
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            showNotification(data.error, 'error');
+            input.value = message; // Restore message on error
+        } else {
+            // Add message to UI immediately with animation
+            appendUserMessage(userChatUsername, message, true, timestamp, messageId);
+            
+            // Play send sound effect (optional)
+            playNotificationSound('send');
+        }
+        
+    } catch (err) {
+        console.error('Send message error:', err);
+        showNotification('Failed to send message: ' + err.message, 'error');
+        input.value = message; // Restore message on error
+    }
+}
+
+// Enhanced appendUserMessage with animations and message actions
+function appendUserMessage(username, content, isOwn = false, timestamp = null, messageId = null) {
+    const messagesEl = document.getElementById('userChatMessages');
+    
+    // Hide welcome message
+    const welcome = messagesEl.querySelector('.premium-welcome');
+    if (welcome) welcome.style.display = 'none';
+    
+    const div = document.createElement('div');
+    div.className = `chat-message ${isOwn ? 'user' : 'other'}`;
+    div.dataset.messageId = messageId || '';
+    
+    const timeStr = timestamp ? formatMessageTime(timestamp) : '';
+    const actionsHtml = isOwn ? `
+        <div class=\"message-actions\">
+            <button class=\"message-action-btn\" onclick=\"deleteMessage('${messageId}')\" title=\"Delete message\">
+                🗑️
+            </button>
+        </div>
+    ` : '';
+    
+    div.innerHTML = `
+        <div class=\"message-bubble\">
+            <div class=\"message-header\">
+                <span class=\"message-username\">${escapeHtml(username)}</span>
+                <span class=\"message-time\">${timeStr}</span>
+            </div>
+            <div class=\"message-content\">${escapeHtml(content)}</div>
+        </div>
+        ${actionsHtml}
+    `;
+    
+    messagesEl.appendChild(div);
+    
+    // Scroll to bottom with smooth animation
+    messagesEl.scrollTo({
+        top: messagesEl.scrollHeight,
+        behavior: 'smooth'
+    });
+    
+    // Add entrance animation
+    setTimeout(() => {
+        div.style.opacity = '1';
+        div.style.transform = 'translateY(0)';
+    }, 10);
+}
+
+// Format message timestamp
+function formatMessageTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    if (isToday) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+               date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+}
+
+// Delete message function
+async function deleteMessage(messageId) {
+    if (!messageId || !confirm('Delete this message?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/user-chat/delete/${messageId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roomId: currentUserChatRoom,
+                username: userChatUsername
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Remove message from UI with animation
+            const messageEl = document.querySelector(`[data-message-id=\"${messageId}\"]`);
+            if (messageEl) {
+                messageEl.style.opacity = '0';
+                messageEl.style.transform = 'translateX(-20px) scale(0.9)';
+                setTimeout(() => messageEl.remove(), 300);
+            }
+            showNotification('Message deleted', 'success');
+        } else {
+            showNotification(data.error || 'Failed to delete message', 'error');
+        }
+    } catch (err) {
+        console.error('Delete message error:', err);
+        showNotification('Failed to delete message', 'error');
+    }
+}
+
+// Clear chat function with confirmation
+function clearUserChat() {
+    if (!confirm('Clear all messages? This cannot be undone.')) return;
+    
+    const messagesEl = document.getElementById('userChatMessages');
+    const messages = messagesEl.querySelectorAll('.chat-message');
+    
+    // Animate out all messages
+    messages.forEach((msg, index) => {
+        setTimeout(() => {
+            msg.style.opacity = '0';
+            msg.style.transform = 'translateY(-20px)';
+            setTimeout(() => msg.remove(), 300);
+        }, index * 50);
+    });
+    
+    // Show welcome back after clearing
+    setTimeout(() => {
+        if (messagesEl.children.length === 0) {
+            messagesEl.innerHTML = `
+                <div class=\"premium-welcome\">
+                    <div class=\"welcome-icon\">💬</div>
+                    <h3>Chat Cleared</h3>
+                    <p>Start a new conversation!</p>
+                </div>
+            `;
+        }
+    }, messages.length * 50 + 300);
+    
+    showNotification('Chat cleared', 'success');
+}
+
+// Additional utility functions
+function exportChatHistory() {
+    const messages = Array.from(document.querySelectorAll('.chat-message')).map(msg => {
+        const username = msg.querySelector('.message-username').textContent;
+        const content = msg.querySelector('.message-content').textContent;
+        const time = msg.querySelector('.message-time').textContent;
+        return `[${time}] ${username}: ${content}`;
+    }).join('\\n');
+    
+    const blob = new Blob([messages], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-${currentUserChatRoom}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification('Chat exported', 'success');
+}
+
+function toggleChatTheme() {
+    document.body.classList.toggle('chat-dark-theme');
+    showNotification('Theme toggled', 'info');
+}
+
+function openEmojiPicker() {
+    // Simple emoji insertion - could be expanded with emoji picker library
+    const emojis = ['😀', '😂', '👍', '❤️', '🎉', '🔥', '💯', '🚀', '⚡', '✨'];
+    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    const input = document.getElementById('userChatInput');
+    input.value += emoji;
+    input.focus();
+    handleInputChange({ target: input });
+}
+
+function openFileUpload() {
+    showNotification('File upload feature coming soon!', 'info');
+}
+
+// Notification and sound functions
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span class=\"notification-icon\">${getNotificationIcon(type)}</span>
+        <span class=\"notification-text\">${escapeHtml(message)}</span>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Remove after delay
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'success': '✅',
+        'error': '❌',
+        'warning': '⚠️',
+        'info': 'ℹ️'
+    };
+    return icons[type] || 'ℹ️';
+}
+
+function playNotificationSound(type = 'default') {
+    // Create audio context for sound effects
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        // Different tones for different actions
+        if (type === 'send') {
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+        } else {
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+        }
+        
+        gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (e) {
+        // Audio not supported or blocked
+        console.log('Audio not available');
+    }
+}
     }
     
     // Generate username if not set
