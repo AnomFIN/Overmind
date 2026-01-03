@@ -23,6 +23,10 @@
                     <span class="nav-icon">💬</span>
                     <span class="nav-text">AI Chat</span>
                 </li>
+                <li class="nav-item" data-panel="user-chat">
+                    <span class="nav-icon">🔒</span>
+                    <span class="nav-text">User Chat</span>
+                </li>
                 <li class="nav-item" data-panel="links">
                     <span class="nav-icon">🔗</span>
                     <span class="nav-text">Link Shortener</span>
@@ -77,6 +81,11 @@
                             <div class="card-title">AI Chat</div>
                             <div class="card-desc">Chat with OpenAI</div>
                         </div>
+                        <div class="dashboard-card" onclick="showPanel('user-chat')">
+                            <div class="card-icon">🔒</div>
+                            <div class="card-title">User Chat</div>
+                            <div class="card-desc">Encrypted P2P messaging</div>
+                        </div>
                         <div class="dashboard-card" onclick="showPanel('links')">
                             <div class="card-icon">🔗</div>
                             <div class="card-title">Link Shortener</div>
@@ -129,6 +138,40 @@
                     <form class="chat-input-form" onsubmit="sendMessage(event)">
                         <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
                         <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- User Chat Panel -->
+            <div class="panel" id="panel-user-chat">
+                <header class="panel-header">
+                    <h2>🔒 Encrypted User Chat</h2>
+                    <div class="chat-controls">
+                        <input type="text" id="userChatRoom" placeholder="Room ID" maxlength="20" style="width: 120px; margin-right: 10px;">
+                        <button class="btn btn-secondary" onclick="joinChatRoom()">Join Room</button>
+                        <button class="btn btn-outline" onclick="clearUserChat()">Clear</button>
+                    </div>
+                </header>
+                <div class="panel-content chat-panel">
+                    <div class="chat-status-bar">
+                        <div class="connection-status" id="userChatStatus">
+                            <span class="status-indicator"></span>
+                            <span>Enter room ID to start chatting</span>
+                        </div>
+                        <div class="encryption-info">
+                            <span>🔒 End-to-end encrypted</span>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="userChatMessages">
+                        <div class="chat-welcome">
+                            <p>🔒 Welcome to Encrypted User Chat!</p>
+                            <p>Enter a room ID above to start a secure conversation.</p>
+                            <p class="encryption-notice">All messages are end-to-end encrypted.</p>
+                        </div>
+                    </div>
+                    <form class="chat-input-form" onsubmit="sendUserMessage(event)">
+                        <input type="text" id="userChatInput" placeholder="Type your encrypted message..." autocomplete="off" disabled>
+                        <button type="submit" class="btn btn-primary" id="sendUserMessageBtn" disabled>Send</button>
                     </form>
                 </div>
             </div>

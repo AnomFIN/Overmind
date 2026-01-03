@@ -1030,6 +1030,77 @@ body::after {
     border-color: var(--accent-primary);
 }
 
+/* User Chat Specific Styles */
+.chat-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 30px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.encryption-info {
+    color: var(--accent-success);
+    font-weight: 500;
+}
+
+.chat-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-controls input {
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.chat-controls input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.chat-message.other {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.message-username {
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.message-time {
+    color: var(--text-muted);
+}
+
+.encryption-notice {
+    color: var(--accent-success);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
 /* Links List */
 .links-list {
     display: flex;
@@ -1918,5 +1989,32 @@ body::after {
     
     .files-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    
+    /* User Chat Mobile Responsiveness */
+    .chat-controls {
+        flex-direction: column;
+        gap: 5px;
+        align-items: stretch;
+    }
+    
+    .chat-controls input {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    .chat-status-bar {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+        padding: 8px 15px;
+    }
+    
+    .message-header {
+        font-size: 0.7rem;
+    }
+    
+    .chat-input-form {
+        padding: 15px 20px;
     }
 }

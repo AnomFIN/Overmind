@@ -30,6 +30,7 @@ loadEnv();
 
 // Import routes
 const chatRoutes = require('./routes/chat');
+const userChatRoutes = require('./routes/userChat');
 const linksRoutes = require('./routes/links');
 const uploadsRoutes = require('./routes/uploads');
 const filesRoutes = require('./routes/files');
@@ -84,6 +85,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // API Routes
 app.use('/api/chat', chatRoutes);
+app.use('/api/user-chat', userChatRoutes);
 app.use('/api/links', linksRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/files', filesRoutes);

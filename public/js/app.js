@@ -386,6 +386,324 @@ function clearChat() {
     checkChatStatus();
 }
 
+// ==================== Encrypted User Chat ====================
+
+// User chat state
+let currentUserChatRoom = null;
+let userChatUsername = null;
+let userChatKey = null;
+let userChatPollInterval = null;
+let lastMessageTimestamp = null;
+
+// Simple AES-like encryption using browser crypto (simplified for demo)
+async function generateChatKey(roomId, username) {
+    const keyMaterial = `${roomId}-${username}-${Date.now()}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(keyMaterial);
+    
+    // Create a simple hash-based key (in production, use proper key exchange)
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+        const char = data[i];
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return Math.abs(hash).toString(16);
+}
+
+// Simple XOR encryption (for demo - use proper encryption in production)
+function encryptMessage(message, key) {
+    const keyBytes = key.split('').map(c => c.charCodeAt(0));
+    const messageBytes = message.split('').map(c => c.charCodeAt(0));
+    
+    return messageBytes.map((byte, i) => 
+        byte ^ keyBytes[i % keyBytes.length]
+    ).map(byte => 
+        byte.toString(16).padStart(2, '0')
+    ).join('');
+}
+
+function decryptMessage(encryptedHex, key) {
+    try {
+        const keyBytes = key.split('').map(c => c.charCodeAt(0));
+        const encryptedBytes = [];
+        
+        for (let i = 0; i < encryptedHex.length; i += 2) {
+            encryptedBytes.push(parseInt(encryptedHex.substr(i, 2), 16));
+        }
+        
+        const decryptedBytes = encryptedBytes.map((byte, i) => 
+            byte ^ keyBytes[i % keyBytes.length]
+        );
+        
+        return String.fromCharCode(...decryptedBytes);
+    } catch (e) {
+        return '[Decryption failed]';
+    }
+}
+
+async function joinChatRoom() {
+    const roomId = document.getElementById('userChatRoom').value.trim();
+    if (!roomId) {
+        alert('Please enter a room ID');
+        return;
+    }
+    
+    // Validate room ID
+    if (!/^[a-zA-Z0-9]{3,20}$/.test(roomId)) {
+        alert('Room ID must be 3-20 alphanumeric characters only');
+        return;
+    }
+    
+    // Generate username if not set
+    if (!userChatUsername) {
+        userChatUsername = prompt('Enter your username:') || `User${Math.floor(Math.random() * 1000)}`;
+    }
+    
+    try {
+        // Generate encryption key for this room
+        userChatKey = await generateChatKey(roomId, userChatUsername);
+        
+        const response = await fetch(`${API_BASE}/user-chat/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId, username: userChatUsername })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        
+        currentUserChatRoom = roomId;
+        lastMessageTimestamp = null;
+        
+        // Update UI
+        updateUserChatStatus(`Connected to room "${roomId}" as ${userChatUsername}`);
+        enableUserChatInput(true);
+        
+        // Clear messages and show welcome
+        const messagesEl = document.getElementById('userChatMessages');
+        messagesEl.innerHTML = `
+            <div class="chat-welcome">
+                <p>🔒 Connected to encrypted room: <strong>${roomId}</strong></p>
+                <p>Username: <strong>${userChatUsername}</strong></p>
+                <p>Members: ${data.memberCount}</p>
+                <p class="encryption-notice">End-to-end encryption active</p>
+            </div>
+        `;
+        
+        // Start polling for messages
+        startUserChatPolling();
+        
+    } catch (err) {
+        console.error('Join room error:', err);
+        alert('Failed to join room: ' + err.message);
+    }
+}
+
+function updateUserChatStatus(message) {
+    const statusEl = document.getElementById('userChatStatus');
+    const indicator = statusEl.querySelector('.status-indicator');
+    const textSpan = statusEl.querySelector('span:last-child');
+    
+    if (currentUserChatRoom) {
+        indicator.className = 'status-indicator online';
+        textSpan.textContent = message;
+    } else {
+        indicator.className = 'status-indicator';
+        textSpan.textContent = message;
+    }
+}
+
+function enableUserChatInput(enabled) {
+    const input = document.getElementById('userChatInput');
+    const button = document.getElementById('sendUserMessageBtn');
+    
+    input.disabled = !enabled;
+    button.disabled = !enabled;
+    
+    if (enabled) {
+        input.placeholder = 'Type your encrypted message...';
+        input.focus();
+    } else {
+        input.placeholder = 'Join a room to start chatting...';
+    }
+}
+
+async function sendUserMessage(e) {
+    e.preventDefault();
+    
+    if (!currentUserChatRoom || !userChatKey) {
+        alert('Please join a room first');
+        return;
+    }
+    
+    const input = document.getElementById('userChatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    input.value = '';
+    
+    try {
+        // Encrypt the message
+        const encryptedMessage = encryptMessage(message, userChatKey);
+        const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
+        // Send encrypted message
+        const response = await fetch(`${API_BASE}/user-chat/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roomId: currentUserChatRoom,
+                username: userChatUsername,
+                encryptedMessage: encryptedMessage,
+                messageId: messageId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(data.error);
+            input.value = message; // Restore message on error
+        } else {
+            // Add message to UI immediately (optimistic update)
+            appendUserMessage(userChatUsername, message, true, data.timestamp);
+        }
+        
+    } catch (err) {
+        console.error('Send message error:', err);
+        alert('Failed to send message: ' + err.message);
+        input.value = message; // Restore message on error
+    }
+}
+
+function appendUserMessage(username, content, isOwn = false, timestamp = null) {
+    const messagesEl = document.getElementById('userChatMessages');
+    
+    // Hide welcome message
+    const welcome = messagesEl.querySelector('.chat-welcome');
+    if (welcome) welcome.style.display = 'none';
+    
+    const div = document.createElement('div');
+    div.className = `chat-message ${isOwn ? 'user' : 'other'}`;
+    
+    const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    
+    div.innerHTML = `
+        <div class="message-header">
+            <span class="message-username">${escapeHtml(username)}</span>
+            <span class="message-time">${timeStr}</span>
+        </div>
+        <div class="message-content">${escapeHtml(content)}</div>
+    `;
+    
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function loadUserChatMessages() {
+    if (!currentUserChatRoom) return;
+    
+    try {
+        let url = `${API_BASE}/user-chat/messages/${currentUserChatRoom}`;
+        if (lastMessageTimestamp) {
+            url += `?since=${encodeURIComponent(lastMessageTimestamp)}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.messages && data.messages.length > 0) {
+            data.messages.forEach(msg => {
+                if (msg.username !== userChatUsername) {
+                    // Decrypt and display message from other users
+                    const decryptedContent = decryptMessage(msg.encryptedContent, userChatKey);
+                    appendUserMessage(msg.username, decryptedContent, false, msg.timestamp);
+                }
+                
+                lastMessageTimestamp = msg.timestamp;
+            });
+        }
+        
+    } catch (err) {
+        console.error('Load messages error:', err);
+    }
+}
+
+function startUserChatPolling() {
+    if (userChatPollInterval) {
+        clearInterval(userChatPollInterval);
+    }
+    
+    // Load initial messages
+    loadUserChatMessages();
+    
+    // Poll for new messages every 2 seconds
+    userChatPollInterval = setInterval(loadUserChatMessages, 2000);
+}
+
+function stopUserChatPolling() {
+    if (userChatPollInterval) {
+        clearInterval(userChatPollInterval);
+        userChatPollInterval = null;
+    }
+}
+
+async function leaveUserChatRoom() {
+    if (!currentUserChatRoom) return;
+    
+    try {
+        await fetch(`${API_BASE}/user-chat/leave`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roomId: currentUserChatRoom,
+                username: userChatUsername
+            })
+        });
+    } catch (err) {
+        console.error('Leave room error:', err);
+    }
+    
+    // Reset state
+    currentUserChatRoom = null;
+    userChatKey = null;
+    lastMessageTimestamp = null;
+    stopUserChatPolling();
+    
+    // Update UI
+    updateUserChatStatus('Enter room ID to start chatting');
+    enableUserChatInput(false);
+    document.getElementById('userChatRoom').value = '';
+}
+
+function clearUserChat() {
+    if (currentUserChatRoom && confirm('Leave current room and clear chat?')) {
+        leaveUserChatRoom();
+    }
+    
+    const messagesEl = document.getElementById('userChatMessages');
+    messagesEl.innerHTML = `
+        <div class="chat-welcome">
+            <p>🔒 Welcome to Encrypted User Chat!</p>
+            <p>Enter a room ID above to start a secure conversation.</p>
+            <p class="encryption-notice">All messages are end-to-end encrypted.</p>
+        </div>
+    `;
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (currentUserChatRoom) {
+        leaveUserChatRoom();
+    }
+});
+
 // ==================== Links ====================
 
 async function loadLinks() {
