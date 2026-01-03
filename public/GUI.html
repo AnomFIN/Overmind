@@ -79,7 +79,7 @@
                         <div class="dashboard-card" onclick="showPanel('chat')">
                             <div class="card-icon">💬</div>
                             <div class="card-title">AI Chat</div>
-                            <div class="card-desc">Chat with OpenAI</div>
+                            <div class="card-desc">Chat with AI (OpenAI/JugiAI)</div>
                         </div>
                         <div class="dashboard-card" onclick="showPanel('user-chat')">
                             <div class="card-icon">🔒</div>
@@ -125,7 +125,17 @@
             <!-- AI Chat Panel -->
             <div class="panel" id="panel-chat">
                 <header class="panel-header">
-                    <h2>AI Chat Console</h2>
+                    <div class="panel-title-section">
+                        <h2>AI Chat Console</h2>
+                        <div class="ai-provider-toggle">
+                            <span class="toggle-label">OpenAI</span>
+                            <label class="switch">
+                                <input type="checkbox" id="aiProviderToggle" onchange="toggleAIProvider()">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-label jugiai">JugiAI</span>
+                        </div>
+                    </div>
                     <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
                 </header>
                 <div class="panel-content chat-panel">
@@ -292,7 +302,7 @@
                             <label>AI Provider</label>
                             <select id="aiProvider" onchange="toggleAIProvider()">
                                 <option value="openai">OpenAI API</option>
-                                <option value="local">Local GGUF Model</option>
+                                <option value="local">JugiAI (Local Model)</option>
                             </select>
                         </div>
                         

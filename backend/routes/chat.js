@@ -59,12 +59,14 @@ function makeOpenAIRequest(apiKey, messages) {
 }
 
 /**
- * Make HTTP request to local GGUF model server
+ * Make HTTP request to local llama-server
+ * llama-server is built with CMake and exposes a v1-compatible API
  */
 function makeLocalModelRequest(messages, port) {
     return new Promise((resolve, reject) => {
+        // Format request for llama-server (built with CMake)
         const data = JSON.stringify({
-            model: 'local',
+            model: 'local', // llama-server ignores this but expects it
             messages: messages,
             max_tokens: 2000,
             temperature: 0.7,
@@ -74,7 +76,7 @@ function makeLocalModelRequest(messages, port) {
         const options = {
             hostname: 'localhost',
             port: port,
-            path: '/v1/chat/completions',
+            path: '/v1/chat/completions', // llama-server v1-compatible endpoint
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -82,37 +84,55 @@ function makeLocalModelRequest(messages, port) {
             }
         };
 
+        console.log(`[Chat] Connecting to llama-server at localhost:${port}`);
+        
         const req = require('http').request(options, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => {
+                console.log(`[Chat] llama-server responded with status: ${res.statusCode}`);
+                console.log(`[Chat] Response headers:`, res.headers);
+                
                 try {
                     if (body.trim() === '') {
-                        reject(new Error('Empty response from local model server'));
+                        reject(new Error('Empty response from llama-server'));
                         return;
                     }
                     
-                    const response = JSON.parse(body);
+                    let response;
+                    try {
+                        response = JSON.parse(body);
+                    } catch (parseError) {
+                        console.error('[Chat] llama-server JSON parse error:', parseError.message);
+                        console.error('[Chat] Raw response body:', body.substring(0, 500));
+                        reject(new Error(`Invalid JSON from llama-server: ${parseError.message}. Response: ${body.substring(0, 200)}`));
+                        return;
+                    }
+                    
                     if (res.statusCode !== 200) {
-                        const errorMsg = response.error?.message || response.detail || `Server returned ${res.statusCode}: ${body.substring(0, 200)}`;
-                        reject(new Error(`Local server error: ${errorMsg}`));
+                        console.error('[Chat] llama-server HTTP error:', res.statusCode, response);
+                        const errorMsg = response.error?.message || response.detail || response.message || `HTTP ${res.statusCode}`;
+                        reject(new Error(`llama-server error: ${errorMsg}`));
                     } else {
+                        console.log('[Chat] llama-server response structure:', JSON.stringify(response, null, 2));
                         resolve(response);
                     }
                 } catch (e) {
-                    reject(new Error(`Invalid JSON response from local model server: ${e.message}. Response: ${body.substring(0, 200)}`));
+                    console.error('[Chat] Unexpected error processing llama-server response:', e.message);
+                    reject(new Error(`Failed to process llama-server response: ${e.message}`));
                 }
             });
         });
         
-        // Add timeout handling
+        // Add timeout handling (30 seconds for CMake-built llama-server)
         req.setTimeout(30000, () => {
             req.destroy();
-            reject(new Error('Local model server request timeout (30s)'));
+            reject(new Error('llama-server request timeout (30s) - check if server is running'));
         });
 
         req.on('error', (err) => {
-            reject(new Error(`Local model server connection failed: ${err.message}`));
+            console.error('[Chat] llama-server connection error:', err.message);
+            reject(new Error(`llama-server connection failed: ${err.message} - check if server is running on port ${port}`));
         });
         
         req.write(data);
@@ -190,14 +210,35 @@ router.post('/', async (req, res) => {
             response = await makeLocalModelRequest(messages, port);
             
             // Handle different possible response structures from local models
-            if (response.choices && response.choices[0]) {
-                assistantMessage = response.choices[0].message?.content || response.choices[0].text;
+            // llama-server can return various formats depending on configuration
+            if (response.choices && response.choices.length > 0) {
+                const choice = response.choices[0];
+                if (choice.message && choice.message.content) {
+                    // OpenAI-compatible format
+                    assistantMessage = choice.message.content;
+                } else if (choice.text) {
+                    // Text completion format
+                    assistantMessage = choice.text;
+                } else if (typeof choice === 'string') {
+                    // Simple string response
+                    assistantMessage = choice;
+                }
             } else if (response.response) {
+                // Direct response field
                 assistantMessage = response.response;
             } else if (response.content) {
+                // Content field
                 assistantMessage = response.content;
+            } else if (response.message) {
+                // Message field (some llama-server variants)
+                assistantMessage = typeof response.message === 'string' ? response.message : response.message.content;
+            } else if (typeof response === 'string') {
+                // Plain text response
+                assistantMessage = response;
             } else {
-                throw new Error('Unexpected response format from local model server');
+                // Log the full response for debugging
+                console.warn('[Chat] Unexpected llama-server response format:', JSON.stringify(response, null, 2));
+                throw new Error(`Unexpected response format from llama-server. Response: ${JSON.stringify(response)}`);
             }
         } else {
             throw new Error(`Unsupported AI provider: ${aiProvider}`);
@@ -231,7 +272,7 @@ router.delete('/:sessionId', (req, res) => {
 
 /**
  * GET /api/chat/status
- * Check if OpenAI is configured
+ * Check if AI provider is configured
  */
 router.get('/status', (req, res) => {
     const aiProvider = process.env.AI_PROVIDER || 'openai';
@@ -250,14 +291,14 @@ router.get('/status', (req, res) => {
         
         if (configured) {
             if (modelPath && serverPort) {
-                message = `Local model configured with path: ${modelPath} and port: ${serverPort}`;
+                message = `JugiAI configured with model: ${modelPath} and port: ${serverPort}`;
             } else if (modelPath) {
-                message = `Local model configured with path: ${modelPath}`;
+                message = `JugiAI configured with model: ${modelPath}`;
             } else {
-                message = `Local model server configured on port: ${serverPort}`;
+                message = `JugiAI configured on port: ${serverPort}`;
             }
         } else {
-            message = 'Local model not configured - set LOCAL_MODEL_PATH or LOCAL_SERVER_PORT';
+            message = 'JugiAI not configured - set LOCAL_SERVER_PORT (e.g., 8080) in environment or settings';
         }
     } else {
         message = `Unknown AI provider: ${aiProvider}`;

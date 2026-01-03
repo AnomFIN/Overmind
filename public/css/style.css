@@ -14,6 +14,20 @@
                   linear-gradient(45deg, #000000 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #16537e 100%);
     --bg-glass: rgba(255, 255, 255, 0.02);
     --bg-glass-border: rgba(255, 255, 255, 0.05);
+    
+    /* JugiAI Dark Theme Variables */
+    --jugiai-primary: #000000;
+    --jugiai-secondary: #0d0d0d;
+    --jugiai-tertiary: #1a1a1a;
+    --jugiai-card: #111111;
+    --jugiai-accent: #8b00ff;
+    --jugiai-accent-secondary: #4b0080;
+    --jugiai-text: #e0e0e0;
+    --jugiai-text-secondary: #b0b0b0;
+    --jugiai-glow: rgba(139, 0, 255, 0.6);
+    --jugiai-bg: radial-gradient(ellipse at center, rgba(139, 0, 255, 0.08) 0%, transparent 70%), 
+                 linear-gradient(45deg, #000000 0%, #0d0d0d 25%, #1a1a1a 50%, #2a1a2a 75%, #1a0a1a 100%);
+    
     --text-primary: #ffffff;
     --text-secondary: #a0a0b0;
     --text-muted: #666680;
@@ -2017,4 +2031,188 @@ body::after {
     .chat-input-form {
         padding: 15px 20px;
     }
+}
+
+/* ==================== AI Provider Toggle Switch ==================== */
+
+.panel-title-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.ai-provider-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: var(--bg-glass);
+    border: 1px solid var(--bg-glass-border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(10px);
+}
+
+.toggle-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.toggle-label.jugiai {
+    color: var(--jugiai-accent);
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 30px;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.switch input:checked + .slider {
+    background: linear-gradient(135deg, var(--jugiai-accent), var(--jugiai-accent-secondary));
+    box-shadow: 0 0 20px var(--jugiai-glow);
+}
+
+.switch input:checked + .slider:before {
+    transform: translateX(30px);
+    background: var(--jugiai-primary);
+}
+
+/* ==================== JugiAI Theme ==================== */
+
+.jugiai-mode {
+    --bg-primary: var(--jugiai-primary);
+    --bg-secondary: var(--jugiai-secondary);
+    --bg-tertiary: var(--jugiai-tertiary);
+    --bg-card: var(--jugiai-card);
+    --text-primary: var(--jugiai-text);
+    --text-secondary: var(--jugiai-text-secondary);
+    --accent-primary: var(--jugiai-accent);
+}
+
+.jugiai-mode .chat-panel {
+    background: var(--jugiai-bg);
+    border: 1px solid var(--jugiai-accent-secondary);
+    box-shadow: 0 0 30px var(--jugiai-glow);
+    animation: jugiaiPulse 3s ease-in-out infinite alternate;
+}
+
+.jugiai-mode .chat-messages {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--jugiai-accent);
+    box-shadow: inset 0 0 20px rgba(139, 0, 255, 0.2);
+}
+
+.jugiai-mode .chat-input-form {
+    background: var(--jugiai-card);
+    border: 1px solid var(--jugiai-accent);
+    box-shadow: 0 0 15px var(--jugiai-glow);
+}
+
+.jugiai-mode .chat-input-form input {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--jugiai-accent-secondary);
+    color: var(--jugiai-text);
+}
+
+.jugiai-mode .chat-input-form input:focus {
+    border-color: var(--jugiai-accent);
+    box-shadow: 0 0 10px var(--jugiai-glow);
+}
+
+.jugiai-mode .logo-image {
+    filter: hue-rotate(270deg) saturate(2) brightness(1.3);
+    transform: scale(1.1);
+    box-shadow: 0 0 40px var(--jugiai-glow);
+    animation: jugiaiLogoGlow 2s ease-in-out infinite alternate;
+}
+
+.jugiai-mode .chat-message.assistant {
+    background: linear-gradient(135deg, var(--jugiai-card), var(--jugiai-secondary));
+    border-left: 3px solid var(--jugiai-accent);
+    box-shadow: 0 0 10px rgba(139, 0, 255, 0.3);
+}
+
+/* ==================== JugiAI Animations ==================== */
+
+@keyframes jugiaiPulse {
+    0% {
+        box-shadow: 0 0 30px var(--jugiai-glow);
+    }
+    100% {
+        box-shadow: 0 0 50px var(--jugiai-glow), 0 0 80px rgba(139, 0, 255, 0.3);
+    }
+}
+
+@keyframes jugiaiLogoGlow {
+    0% {
+        filter: hue-rotate(270deg) saturate(2) brightness(1.3);
+        box-shadow: 0 0 40px var(--jugiai-glow);
+    }
+    100% {
+        filter: hue-rotate(270deg) saturate(3) brightness(1.5);
+        box-shadow: 0 0 60px var(--jugiai-glow), 0 0 100px rgba(139, 0, 255, 0.4);
+    }
+}
+
+@keyframes jugiaiTransition {
+    0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05) rotate(1deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.jugiai-transition {
+    animation: jugiaiTransition 0.8s ease-in-out;
+}
+
+/* Dark particle effect for JugiAI */
+.jugiai-mode .particle-background .particle {
+    background: var(--jugiai-accent);
+    box-shadow: 0 0 10px var(--jugiai-glow);
 }
