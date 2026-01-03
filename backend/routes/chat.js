@@ -64,10 +64,6 @@ function makeOpenAIRequest(apiKey, messages) {
  */
 function makeLocalModelRequest(messages, port) {
     return new Promise((resolve, reject) => {
- * Make request to local llama-cpp-python server
- */
-function makeLocalModelRequest(messages, port) {
-    return new Promise((resolve, reject) => {
         const http = require('http');
         
         const data = JSON.stringify({

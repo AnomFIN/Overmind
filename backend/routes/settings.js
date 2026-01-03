@@ -52,61 +52,7 @@ function validateSessionSecret(secret) {
     return { valid: true };
 }
 
-/**
- * Authentication middleware for settings routes
- * Checks for a simple admin key in environment or session
- * 
- * SECURITY WARNING: This is a basic implementation.
- * For production use, implement proper authentication with:
- * - User sessions (express-session)
- * - Password hashing (bcrypt)
- * - HTTPS/TLS encryption
- */
-function requireAuth(req, res, next) {
-    // Check if ADMIN_KEY is configured in environment
-    const adminKey = process.env.ADMIN_KEY;
-    
-    // If no admin key is configured, log a warning and allow access
-    // This maintains backward compatibility but warns about the security risk
-    if (!adminKey) {
-        console.warn('[Settings] WARNING: No ADMIN_KEY configured. Settings endpoint is unprotected!');
-        console.warn('[Settings] Set ADMIN_KEY in .env file to secure settings access.');
-        return next();
-    }
-    
-    // Check for admin key in request header
-    const providedKey = req.headers['x-admin-key'];
-    
-    if (providedKey !== adminKey) {
-        return res.status(401).json({ 
-            error: 'Authentication required. Provide X-Admin-Key header with valid admin key.',
-            hint: 'Configure ADMIN_KEY in .env file for settings access control.'
-        });
-    }
-    
-    next();
-}
 
-/**
- * Generate a secure random secret
- */
-function generateSecureSecret() {
-    return crypto.randomBytes(32).toString('hex');
-}
-
-/**
- * Validate session secret meets minimum security requirements
- */
-function validateSessionSecret(secret) {
-    if (!secret || secret === 'your_secret_key_here') {
-        return false;
-    }
-    // Minimum 16 characters for security
-    if (secret.length < 16) {
-        return false;
-    }
-    return true;
-}
 
 /**
  * Validate file path to prevent directory traversal attacks
@@ -266,10 +212,13 @@ router.post('/', requireAuth, (req, res) => {
         }
         
         // Validate session secret
-        if (sessionSecret && sessionSecret !== '****' && !validateSessionSecret(sessionSecret)) {
-            return res.status(400).json({ 
-                error: 'Session secret must be at least 16 characters long and cannot be the default value.' 
-            });
+        if (sessionSecret && sessionSecret !== '****') {
+            const validation = validateSessionSecret(sessionSecret);
+            if (!validation.valid) {
+                return res.status(400).json({ 
+                    error: validation.error
+                });
+            }
         }
         
         // Validate file root path for security
@@ -322,79 +271,11 @@ router.post('/', requireAuth, (req, res) => {
         
         // Generate secure secret if none provided or invalid
         let finalSecret = finalSessionSecret;
-        if (!finalSecret || !validateSessionSecret(finalSecret)) {
+        if (!finalSecret || !validateSessionSecret(finalSecret).valid) {
             finalSecret = generateSecureSecret();
             console.log('[Settings] Generated new secure session secret');
         }
         
-                return res.status(400).json({ error: 'modelContextSize must be a positive integer between 1 and 1000000.' });
-            }
-            validatedModelContextSize = parsedModelContextSize;
-        }
-
-        let validatedLocalServerPort = localServerPort;
-        if (localServerPort !== undefined && localServerPort !== null && localServerPort !== '') {
-            const parsedLocalServerPort = parseInt(localServerPort, 10);
-            if (!Number.isFinite(parsedLocalServerPort) || parsedLocalServerPort < 1024 || parsedLocalServerPort > 65535) {
-                return res.status(400).json({ error: 'localServerPort must be a valid TCP port between 1024 and 65535 (non-privileged ports only).' });
-            }
-            validatedLocalServerPort = parsedLocalServerPort;
-        }
-
-        let validatedMaxUploadSize = maxUploadSize;
-        if (maxUploadSize !== undefined && maxUploadSize !== null && maxUploadSize !== '') {
-            const parsedMaxUploadSize = parseInt(maxUploadSize, 10);
-            if (!Number.isFinite(parsedMaxUploadSize) || parsedMaxUploadSize <= 0 || parsedMaxUploadSize > 1000000000) {
-                return res.status(400).json({ error: 'maxUploadSize must be a positive integer between 1 and 1000000000.' });
-            }
-            validatedMaxUploadSize = parsedMaxUploadSize;
-        }
-
-        // Validate fileRoot to prevent directory traversal attacks
-        let validatedFileRoot = fileRoot;
-        if (fileRoot !== undefined && fileRoot !== null && fileRoot !== '') {
-            // Resolve the path to get the absolute, normalized path
-            const resolvedPath = path.resolve(fileRoot);
-            
-            // Check if path is absolute (should always be true after resolve, but double-check)
-            if (!path.isAbsolute(resolvedPath)) {
-                return res.status(400).json({ error: 'fileRoot must be an absolute path.' });
-            }
-            
-            // Verify the path exists and is a directory
-            try {
-                const stats = fs.statSync(resolvedPath);
-                if (!stats.isDirectory()) {
-                    return res.status(400).json({ error: 'fileRoot must be a valid directory path.' });
-                }
-            } catch (err) {
-                return res.status(400).json({ error: 'fileRoot directory does not exist or is not accessible.' });
-            }
-            
-            validatedFileRoot = resolvedPath;
-        // Validate or generate session secret
-        let validatedSessionSecret = sessionSecret;
-        if (sessionSecret && sessionSecret !== '****') {
-            // User provided a secret, validate it
-            const validation = validateSessionSecret(sessionSecret);
-            if (!validation.valid) {
-                return res.status(400).json({ error: validation.error });
-            }
-        } else {
-            // No secret provided or placeholder, read existing or generate new
-            const envSettings = readEnvSettings();
-            const existingSecret = envSettings.SECRET_KEY;
-            
-            // Check if existing secret is valid
-            if (existingSecret && validateSessionSecret(existingSecret).valid) {
-                validatedSessionSecret = existingSecret;
-            } else {
-                // Generate a new secure secret
-                validatedSessionSecret = generateSecureSecret();
-                console.warn('[Settings] Generated new secure session secret');
-            }
-        }
-
         // Write settings to .env file
         writeEnvSettings({
             aiProvider,
@@ -404,7 +285,6 @@ router.post('/', requireAuth, (req, res) => {
             localServerPort: validatedLocalServerPort,
             fileRoot: validatedFileRoot,
             maxUploadSize: validatedMaxUploadSize,
-            sessionSecret: validatedSessionSecret
             sessionSecret: finalSecret
         });
 
