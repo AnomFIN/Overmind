@@ -173,7 +173,7 @@ const server = app.listen(PORT, HOST, () => {
   Server running at: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}
   
   Features:
-    • OpenAI Chat Console: /api/chat
+    • AI Chat Console: /api/chat
     • Link Shortener: /api/links
     • Temp File Uploads: /api/uploads (15-min expiry)
     • File Browser: /api/files
