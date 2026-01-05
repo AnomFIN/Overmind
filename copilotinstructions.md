@@ -15,7 +15,7 @@ You are helping to build **AnomHome Overmind**, a self-hosted, Linux-first perso
   - Node.js **20 LTS**
   - Express HTTP server
   - JSON file storage in `data/` (no heavy external DB)
-  - Config via `.env` (PORT, BASE_URL, OPENAI_API_KEY, etc.)
+  - Config via `.env` (PORT, BASE_URL, LOCAL_SERVER_PORT, etc.)
 
 - **Frontend**
   - `GUI.html` entry file

@@ -4,7 +4,7 @@
 
 It combines:
 
-- 🧠 An OpenAI console
+- 🧠 An AI chat console (local llama-server)
 - 🔗 A fast link shortener
 - 📁 15-minute temp file uploads
 - 🗂️ A simple local file browser
@@ -17,10 +17,15 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 
 ## Features (MVP)
 
-- **OpenAI console**
-  - Chat interface backed by OpenAI API.
+- **AI chat console**
+  - Chat interface backed by local llama-server (CMake-built binary).
   - Messages stored locally in JSON files.
-  - API key is configured via `.env`, never exposed directly in the bundle.
+  - No cloud dependencies - fully self-hosted AI.
+
+- **Link shortener**
+  - Create short codes for any URL.
+- JSON-based storage with optional expiry.
+  - Redirect endpoint and basic click stats.
 
 - **Link shortener**
   - Create short codes for any URL.

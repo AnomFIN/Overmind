@@ -1,14 +1,10 @@
 # Overmind Local AI Setup Guide
 
-This guide helps you configure Overmind to work with a locally built llama-server instead of OpenAI.
+This guide helps you configure Overmind to work with a locally built llama-server (CMake-compiled binary).
 
 ## Overview
 
-Overmind can use either:
-- **OpenAI API** (cloud service, requires API key)
-- **llama-server** (local CMake-built binary, runs offline)
-
-This guide covers setting up llama-server for local AI inference.
+Overmind uses **llama-server** - a local CMake-built binary for AI inference that runs completely offline on your Linux machine.
 
 ## Prerequisites
 
@@ -58,14 +54,14 @@ wget https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/P
 # Basic command to start llama-server
 ~/llama.cpp/build/llama-server \
   -m ~/Phi-3-mini-4k-instruct-q4.gguf \
-  --port 8080 \
+  --port 8081 \
   --host localhost \
   --ctx-size 4096
 
 # For GPU acceleration (if available):
 ~/llama.cpp/build/llama-server \
   -m ~/Phi-3-mini-4k-instruct-q4.gguf \
-  --port 8080 \
+  --port 8081 \
   --host localhost \
   --ctx-size 4096 \
   --n-gpu-layers 32
@@ -77,7 +73,7 @@ Keep this terminal running - llama-server needs to stay active.
 
 1. **Create .env file**:
    ```bash
-   cd /workspaces/Overmind
+   cd /path/to/Overmind
    cp .env.example .env
    ```
 
@@ -86,17 +82,16 @@ Keep this terminal running - llama-server needs to stay active.
    nano .env
    ```
    
-   Set these values:
+   Set this value:
    ```env
-   AI_PROVIDER=local
-   LOCAL_SERVER_PORT=8080
+   LOCAL_SERVER_PORT=8081
    ```
 
 ## Step 5: Test the Connection
 
 ```bash
 # Test llama-server directly
-node test-llama-server.js 8080
+node test-llama-server.js 8081
 
 # You should see a successful JSON response
 ```
@@ -114,7 +109,7 @@ Visit `http://localhost:3000` and navigate to the AI Chat panel. You should see:
 
 ### "llama-server connection failed"
 - Check if llama-server is running: `ps aux | grep llama-server`
-- Verify the port: `netstat -tlnp | grep 8080`
+- Verify the port: `netstat -tlnp | grep 8081`
 - Check llama-server logs for errors
 
 ### "Invalid JSON from llama-server" 
@@ -140,7 +135,7 @@ Add to your startup script:
 #!/bin/bash
 ~/llama.cpp/build/llama-server \
   -m ~/your-model.gguf \
-  --port 8080 \
+  --port 8081 \
   --host localhost \
   --ctx-size 4096 \
   --n-gpu-layers 32 \
@@ -163,8 +158,8 @@ RUN git clone https://github.com/ggerganov/llama.cpp.git /llama.cpp
 WORKDIR /llama.cpp
 RUN mkdir build && cd build && cmake .. && cmake --build . --config Release
 COPY your-model.gguf /model.gguf
-EXPOSE 8080
-CMD ["./build/llama-server", "-m", "/model.gguf", "--port", "8080", "--host", "0.0.0.0"]
+EXPOSE 8081
+CMD ["./build/llama-server", "-m", "/model.gguf", "--port", "8081", "--host", "0.0.0.0"]
 ```
 
 ## Model Recommendations
