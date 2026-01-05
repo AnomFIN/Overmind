@@ -64,7 +64,7 @@ function makeLocalModelRequest(messages, port) {
                     if (res.statusCode !== 200) {
                         console.error('[Chat] llama-server HTTP error:', res.statusCode, response);
                         const errorMsg = response.error?.message || response.detail || response.message || `HTTP ${res.statusCode}`;
-                        // Return the response in OpenAI-compatible format
+                        // Return the response in v1-compatible format
                         resolve({
                             choices: [{
                                 message: {
