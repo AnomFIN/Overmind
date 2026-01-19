@@ -79,7 +79,7 @@
                         <div class="dashboard-card" onclick="showPanel('chat')">
                             <div class="card-icon">💬</div>
                             <div class="card-title">AI Chat</div>
-                            <div class="card-desc">Chat with AI (OpenAI/JugiAI)</div>
+                            <div class="card-desc">Chat with Local AI (llama-server)</div>
                         </div>
                         <div class="dashboard-card" onclick="showPanel('user-chat')">
                             <div class="card-icon">🔒</div>
@@ -127,14 +127,6 @@
                 <header class="panel-header">
                     <div class="panel-title-section">
                         <h2>AI Chat Console</h2>
-                        <div class="ai-provider-toggle">
-                            <span class="toggle-label">OpenAI</span>
-                            <label class="switch">
-                                <input type="checkbox" id="aiProviderToggle" onchange="toggleAIProvider()">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-label jugiai">JugiAI</span>
-                        </div>
                     </div>
                     <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
                 </header>
@@ -398,39 +390,22 @@
                 </header>
                 <div class="panel-content settings-panel">
                     <div class="settings-section">
-                        <h3>AI Chat Configuration</h3>
+                        <h3>Local AI Configuration (llama-server)</h3>
+                        
                         <div class="form-group">
-                            <label>AI Provider</label>
-                            <select id="aiProvider" onchange="toggleAIProvider()">
-                                <option value="openai">OpenAI API</option>
-                                <option value="local">JugiAI (Local Model)</option>
-                            </select>
+                            <label>Model File Path</label>
+                            <input type="text" id="localModelPath" placeholder="/path/to/model.gguf">
+                            <small class="form-hint">Path to your local GGUF model file (reference only, llama-server loads the model)</small>
                         </div>
-                        
-                        <div class="ai-config" id="openaiConfig">
-                            <div class="form-group">
-                                <label>OpenAI API Key</label>
-                                <input type="password" id="openaiKey" placeholder="sk-...">
-                                <small class="form-hint">Your OpenAI API key for GPT models</small>
-                            </div>
+                        <div class="form-group">
+                            <label>Model Context Size</label>
+                            <input type="number" id="modelContextSize" value="4096" min="512" max="32768">
+                            <small class="form-hint">Context window size for the model</small>
                         </div>
-                        
-                        <div class="ai-config" id="localConfig" style="display: none;">
-                            <div class="form-group">
-                                <label>Model File Path</label>
-                                <input type="text" id="localModelPath" placeholder="/path/to/model.gguf">
-                                <small class="form-hint">Path to your local GGUF model file</small>
-                            </div>
-                            <div class="form-group">
-                                <label>Model Context Size</label>
-                                <input type="number" id="modelContextSize" value="4096" min="512" max="32768">
-                                <small class="form-hint">Context window size for the model</small>
-                            </div>
-                            <div class="form-group">
-                                <label>Server Port</label>
-                                <input type="number" id="localServerPort" value="8080" min="1024" max="65535">
-                                <small class="form-hint">Port for the local model server</small>
-                            </div>
+                        <div class="form-group">
+                            <label>llama-server Port</label>
+                            <input type="number" id="localServerPort" value="8081" min="1024" max="65535">
+                            <small class="form-hint">Port where llama-server is running (e.g., 8081)</small>
                         </div>
                     </div>
                     
