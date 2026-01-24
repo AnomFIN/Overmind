@@ -224,7 +224,24 @@ class ProxyServer(HTTPServer):
 
 
 def handle_stdin(config: ProxyConfig) -> int:
-    raw = sys.stdin.read().encode("utf-8")
+    # Read stdin as bytes with a hard size limit to avoid unbounded memory usage.
+    max_bytes = 10 * 1024 * 1024  # 10 MiB
+    stdin_buffer = getattr(sys.stdin, "buffer", sys.stdin)
+    chunks: List[bytes] = []
+    total = 0
+    while True:
+        chunk = stdin_buffer.read(8192)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            msg = "stdin payload too large"
+            log_json("warn", "stdin.too_large", max_bytes=max_bytes)
+            sys.stdout.write(json.dumps({"error": msg}))
+            return 1
+        chunks.append(chunk)
+
+    raw = b"".join(chunks)
     try:
         payload = parse_json_bytes(raw)
         validated = validate_chat_request(payload)
