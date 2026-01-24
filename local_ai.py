@@ -93,12 +93,16 @@ def validate_chat_request(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValidationError("model must be a string")
 
     max_tokens = payload.get("max_tokens")
-    if max_tokens is not None and (not isinstance(max_tokens, int) or max_tokens <= 0):
-        raise ValidationError("max_tokens must be a positive integer")
+    if max_tokens is not None and (
+        not isinstance(max_tokens, int) or max_tokens <= 0 or max_tokens > 8192
+    ):
+        raise ValidationError("max_tokens must be a positive integer <= 8192")
 
     temperature = payload.get("temperature")
-    if temperature is not None and (not isinstance(temperature, (int, float)) or temperature < 0):
-        raise ValidationError("temperature must be a non-negative number")
+    if temperature is not None and (
+        not isinstance(temperature, (int, float)) or not 0 <= temperature <= 2
+    ):
+        raise ValidationError("temperature must be between 0 and 2")
 
     top_p = payload.get("top_p")
     if top_p is not None and (not isinstance(top_p, (int, float)) or not 0 <= top_p <= 1):
