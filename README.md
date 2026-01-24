@@ -88,6 +88,56 @@ All wrapped into a single, ultra-polished web UI served from your Linux box.
 git clone https://github.com/<your-org>/anomhome-overmind.git
 cd anomhome-overmind
 python3 install.py
+```
+
+### Run commands
+
+```bash
+# install (Linux/macOS)
+python3 install.py
+
+# dev server
+npm start
+
+# tests
+python3 -m unittest discover -s tests
+```
+
+### Local AI (Windows + LM Studio bridge)
+
+When you want Windows + LM Studio (OpenAI-compatible REST API) to power chat in `http://localhost:3000/gui.html`, run the local proxy and point Overmind to it.
+
+1. **Start LM Studio** and enable the OpenAI-compatible server (`http://localhost:1234/v1/...`).
+2. **Set environment variables** in your `.env`:
+
+```env
+AI_PROVIDER=local
+LOCAL_SERVER_PORT=8081
+```
+
+3. **Run the proxy** from PowerShell:
+
+```powershell
+python .\\local_ai.py --listen-port 8081 --lm-studio-base http://localhost:1234
+```
+
+4. **Start Overmind**:
+
+```powershell
+npm start
+```
+
+#### Verify
+
+```powershell
+# Quick health check
+curl http://localhost:8081/health
+
+# Smoke test LM Studio proxy
+echo '{"messages":[{"role":"user","content":"Ping"}]}' | python .\\local_ai.py --stdin
+```
+
+Expected: `{\"status\":200,\"data\":...}` and Overmind chat responds in the UI.
 
 ## Cameras: motion recorder
 - Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
@@ -106,3 +156,14 @@ python3 install.py
 - Resilient: ffmpeg segmenter auto-restarts on drops; concat keeps files portable.
 - Secure by default: sanitized paths, RTSP URLs stay server-side.
 - Minimal dependencies: vanilla Express + ffmpeg CLI + optional ngrok binary.
+
+## Why this design (Local AI bridge)
+- Zero-dependency proxy keeps Windows setup simple and auditable.
+- Validation + structured logs prevent silent failures and keep sensitive text out of logs.
+- LM Studio stays the single model runtime; Overmind just points to a local port.
+- Stdin mode doubles as a CLI smoke test without extra tooling.
+
+## TODO (next 2–3 iterations)
+- Add a small GUI toggle in settings for LM Studio auto-detection.
+- Add request/response metrics endpoint for local model latency tracking.
+- Stream token responses to the chat UI when LM Studio streaming is enabled.
