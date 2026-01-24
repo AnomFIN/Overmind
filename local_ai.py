@@ -323,13 +323,7 @@ def main() -> int:
         return handle_stdin(config)
 
     server = ProxyServer(config)
-    log_json(
-        "info",
-        "server.start",
-        listen_host=config.listen_host,
-        listen_port=config.listen_port,
-        lm_studio_base=config.lm_studio_base,
-    )
+    log_json("info", "server.start")
     try:
         server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
