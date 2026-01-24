@@ -179,10 +179,10 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
                 data = parse_json_bytes(raw)
                 return status, data
         except HTTPError as exc:
-            # Distinguish between retryable (5xx) and non-retryable (4xx) HTTP errors
+            # Distinguish between retryable (5xx) and non-retryable (4xx) HTTP errors.
             last_error = str(exc)
             status = getattr(exc, "code", None)
-            # If we have a non-5xx status (e.g., 4xx client error), do not retry
+            # If we have a non-5xx status (e.g., 4xx client error), do not retry.
             if status is not None and not (500 <= int(status) < 600):
                 break
             if attempt >= config.retries:
