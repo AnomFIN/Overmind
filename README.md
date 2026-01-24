@@ -132,7 +132,7 @@ npm start
 curl http://localhost:8081/health
 
 # Smoke test LM Studio proxy
-echo '{\"messages\":[{\"role\":\"user\",\"content\":\"Ping\"}]}' | python .\\local_ai.py --stdin
+echo '{"messages":[{"role":"user","content":"Ping"}]}' | python .\\local_ai.py --stdin
 ```
 
 Expected: `{\"status\":200,\"data\":...}` and Overmind chat responds in the UI.
