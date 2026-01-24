@@ -94,9 +94,6 @@ python3 install.py
 # dev server
 npm start
 
-# lint
-npm run lint:fix
-
 # tests
 python3 -m unittest discover -s tests
 ```
