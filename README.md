@@ -94,9 +94,6 @@ python3 install.py
 # dev server
 npm start
 
-# lint
-npm run lint:fix
-
 # tests
 python3 -m unittest discover -s tests
 ```
@@ -132,10 +129,10 @@ npm start
 curl http://localhost:8081/health
 
 # Smoke test LM Studio proxy
-echo '{\"messages\":[{\"role\":\"user\",\"content\":\"Ping\"}]}' | python .\\local_ai.py --stdin
+echo '{"messages":[{"role":"user","content":"Ping"}]}' | python .\\local_ai.py --stdin
 ```
 
-Expected: `{\"status\":200,\"data\":...}` and Overmind chat responds in the UI.
+Expected: `{"status":200,"data":...}` and Overmind chat responds in the UI.
 
 ## Cameras: motion recorder
 - Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
