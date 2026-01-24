@@ -31,6 +31,9 @@ DEFAULT_LISTEN_PORT = 8081
 DEFAULT_TIMEOUT_S = 30
 DEFAULT_RETRIES = 2
 
+# Valid role values according to OpenAI Chat Completions API
+VALID_ROLES = frozenset(["system", "user", "assistant", "function", "tool"])
+
 
 @dataclass(frozen=True)
 class ProxyConfig:
@@ -80,6 +83,10 @@ def validate_messages(messages: Any) -> List[Dict[str, str]]:
         content = message.get("content")
         if not isinstance(role, str) or not role:
             raise ValidationError(f"messages[{idx}].role must be a non-empty string")
+        if role not in VALID_ROLES:
+            raise ValidationError(
+                f"messages[{idx}].role must be one of {sorted(VALID_ROLES)}, got '{role}'"
+            )
         if not isinstance(content, str) or not content:
             raise ValidationError(f"messages[{idx}].content must be a non-empty string")
         normalized.append({"role": role, "content": content})
