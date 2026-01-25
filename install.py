@@ -15,10 +15,11 @@ from pathlib import Path
 
 def print_banner():
     """Print installation banner."""
-    banner = """
+    os_name = "Windows" if sys.platform == "win32" else "Linux/macOS"
+    banner = f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           AnomHome Overmind - Installation Script            ║
-║      Self-hosted home dashboard for Linux                    ║
+║      Self-hosted home dashboard for {os_name:<19} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
     print(banner)
@@ -155,6 +156,13 @@ def get_venv_python(venv_path):
     if sys.platform == "win32":
         return venv_path / "Scripts" / "python.exe"
     return venv_path / "bin" / "python"
+
+
+def get_venv_pip(venv_path):
+    """Get the pip executable path in the virtual environment."""
+    if sys.platform == "win32":
+        return venv_path / "Scripts" / "pip.exe"
+    return venv_path / "bin" / "pip"
 
 
 def install_python_deps(venv_path, project_dir):
@@ -448,7 +456,9 @@ if __name__ == "__main__":
     
     try:
         runner_script.write_text(script_content)
-        runner_script.chmod(0o755)  # Make executable
+        # Make executable on Unix-like systems (chmod doesn't work the same on Windows)
+        if sys.platform != "win32":
+            runner_script.chmod(0o755)
         print_success(f"Created model runner script: run_local_model.py")
         print(f"To start the local model server, run: python run_local_model.py")
     except OSError as e:
@@ -481,18 +491,34 @@ def initialize_data_files(project_dir):
 
 def print_completion_message(project_dir):
     """Print installation completion message."""
+    is_windows = sys.platform == "win32"
+    
     print("\n" + "=" * 60)
     print("✓ Installation completed successfully!")
     print("=" * 60)
     print("\nNext steps:")
-    print(f"  1. Copy .env.example to .env and configure your settings:")
-    print(f"     cp .env.example .env")
-    print(f"  2. Edit .env and add your OpenAI API key (optional)")
-    print(f"  3. Start the server:")
-    print(f"     npm start")
-    print(f"  4. Open your browser to http://localhost:3000")
-    print("\nFor development with auto-reload:")
-    print(f"  npm run dev")
+    
+    if is_windows:
+        print(f"  1. Copy .env.example to .env and configure your settings:")
+        print(f"     copy .env.example .env")
+        print(f"  2. Edit .env and add your OpenAI API key (optional)")
+        print(f"  3. Start the server:")
+        print(f"     npm start")
+        print(f"  4. Open your browser to http://localhost:3000")
+        print("\nFor development with auto-reload:")
+        print(f"  npm run dev")
+        print("\nNote: On Windows, ensure you run these commands in a terminal")
+        print("with proper permissions (e.g., Command Prompt or PowerShell).")
+    else:
+        print(f"  1. Copy .env.example to .env and configure your settings:")
+        print(f"     cp .env.example .env")
+        print(f"  2. Edit .env and add your OpenAI API key (optional)")
+        print(f"  3. Start the server:")
+        print(f"     npm start")
+        print(f"  4. Open your browser to http://localhost:3000")
+        print("\nFor development with auto-reload:")
+        print(f"  npm run dev")
+    
     print("\n" + "=" * 60)
 
 
