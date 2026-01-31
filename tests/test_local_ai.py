@@ -8,15 +8,11 @@ from local_ai import (
     parse_json_bytes,
     redact_for_logs,
     validate_chat_request,
-    validate_messages,
     build_request,
     call_lm_studio,
     handle_stdin,
     ProxyConfig,
-    VALID_ROLES,
     MAX_TOKENS_LIMIT,
-    TEMPERATURE_MIN,
-    TEMPERATURE_MAX,
 )
 
 # Less noise. More signal. AnomFIN.
