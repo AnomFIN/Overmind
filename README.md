@@ -132,7 +132,7 @@ curl http://localhost:8081/health
 echo '{"messages":[{"role":"user","content":"Ping"}]}' | python .\\local_ai.py --stdin
 ```
 
-Expected: `{\"status\":200,\"data\":...}` and Overmind chat responds in the UI.
+Expected: `{"status":200,"data":...}` and Overmind chat responds in the UI.
 
 ## Cameras: motion recorder
 - Configure cameras in `data/cameras.json` (`id`, `name`, `rtspUrl`, `enabled`, `sensitivity`, `minMotionSeconds`, `cooldownSeconds`, `outputDir`, `audio`).
