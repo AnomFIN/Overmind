@@ -43,9 +43,6 @@ MAX_TOKENS_LIMIT = 8192  # Maximum allowed max_tokens value
 TEMPERATURE_MIN = 0.0  # Minimum temperature
 TEMPERATURE_MAX = 2.0  # Maximum temperature per OpenAI spec
 
-# Valid role values for OpenAI Chat Completions API
-VALID_ROLES = {"system", "user", "assistant", "function", "tool"}
-
 
 @dataclass(frozen=True)
 class ProxyConfig:
