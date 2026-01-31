@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 import io
 
 from local_ai import (
