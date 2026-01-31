@@ -121,6 +121,15 @@ def validate_chat_request(payload: Dict[str, Any]) -> Dict[str, Any]:
         or not (TEMPERATURE_MIN <= temperature <= TEMPERATURE_MAX)
     ):
         raise ValidationError(f"temperature must be between {TEMPERATURE_MIN} and {TEMPERATURE_MAX}")
+        not isinstance(max_tokens, int) or max_tokens <= 0 or max_tokens > 8192
+    ):
+        raise ValidationError("max_tokens must be a positive integer <= 8192")
+
+    temperature = payload.get("temperature")
+    if temperature is not None and (
+        not isinstance(temperature, (int, float)) or not 0 <= temperature <= 2
+    ):
+        raise ValidationError("temperature must be between 0 and 2")
 
     top_p = payload.get("top_p")
     if top_p is not None and (not isinstance(top_p, (int, float)) or not 0 <= top_p <= 1):
@@ -190,6 +199,7 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
             sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
                 BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
             )
+            sleep_for = 0.4 * (2**attempt) + random.uniform(0.05, 0.2)
             time.sleep(sleep_for)
         except (URLError, ValidationError) as exc:
             last_error = str(exc)
