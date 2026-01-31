@@ -199,7 +199,6 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
             sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
                 BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
             )
-            sleep_for = 0.4 * (2**attempt) + random.uniform(0.05, 0.2)
             time.sleep(sleep_for)
         except (URLError, ValidationError) as exc:
             last_error = str(exc)
