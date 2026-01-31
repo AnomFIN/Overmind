@@ -158,13 +158,6 @@ def get_venv_python(venv_path):
     return venv_path / "bin" / "python"
 
 
-def get_venv_pip(venv_path):
-    """Get the pip executable path in the virtual environment."""
-    if sys.platform == "win32":
-        return venv_path / "Scripts" / "pip.exe"
-    return venv_path / "bin" / "pip"
-
-
 def install_python_deps(venv_path, project_dir):
     """Install Python dependencies in the virtual environment."""
     python_path = get_venv_python(venv_path)
