@@ -31,6 +31,8 @@ DEFAULT_LISTEN_PORT = 8081
 DEFAULT_TIMEOUT_S = 30
 DEFAULT_RETRIES = 2
 
+# Valid role values according to OpenAI Chat Completions API
+VALID_ROLES = frozenset(["system", "user", "assistant", "function", "tool"])
 # Retry backoff configuration
 BACKOFF_BASE_SECONDS = 0.4  # Base delay for exponential backoff
 BACKOFF_JITTER_MIN = 0.05  # Minimum jitter to add
@@ -40,9 +42,6 @@ BACKOFF_JITTER_MAX = 0.2  # Maximum jitter to add
 MAX_TOKENS_LIMIT = 8192  # Maximum allowed max_tokens value
 TEMPERATURE_MIN = 0.0  # Minimum temperature
 TEMPERATURE_MAX = 2.0  # Maximum temperature per OpenAI spec
-
-# Valid role values for OpenAI Chat Completions API
-VALID_ROLES = {"system", "user", "assistant", "function", "tool"}
 
 
 @dataclass(frozen=True)
@@ -95,7 +94,7 @@ def validate_messages(messages: Any) -> List[Dict[str, str]]:
             raise ValidationError(f"messages[{idx}].role must be a non-empty string")
         if role not in VALID_ROLES:
             raise ValidationError(
-                f"messages[{idx}].role must be one of {sorted(VALID_ROLES)}"
+                f"messages[{idx}].role must be one of {sorted(VALID_ROLES)}, got '{role}'"
             )
         if not isinstance(content, str) or not content:
             raise ValidationError(f"messages[{idx}].content must be a non-empty string")

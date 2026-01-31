@@ -15,10 +15,11 @@ from pathlib import Path
 
 def print_banner():
     """Print installation banner."""
-    banner = """
+    os_name = "Windows" if sys.platform == "win32" else "Linux/macOS"
+    banner = f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           AnomHome Overmind - Installation Script            ║
-║      Self-hosted home dashboard for Linux                    ║
+║      Self-hosted home dashboard for {os_name:<19} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
     print(banner)
@@ -448,7 +449,9 @@ if __name__ == "__main__":
     
     try:
         runner_script.write_text(script_content)
-        runner_script.chmod(0o755)  # Make executable
+        # Make executable on Unix-like systems (chmod doesn't work the same on Windows)
+        if sys.platform != "win32":
+            runner_script.chmod(0o755)
         print_success(f"Created model runner script: run_local_model.py")
         print(f"To start the local model server, run: python run_local_model.py")
     except OSError as e:
@@ -481,18 +484,26 @@ def initialize_data_files(project_dir):
 
 def print_completion_message(project_dir):
     """Print installation completion message."""
+    is_windows = sys.platform == "win32"
+    copy_cmd = "copy" if is_windows else "cp"
+    
     print("\n" + "=" * 60)
     print("✓ Installation completed successfully!")
     print("=" * 60)
     print("\nNext steps:")
     print(f"  1. Copy .env.example to .env and configure your settings:")
-    print(f"     cp .env.example .env")
+    print(f"     {copy_cmd} .env.example .env")
     print(f"  2. Edit .env and add your OpenAI API key (optional)")
     print(f"  3. Start the server:")
     print(f"     npm start")
     print(f"  4. Open your browser to http://localhost:3000")
     print("\nFor development with auto-reload:")
     print(f"  npm run dev")
+    
+    if is_windows:
+        print("\nNote: On Windows, ensure you run these commands in a terminal")
+        print("with proper permissions (e.g., Command Prompt or PowerShell).")
+    
     print("\n" + "=" * 60)
 
 
