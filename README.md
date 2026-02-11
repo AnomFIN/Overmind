@@ -163,6 +163,111 @@ Expected: `{\"status\":200,\"data\":...}` and Overmind chat responds in the UI.
 - LM Studio stays the single model runtime; Overmind just points to a local port.
 - Stdin mode doubles as a CLI smoke test without extra tooling.
 
+## Nettiauto Car Listing Scraper
+
+**New Feature**: This repository now includes a Finnish car listing scraper that collects registration numbers from Nettiauto.
+
+### Features
+- 🚗 Scrapes car listings from Nettiauto search results
+- 🔍 Extracts Finnish registration numbers (plates like ABC-123)
+- 📊 Outputs data in JSON and TXT formats
+- 🌐 GitHub Pages site to view results on any device (including iPhone)
+- ⏰ Automated nightly scraping via GitHub Actions
+
+### How to Use
+
+#### 1. Run the Scraper Locally
+
+```bash
+# Install dependencies (includes Playwright)
+npm install
+
+# Install Playwright browsers
+npx playwright install chromium
+
+# Run the scraper
+npm run scrape
+```
+
+This creates:
+- `data/plates.json` - Full JSON database with all scraped data
+- `data/plates.txt` - Simple newline-separated list of unique plates
+
+#### 2. Build GitHub Pages
+
+```bash
+# Copy data files to docs/data for GitHub Pages
+npm run build-pages
+```
+
+#### 3. Enable GitHub Pages
+
+1. Go to your repository on GitHub
+2. Navigate to **Settings** → **Pages**
+3. Under "Source", select **Deploy from a branch**
+4. Choose branch: `main` (or your default branch) and folder: `/docs`
+5. Click **Save**
+6. Wait a few minutes for the site to deploy
+
+Your plates site will be available at: `https://<username>.github.io/<repo-name>/`
+
+#### 4. Enable Automated Scraping
+
+The GitHub Actions workflow is already configured to:
+- Run automatically every night at 2 AM UTC
+- Run manually via workflow_dispatch
+
+To trigger manually:
+1. Go to **Actions** tab in your GitHub repository
+2. Select **Scrape Nettiauto** workflow
+3. Click **Run workflow**
+
+The workflow will automatically commit and push updated data files.
+
+#### 5. View Results on iPhone
+
+1. Open Safari on your iPhone
+2. Navigate to your GitHub Pages URL: `https://<username>.github.io/<repo-name>/`
+3. Add to Home Screen for easy access:
+   - Tap the Share button
+   - Select "Add to Home Screen"
+   - Name it "Nettiauto Plates"
+
+The site is fully responsive and works great on mobile devices!
+
+### File Structure
+
+```
+├── scripts/
+│   └── scrape.js           # Main scraper script
+├── data/
+│   ├── plates.json         # Scraped data (JSON)
+│   └── plates.txt          # Unique plates (TXT)
+├── docs/
+│   ├── index.html          # GitHub Pages site
+│   ├── app.js              # Frontend JavaScript
+│   └── data/               # Copy of data files for Pages
+│       ├── plates.json
+│       └── plates.txt
+└── .github/workflows/
+    └── scrape-nettiauto.yml # GitHub Actions workflow
+```
+
+### Scraper Configuration
+
+You can customize the scraper by editing `scripts/scrape.js`:
+- `SEARCH_URL` - The Nettiauto search URL to scrape
+- `MAX_CONCURRENCY` - Number of concurrent page scrapes (default: 2)
+- `MIN_DELAY` / `MAX_DELAY` - Random delay between page visits (ms)
+- `MAX_RETRIES` - Number of retries for failed navigation
+
+### Security & Ethics
+
+- The scraper uses random delays (500-1200ms) to be respectful to Nettiauto servers
+- Runs in headless mode in GitHub Actions
+- No hardcoded secrets or credentials
+- Rate-limited with max concurrency of 2
+
 ## TODO (next 2–3 iterations)
 - Add a small GUI toggle in settings for LM Studio auto-detection.
 - Add request/response metrics endpoint for local model latency tracking.

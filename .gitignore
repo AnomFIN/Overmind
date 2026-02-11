@@ -158,3 +158,9 @@ __pycache__/
 # Overmind specific
 uploads/
 backend/data/*.json
+# Allow plates data files
+!data/plates.json
+!data/plates.txt
+!docs/data/plates.json
+!docs/data/plates.txt
+
