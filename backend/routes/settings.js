@@ -44,16 +44,10 @@ function writeEnvSettings(settings) {
     content += `PORT=${process.env.PORT || 3000}\n`;
     content += `HOST=${process.env.HOST || '0.0.0.0'}\n\n`;
     
-    content += '# AI Configuration\n';
-    if (settings.aiProvider === 'local') {
-        content += `AI_PROVIDER=local\n`;
-        content += `LOCAL_MODEL_PATH=${settings.localModelPath || ''}\n`;
-        content += `MODEL_CONTEXT_SIZE=${settings.modelContextSize || 4096}\n`;
-        content += `LOCAL_SERVER_PORT=${settings.localServerPort || 8080}\n`;
-    } else {
-        content += `AI_PROVIDER=openai\n`;
-        content += `OPENAI_API_KEY=${settings.openaiKey || ''}\n`;
-    }
+    content += '# Local llama-server Configuration (CMake-built)\n';
+    content += `LOCAL_SERVER_PORT=${settings.localServerPort || 8081}\n`;
+    content += `LOCAL_MODEL_PATH=${settings.localModelPath || ''}\n`;
+    content += `MODEL_CONTEXT_SIZE=${settings.modelContextSize || 4096}\n`;
     content += '\n';
     
     content += '# File Browser Configuration\n';
@@ -77,11 +71,9 @@ router.get('/', (req, res) => {
         const envSettings = readEnvSettings();
         
         const settings = {
-            aiProvider: envSettings.AI_PROVIDER || 'openai',
-            openaiKey: envSettings.OPENAI_API_KEY || '',
             localModelPath: envSettings.LOCAL_MODEL_PATH || '',
             modelContextSize: parseInt(envSettings.MODEL_CONTEXT_SIZE) || 4096,
-            localServerPort: parseInt(envSettings.LOCAL_SERVER_PORT) || 8080,
+            localServerPort: parseInt(envSettings.LOCAL_SERVER_PORT) || 8081,
             fileRoot: envSettings.FILE_BROWSER_ROOT || '',
             maxUploadSize: parseInt(envSettings.MAX_UPLOAD_SIZE) || 100,
             sessionSecret: envSettings.SECRET_KEY ? '****' : '' // Hide actual secret
@@ -102,8 +94,6 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
     try {
         const {
-            aiProvider,
-            openaiKey,
             localModelPath,
             modelContextSize,
             localServerPort,
@@ -112,19 +102,13 @@ router.post('/', (req, res) => {
             sessionSecret
         } = req.body;
         
-        // Validate required fields based on AI provider
-        if (aiProvider === 'openai' && !openaiKey) {
-            return res.status(400).json({ error: 'OpenAI API key is required' });
-        }
-        
-        if (aiProvider === 'local' && !localModelPath) {
-            return res.status(400).json({ error: 'Local model path is required' });
+        // Validate required field
+        if (!localServerPort) {
+            return res.status(400).json({ error: 'llama-server port is required' });
         }
         
         // Write settings to .env file
         writeEnvSettings({
-            aiProvider,
-            openaiKey,
             localModelPath,
             modelContextSize,
             localServerPort,

@@ -18,7 +18,8 @@
     "dashboard",
     "self-hosted",
     "home-automation",
-    "openai",
+    "local-ai",
+    "llama-server",
     "file-browser",
     "mind-map"
   ],

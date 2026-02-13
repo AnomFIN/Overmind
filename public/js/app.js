@@ -12,7 +12,7 @@ let currentPath = '';
 let chatSessionId = 'default-' + Date.now();
 
 // Global state for AI provider
-let currentAIProvider = 'openai'; // Default to OpenAI
+let currentAIProvider = 'local'; // Default to local llama-server
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -309,21 +309,14 @@ async function checkChatStatus() {
         
         const statusEl = document.getElementById('chatStatus');
         if (data.configured) {
-            const providerName = data.provider === 'local' ? 'AnomAI' : 'OpenAI API';
-            statusEl.innerHTML = `<span class="text-success">✓ ${providerName} connected</span>`;
+            statusEl.innerHTML = `<span class="text-success">✓ llama-server (Local AI) connected</span>`;
             
             // Update current provider state
-            currentAIProvider = data.provider === 'local' ? 'local' : 'openai';
-            const toggle = document.getElementById('aiProviderToggle');
-            if (toggle) {
-                toggle.checked = currentAIProvider === 'jugiai';
-            }
+            currentAIProvider = 'local';
             
         } else {
-            const hint = data.provider === 'local' 
-                ? 'Configure LOCAL_SERVER_PORT for AnomAI in settings'
-                : 'Add OPENAI_API_KEY to .env file';
-            statusEl.innerHTML = `<span class="text-warning">⚠ ${data.provider === 'local' ? 'AnomAI' : 'OpenAI API'} not configured - ${hint}</span>`;
+            const hint = 'Configure LOCAL_SERVER_PORT for llama-server in settings';
+            statusEl.innerHTML = `<span class="text-warning">⚠ llama-server not configured - ${hint}</span>`;
         }
     } catch (err) {
         document.getElementById('chatStatus').innerHTML = 
@@ -349,10 +342,9 @@ async function sendMessage(e) {
     // Add user message
     appendMessage('user', message);
     
-    // Add loading indicator with provider name
+    // Add loading indicator
     const loadingId = 'loading-' + Date.now();
-    const provider = currentAIProvider === 'local' ? 'AnomAI' : 'OpenAI';
-    appendMessage('assistant', `[${provider} thinking...]`, loadingId);
+    appendMessage('assistant', `[AI thinking...]`, loadingId);
     
     try {
         const response = await fetch(`${API_BASE}/chat`, {
@@ -368,12 +360,10 @@ async function sendMessage(e) {
         if (loadingEl) loadingEl.remove();
         
         if (data.error) {
-            // JugiAI-style error handling with clear ERROR prefix
+            // Clear error handling with ERROR prefix
             let errorMsg = data.error;
             if (errorMsg.includes('llama-server') || errorMsg.includes('Local server') || errorMsg.includes('local model')) {
-                errorMsg = `ERROR: JugiAI - ${errorMsg}`;
-            } else if (errorMsg.includes('OpenAI') || errorMsg.includes('API key')) {
-                errorMsg = `ERROR: OpenAI - ${errorMsg}`;
+                errorMsg = `ERROR: llama-server - ${errorMsg}`;
             } else {
                 errorMsg = `ERROR: ${errorMsg}`;
             }
@@ -385,10 +375,9 @@ async function sendMessage(e) {
         const loadingEl = document.getElementById(loadingId);
         if (loadingEl) loadingEl.remove();
         
-        // Error reporting with correct provider name
-        const provider = currentAIProvider === 'local' ? 'AnomAI' : 'OpenAI';
-        appendMessage('assistant', `ERROR: ${provider} - ${err.message}`);
-        console.error(`${provider} error:`, err);
+        // Error reporting
+        appendMessage('assistant', `ERROR: llama-server - ${err.message}`);
+        console.error(`llama-server error:`, err);
     }
 }
 
@@ -400,7 +389,7 @@ function appendMessage(role, content, id) {
     div.innerHTML = `<div class="message-content">${escapeHtml(content)}</div>`;
     messagesEl.appendChild(div);
     
-    // JugiAI-style smooth scrolling
+    // Smooth scrolling
     div.scrollIntoView({ behavior: 'smooth', block: 'end' });
     messagesEl.scrollTop = messagesEl.scrollHeight;
 }
@@ -417,200 +406,16 @@ function clearChat() {
     checkChatStatus();
 }
 
-// ==================== AI Provider Toggle ====================
+// ==================== AI Provider (Removed - Local Only) ====================
 
 function initAIProviderToggle() {
-    const toggle = document.getElementById('aiProviderToggle');
-    if (toggle) {
-        // Set initial state based on current provider
-        toggle.checked = currentAIProvider === 'local';
-        updateProviderUI(currentAIProvider);
-    }
+    // No longer needed - we only support local llama-server
+    // Keep function for backward compatibility but do nothing
 }
 
 async function toggleAIProvider() {
-    const toggle = document.getElementById('aiProviderToggle');
-    const isJugiAI = toggle.checked;
-    
-    // Update provider state
-    currentAIProvider = isJugiAI ? 'jugiai' : 'openai';
-    
-    // Add dramatic transition animation
-    const chatPanel = document.querySelector('#panel-chat');
-    const logo = document.querySelector('.logo-image');
-    
-    chatPanel.classList.add('jugiai-transition');
-    
-    // Update UI theme
-    updateProviderUI(currentAIProvider);
-    
-    // Apply dramatic effects for JugiAI
-    if (isJugiAI) {
-        // Apply JugiAI theme
-        document.body.classList.add('jugiai-mode');
-        
-        // Logo zoom and color effects
-        if (logo) {
-            logo.style.transition = 'all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-            setTimeout(() => {
-                logo.style.filter = 'hue-rotate(270deg) saturate(2) brightness(1.3)';
-                logo.style.transform = 'scale(1.1)';
-                logo.style.boxShadow = '0 0 40px rgba(139, 0, 255, 0.6)';
-            }, 100);
-        }
-        
-        // Particle effect changes
-        updateParticlesForJugiAI();
-        
-        // Sound effect (if available)
-        playTransitionSound('jugiai');
-        
-    } else {
-        // Remove JugiAI theme
-        document.body.classList.remove('jugiai-mode');
-        
-        // Reset logo
-        if (logo) {
-            logo.style.transition = 'all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-            setTimeout(() => {
-                logo.style.filter = 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.6))';
-                logo.style.transform = 'scale(1)';
-                logo.style.boxShadow = '';
-            }, 100);
-        }
-        
-        // Reset particles
-        resetParticles();
-        
-        // Sound effect
-        playTransitionSound('openai');
-    }
-    
-    // Update backend configuration
-    await updateBackendProvider(currentAIProvider);
-    
-    // Refresh chat status
-    checkChatStatus();
-    
-    // Remove transition class
-    setTimeout(() => {
-        chatPanel.classList.remove('jugiai-transition');
-    }, 800);
-}
-
-function updateProviderUI(provider) {
-    const statusEl = document.getElementById('chatStatus');
-    const toggle = document.getElementById('aiProviderToggle');
-    
-    if (provider === 'jugiai') {
-        toggle.checked = true;
-        statusEl.innerHTML = '<span class="text-warning">🔄 Switching to JugiAI...</span>';
-        
-        // Update welcome message
-        setTimeout(() => {
-            const welcome = document.querySelector('.chat-welcome p:first-child');
-            if (welcome) {
-                welcome.innerHTML = '🚀 Welcome to JugiAI Console!';
-            }
-        }, 300);
-        
-    } else {
-        toggle.checked = false;
-        statusEl.innerHTML = '<span class="text-warning">🔄 Switching to OpenAI...</span>';
-        
-        // Reset welcome message
-        setTimeout(() => {
-            const welcome = document.querySelector('.chat-welcome p:first-child');
-            if (welcome) {
-                welcome.innerHTML = '👋 Welcome to the AI Chat Console!';
-            }
-        }, 300);
-    }
-}
-
-function updateParticlesForJugiAI() {
-    const particles = document.querySelectorAll('.particle');
-    particles.forEach((particle, index) => {
-        setTimeout(() => {
-            particle.style.background = 'var(--jugiai-accent)';
-            particle.style.boxShadow = '0 0 10px rgba(139, 0, 255, 0.6)';
-            particle.style.animation = `float ${3 + Math.random() * 2}s ease-in-out infinite alternate`;
-        }, index * 50);
-    });
-}
-
-function resetParticles() {
-    const particles = document.querySelectorAll('.particle');
-    particles.forEach((particle, index) => {
-        setTimeout(() => {
-            particle.style.background = '';
-            particle.style.boxShadow = '';
-            particle.style.animation = '';
-        }, index * 30);
-    });
-}
-
-function playTransitionSound(provider) {
-    // Create audio context for sound effects (if supported)
-    try {
-        if (window.AudioContext || window.webkitAudioContext) {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            if (provider === 'jugiai') {
-                // Deep, mysterious tone for JugiAI
-                playTone(audioContext, 220, 0.1, 0.3); // A3 note
-                setTimeout(() => playTone(audioContext, 174.61, 0.1, 0.2), 200); // F3 note
-            } else {
-                // Bright, clean tone for OpenAI
-                playTone(audioContext, 440, 0.1, 0.3); // A4 note
-                setTimeout(() => playTone(audioContext, 523.25, 0.1, 0.2), 200); // C5 note
-            }
-        }
-    } catch (e) {
-        // Audio not supported or blocked, skip sound effects
-        console.log('Audio effects not available:', e.message);
-    }
-}
-
-function playTone(audioContext, frequency, duration, volume = 0.3) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + duration);
-}
-
-async function updateBackendProvider(provider) {
-    try {
-        // Map JugiAI to local backend
-        const backendProvider = provider === 'jugiai' ? 'local' : provider;
-        
-        const response = await fetch(`${API_BASE}/settings`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ aiProvider: backendProvider })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update provider configuration');
-        }
-        
-        console.log(`AI provider switched to ${provider} (backend: ${backendProvider})`);
-        
-    } catch (err) {
-        console.error('Failed to update backend provider:', err);
-        // Show error but don't revert UI - user can try again
-    }
+    // No longer needed - we only support local llama-server
+    // Keep function for backward compatibility but do nothing
 }
 
 // ==================== Encrypted User Chat ====================
@@ -2526,17 +2331,10 @@ async function loadSettings() {
         if (response.ok) {
             const settings = await response.json();
             
-            // AI Provider
-            document.getElementById('aiProvider').value = settings.aiProvider || 'openai';
-            toggleAIProvider();
-            
-            // OpenAI settings
-            document.getElementById('openaiKey').value = settings.openaiKey || '';
-            
-            // Local model settings
+            // Local llama-server settings
             document.getElementById('localModelPath').value = settings.localModelPath || '';
             document.getElementById('modelContextSize').value = settings.modelContextSize || 4096;
-            document.getElementById('localServerPort').value = settings.localServerPort || 8080;
+            document.getElementById('localServerPort').value = settings.localServerPort || 8081;
             
             // File browser
             document.getElementById('fileRoot').value = settings.fileRoot || '';
@@ -2553,24 +2351,8 @@ async function loadSettings() {
     updateAIStatus();
 }
 
-function toggleAIProvider() {
-    const provider = document.getElementById('aiProvider').value;
-    const openaiConfig = document.getElementById('openaiConfig');
-    const localConfig = document.getElementById('localConfig');
-    
-    if (provider === 'local') {
-        openaiConfig.style.display = 'none';
-        localConfig.style.display = 'block';
-    } else {
-        openaiConfig.style.display = 'block';
-        localConfig.style.display = 'none';
-    }
-}
-
 async function saveSettings() {
     const settings = {
-        aiProvider: document.getElementById('aiProvider').value,
-        openaiKey: document.getElementById('openaiKey').value,
         localModelPath: document.getElementById('localModelPath').value,
         modelContextSize: parseInt(document.getElementById('modelContextSize').value),
         localServerPort: parseInt(document.getElementById('localServerPort').value),
