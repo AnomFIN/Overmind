@@ -11,7 +11,7 @@
     "validate": "node validate-config.js",
     "setup-local": "echo 'Setting up local AI...' && cp .env.example .env && echo 'Edit .env file and run: npm run validate'",
     "scrape": "node scripts/scrape.js",
-    "build-pages": "mkdir -p docs/data && cp -f data/plates.json docs/data/plates.json && cp -f data/plates.txt docs/data/plates.txt"
+    "build-pages": "node -e \"const fs=require('fs'); fs.mkdirSync('docs/data',{recursive:true}); fs.copyFileSync('data/plates.json','docs/data/plates.json'); fs.copyFileSync('data/plates.txt','docs/data/plates.txt');\""
   },
   "engines": {
     "node": ">=20.0.0"
