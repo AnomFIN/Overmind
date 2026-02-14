@@ -14,12 +14,14 @@ const MAX_CONCURRENCY = 2;
 const MIN_DELAY = 500;
 const MAX_DELAY = 1200;
 const MAX_RETRIES = 3;
+const MAX_PAGES = 100;
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const OUTPUT_JSON = path.join(DATA_DIR, 'plates.json');
 const OUTPUT_TXT = path.join(DATA_DIR, 'plates.txt');
 
 // Finnish plate patterns: ABC-123, AB-12, etc.
-const PLATE_REGEX = /\b([A-Z]{2,3})-(\d{1,3})\b/g;
+const PLATE_REGEX = /\b([A-Z]{2,3})-(\d{1,3})\b/;
+const PLATE_REGEX_GLOBAL = /\b([A-Z]{2,3})-(\d{1,3})\b/g;
 
 /**
  * Sleep for a random duration
@@ -59,7 +61,7 @@ async function extractListingUrls(browser) {
         
         let currentPage = 1;
         
-        while (true) {
+        while (currentPage <= MAX_PAGES) {
             console.log(`Scraping page ${currentPage}...`);
             await randomDelay();
             
@@ -176,7 +178,7 @@ async function extractPlate(browser, url) {
         if (!plate) {
             try {
                 const bodyText = await page.textContent('body');
-                const matches = [...bodyText.matchAll(PLATE_REGEX)];
+                const matches = [...bodyText.matchAll(PLATE_REGEX_GLOBAL)];
                 
                 if (matches.length > 0) {
                     // Take the first match

@@ -126,8 +126,19 @@ function showError(message) {
  * Format date and time for display
  */
 function formatDateTime(date) {
+    // Validate date
+    if (!date || isNaN(date.getTime())) {
+        return 'Invalid date';
+    }
+    
     const now = new Date();
     const diffMs = now - date;
+    
+    // Handle future dates
+    if (diffMs < 0) {
+        return 'N/A';
+    }
+    
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
