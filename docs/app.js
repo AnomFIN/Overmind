@@ -66,7 +66,12 @@ function renderPlates(plates) {
     container.innerHTML = '';
     
     if (plates.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #999;">No plates found</p>';
+        const message = document.createElement('p');
+        message.textContent = 'No plates found';
+        message.style.gridColumn = '1 / -1';
+        message.style.textAlign = 'center';
+        message.style.color = '#999';
+        container.appendChild(message);
         return;
     }
     
