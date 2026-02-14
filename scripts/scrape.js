@@ -90,9 +90,13 @@ async function extractListingUrls(browser) {
             // Navigate to next page
             try {
                 await withRetry(async () => {
+                    const freshNextButton = await page.$('a[rel="next"], a:has-text("Seuraava"), button:has-text("Seuraava")');
+                    if (!freshNextButton) {
+                        throw new Error('Next page button not found during navigation retry');
+                    }
                     await Promise.all([
                         page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 }),
-                        nextButton.click()
+                        freshNextButton.click()
                     ]);
                 });
                 currentPage++;
