@@ -255,7 +255,26 @@ async function scrape() {
         console.log(`\nTotal listings found: ${listingUrls.length}\n`);
         
         if (listingUrls.length === 0) {
-            console.log('No listings found. Exiting.');
+            console.log('No listings found. Writing empty outputs and exiting.');
+            
+            const scrapedAt = new Date().toISOString();
+            const items = [];
+            const uniquePlates = [];
+            
+            const outputData = {
+                source: SEARCH_URL,
+                scrapedAt: scrapedAt,
+                count: uniquePlates.length,
+                items: items
+            };
+            
+            await fs.mkdir(DATA_DIR, { recursive: true });
+            await fs.writeFile(OUTPUT_JSON, JSON.stringify(outputData, null, 2), 'utf8');
+            await fs.writeFile(OUTPUT_TXT, uniquePlates.join('\n'), 'utf8');
+            
+            console.log(`\n✓ Saved empty JSON: ${OUTPUT_JSON}`);
+            console.log(`✓ Saved empty TXT: ${OUTPUT_TXT}`);
+            
             return;
         }
         
