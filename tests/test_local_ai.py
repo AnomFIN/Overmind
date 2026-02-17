@@ -199,6 +199,68 @@ class TestLocalAI(unittest.TestCase):
         self.assertEqual(data, {"result": "success"})
         self.assertEqual(mock_urlopen.call_count, 1)
 
+    @patch("local_ai.urlopen")
+    @patch("local_ai.time.sleep")
+    def test_call_lm_studio_invalid_json_retries(self, mock_sleep: MagicMock, mock_urlopen: MagicMock) -> None:
+        """Test that invalid JSON from LM Studio triggers retries and converts to ConnectionError."""
+        config = ProxyConfig(
+            listen_host="127.0.0.1",
+            listen_port=8081,
+            lm_studio_base="http://localhost:1234",
+            timeout_s=30,
+            retries=2,
+            api_key=None,
+        )
+        payload = {"model": "test", "messages": []}
+        
+        # Mock response with invalid JSON
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = b'{"truncated'
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+        
+        with self.assertRaises(ConnectionError) as ctx:
+            call_lm_studio(config, payload)
+        
+        # Verify it's treated as a backend error
+        self.assertIn("Invalid JSON from LM Studio", str(ctx.exception))
+        # Should try initial + 2 retries = 3 times
+        self.assertEqual(mock_urlopen.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
+
+    @patch("local_ai.urlopen")
+    @patch("local_ai.time.sleep")
+    def test_call_lm_studio_empty_response_retries(self, mock_sleep: MagicMock, mock_urlopen: MagicMock) -> None:
+        """Test that empty response from LM Studio triggers retries and converts to ConnectionError."""
+        config = ProxyConfig(
+            listen_host="127.0.0.1",
+            listen_port=8081,
+            lm_studio_base="http://localhost:1234",
+            timeout_s=30,
+            retries=2,
+            api_key=None,
+        )
+        payload = {"model": "test", "messages": []}
+        
+        # Mock empty response
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = b''
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+        
+        with self.assertRaises(ConnectionError) as ctx:
+            call_lm_studio(config, payload)
+        
+        # Verify it's treated as a backend error
+        self.assertIn("Invalid JSON from LM Studio", str(ctx.exception))
+        # Should try initial + 2 retries = 3 times
+        self.assertEqual(mock_urlopen.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
+
     @patch("sys.stdin")
     @patch("sys.stdout")
     @patch("local_ai.call_lm_studio")

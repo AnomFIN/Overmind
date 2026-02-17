@@ -198,6 +198,15 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
                 BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
             )
             time.sleep(sleep_for)
+        except ValidationError as exc:
+            # LM Studio returned non-JSON or truncated JSON. Treat as backend error.
+            last_error = f"Invalid JSON from LM Studio: {exc}"
+            if attempt >= config.retries:
+                break
+            sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
+                BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
+            )
+            time.sleep(sleep_for)
 
     raise ConnectionError(last_error or "Unknown LM Studio error")
 
