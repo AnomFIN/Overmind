@@ -316,7 +316,13 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     
     # Handle port with proper error checking for empty/invalid env vars
     port_env = os.getenv("LOCAL_AI_LISTEN_PORT")
-    default_port = int(port_env) if port_env and port_env.strip() else DEFAULT_LISTEN_PORT
+    if port_env and port_env.strip():
+        try:
+            default_port = int(port_env)
+        except ValueError:
+            parser.error(f"LOCAL_AI_LISTEN_PORT must be an integer, got: {port_env!r}")
+    else:
+        default_port = DEFAULT_LISTEN_PORT
     parser.add_argument("--listen-port", type=int, default=default_port)
     
     parser.add_argument(
@@ -326,12 +332,24 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     
     # Handle timeout with proper error checking for empty/invalid env vars
     timeout_env = os.getenv("LOCAL_AI_TIMEOUT")
-    default_timeout = int(timeout_env) if timeout_env and timeout_env.strip() else DEFAULT_TIMEOUT_S
+    if timeout_env and timeout_env.strip():
+        try:
+            default_timeout = int(timeout_env)
+        except ValueError:
+            parser.error(f"LOCAL_AI_TIMEOUT must be an integer, got: {timeout_env!r}")
+    else:
+        default_timeout = DEFAULT_TIMEOUT_S
     parser.add_argument("--timeout", type=int, default=default_timeout)
     
     # Handle retries with proper error checking for empty/invalid env vars
     retries_env = os.getenv("LOCAL_AI_RETRIES")
-    default_retries = int(retries_env) if retries_env and retries_env.strip() else DEFAULT_RETRIES
+    if retries_env and retries_env.strip():
+        try:
+            default_retries = int(retries_env)
+        except ValueError:
+            parser.error(f"LOCAL_AI_RETRIES must be an integer, got: {retries_env!r}")
+    else:
+        default_retries = DEFAULT_RETRIES
     parser.add_argument("--retries", type=int, default=default_retries)
     
     parser.add_argument("--api-key", default=os.getenv("LOCAL_AI_API_KEY"))

@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 import io
+import os
 
 from local_ai import (
     ValidationError,
@@ -11,6 +12,7 @@ from local_ai import (
     build_request,
     call_lm_studio,
     handle_stdin,
+    parse_args,
     ProxyConfig,
     MAX_TOKENS_LIMIT,
 )
@@ -263,6 +265,54 @@ class TestLocalAI(unittest.TestCase):
         self.assertIn('"error"', output[0])
         # Check newline is present
         self.assertTrue(output[0].endswith("\n"))
+
+    @patch.dict(os.environ, {"LOCAL_AI_LISTEN_PORT": "9000"})
+    def test_parse_args_with_valid_env_vars(self) -> None:
+        """Test that parse_args correctly handles valid environment variables."""
+        args = parse_args([])
+        self.assertEqual(args.listen_port, 9000)
+
+    @patch.dict(os.environ, {"LOCAL_AI_TIMEOUT": "60"})
+    def test_parse_args_with_valid_timeout_env(self) -> None:
+        """Test that parse_args correctly handles valid timeout env var."""
+        args = parse_args([])
+        self.assertEqual(args.timeout, 60)
+
+    @patch.dict(os.environ, {"LOCAL_AI_RETRIES": "5"})
+    def test_parse_args_with_valid_retries_env(self) -> None:
+        """Test that parse_args correctly handles valid retries env var."""
+        args = parse_args([])
+        self.assertEqual(args.retries, 5)
+
+    @patch.dict(os.environ, {"LOCAL_AI_LISTEN_PORT": "30s"})
+    def test_parse_args_with_invalid_port_env(self) -> None:
+        """Test that parse_args raises clear error for invalid port env var."""
+        with self.assertRaises(SystemExit):
+            parse_args([])
+
+    @patch.dict(os.environ, {"LOCAL_AI_TIMEOUT": "30s"})
+    def test_parse_args_with_invalid_timeout_env(self) -> None:
+        """Test that parse_args raises clear error for invalid timeout env var."""
+        with self.assertRaises(SystemExit):
+            parse_args([])
+
+    @patch.dict(os.environ, {"LOCAL_AI_RETRIES": "invalid"})
+    def test_parse_args_with_invalid_retries_env(self) -> None:
+        """Test that parse_args raises clear error for invalid retries env var."""
+        with self.assertRaises(SystemExit):
+            parse_args([])
+
+    @patch.dict(os.environ, {"LOCAL_AI_LISTEN_PORT": ""})
+    def test_parse_args_with_empty_port_env(self) -> None:
+        """Test that parse_args falls back to default for empty port env var."""
+        args = parse_args([])
+        self.assertEqual(args.listen_port, 8081)  # DEFAULT_LISTEN_PORT
+
+    @patch.dict(os.environ, {"LOCAL_AI_TIMEOUT": "   "})
+    def test_parse_args_with_whitespace_timeout_env(self) -> None:
+        """Test that parse_args falls back to default for whitespace-only timeout env var."""
+        args = parse_args([])
+        self.assertEqual(args.timeout, 30)  # DEFAULT_TIMEOUT_S
 
 
 if __name__ == "__main__":
