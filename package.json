@@ -9,7 +9,9 @@
     "test": "node --test backend/tests/*.test.js",
     "test-llama": "node test-llama-server.js",
     "validate": "node validate-config.js",
-    "setup-local": "echo 'Setting up local AI...' && cp .env.example .env && echo 'Edit .env file and run: npm run validate'"
+    "setup-local": "echo 'Setting up local AI...' && cp .env.example .env && echo 'Edit .env file and run: npm run validate'",
+    "scrape": "node scripts/scrape.js",
+    "build-pages": "node -e \"const fs=require('fs');const path=require('path');const docsData=path.join('docs','data');if(!fs.existsSync(docsData))fs.mkdirSync(docsData,{recursive:true});['plates.json','plates.txt'].forEach(f=>{const src=path.join('data',f);const dest=path.join(docsData,f);if(fs.existsSync(src))fs.copyFileSync(src,dest);});console.log('Data files copied to docs/data');\""
   },
   "engines": {
     "node": ">=20.0.0"
@@ -30,5 +32,8 @@
     "express": "^4.21.0",
     "multer": "^2.0.2",
     "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.1"
   }
 }
