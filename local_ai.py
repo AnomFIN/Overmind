@@ -31,6 +31,18 @@ DEFAULT_LISTEN_PORT = 8081
 DEFAULT_TIMEOUT_S = 30
 DEFAULT_RETRIES = 2
 
+# Valid role values according to OpenAI Chat Completions API
+VALID_ROLES = frozenset(["system", "user", "assistant", "function", "tool"])
+# Retry backoff configuration
+BACKOFF_BASE_SECONDS = 0.4  # Base delay for exponential backoff
+BACKOFF_JITTER_MIN = 0.05  # Minimum jitter to add
+BACKOFF_JITTER_MAX = 0.2  # Maximum jitter to add
+
+# Validation limits
+MAX_TOKENS_LIMIT = 8192  # Maximum allowed max_tokens value
+TEMPERATURE_MIN = 0.0  # Minimum temperature
+TEMPERATURE_MAX = 2.0  # Maximum temperature per OpenAI spec
+
 
 @dataclass(frozen=True)
 class ProxyConfig:
@@ -80,6 +92,10 @@ def validate_messages(messages: Any) -> List[Dict[str, str]]:
         content = message.get("content")
         if not isinstance(role, str) or not role:
             raise ValidationError(f"messages[{idx}].role must be a non-empty string")
+        if role not in VALID_ROLES:
+            raise ValidationError(
+                f"messages[{idx}].role must be one of {sorted(VALID_ROLES)}, got '{role}'"
+            )
         if not isinstance(content, str) or not content:
             raise ValidationError(f"messages[{idx}].content must be a non-empty string")
         normalized.append({"role": role, "content": content})
@@ -94,15 +110,16 @@ def validate_chat_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     max_tokens = payload.get("max_tokens")
     if max_tokens is not None and (
-        not isinstance(max_tokens, int) or max_tokens <= 0 or max_tokens > 8192
+        not isinstance(max_tokens, int) or max_tokens <= 0 or max_tokens > MAX_TOKENS_LIMIT
     ):
-        raise ValidationError("max_tokens must be a positive integer <= 8192")
+        raise ValidationError(f"max_tokens must be a positive integer <= {MAX_TOKENS_LIMIT}")
 
     temperature = payload.get("temperature")
     if temperature is not None and (
-        not isinstance(temperature, (int, float)) or not 0 <= temperature <= 2
+        not isinstance(temperature, (int, float))
+        or not (TEMPERATURE_MIN <= temperature <= TEMPERATURE_MAX)
     ):
-        raise ValidationError("temperature must be between 0 and 2")
+        raise ValidationError(f"temperature must be between {TEMPERATURE_MIN} and {TEMPERATURE_MAX}")
 
     top_p = payload.get("top_p")
     if top_p is not None and (not isinstance(top_p, (int, float)) or not 0 <= top_p <= 1):
@@ -149,10 +166,11 @@ def build_request(config: ProxyConfig, payload: Dict[str, Any]) -> Request:
 
 
 def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-    request = build_request(config, payload)
     last_error: Optional[str] = None
 
     for attempt in range(config.retries + 1):
+        # Recreate request for each attempt to avoid urllib Request reuse issues
+        request = build_request(config, payload)
         try:
             with urlopen(request, timeout=config.timeout_s) as response:
                 status = response.getcode()
@@ -168,13 +186,17 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
                 break
             if attempt >= config.retries:
                 break
-            sleep_for = 0.4 * (2**attempt) + random.uniform(0.05, 0.2)
+            sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
+                BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
+            )
             time.sleep(sleep_for)
-        except (URLError, ValidationError) as exc:
+        except URLError as exc:
             last_error = str(exc)
             if attempt >= config.retries:
                 break
-            sleep_for = 0.4 * (2**attempt) + random.uniform(0.05, 0.2)
+            sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
+                BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
+            )
             time.sleep(sleep_for)
 
     raise ConnectionError(last_error or "Unknown LM Studio error")
@@ -252,7 +274,7 @@ def handle_stdin(config: ProxyConfig) -> int:
         if total > max_bytes:
             msg = "stdin payload too large"
             log_json("warn", "stdin.too_large", max_bytes=max_bytes)
-            sys.stdout.write(json.dumps({"error": msg}))
+            sys.stdout.write(json.dumps({"error": msg}) + "\n")
             return 1
         chunks.append(chunk)
 
@@ -262,7 +284,7 @@ def handle_stdin(config: ProxyConfig) -> int:
         validated = validate_chat_request(payload)
     except ValidationError as exc:
         log_json("warn", "stdin.validation_error", error=str(exc))
-        sys.stdout.write(json.dumps({"error": str(exc)}))
+        sys.stdout.write(json.dumps({"error": str(exc)}) + "\n")
         return 1
 
     log_json("info", "stdin.request", payload=redact_for_logs(validated))
@@ -270,10 +292,10 @@ def handle_stdin(config: ProxyConfig) -> int:
         status, response = call_lm_studio(config, validated)
     except ConnectionError as exc:
         log_json("error", "stdin.connection_error", error=str(exc))
-        sys.stdout.write(json.dumps({"error": str(exc)}))
+        sys.stdout.write(json.dumps({"error": str(exc)}) + "\n")
         return 2
 
-    sys.stdout.write(json.dumps({"status": status, "data": response}, ensure_ascii=False))
+    sys.stdout.write(json.dumps({"status": status, "data": response}, ensure_ascii=False) + "\n")
     return 0
 
 
@@ -290,26 +312,28 @@ def build_config(args: argparse.Namespace) -> ProxyConfig:
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Local AI bridge for LM Studio")
-    parser.add_argument("--listen-host", default=os.getenv("LOCAL_AI_LISTEN_HOST", DEFAULT_LISTEN_HOST))
-    parser.add_argument(
-        "--listen-port",
-        type=int,
-        default=int(os.getenv("LOCAL_AI_LISTEN_PORT", DEFAULT_LISTEN_PORT)),
-    )
+    parser.add_argument("--listen-host", default=os.getenv("LOCAL_AI_LISTEN_HOST") or DEFAULT_LISTEN_HOST)
+    
+    # Handle port with proper error checking for empty/invalid env vars
+    port_env = os.getenv("LOCAL_AI_LISTEN_PORT")
+    default_port = int(port_env) if port_env and port_env.strip() else DEFAULT_LISTEN_PORT
+    parser.add_argument("--listen-port", type=int, default=default_port)
+    
     parser.add_argument(
         "--lm-studio-base",
-        default=os.getenv("LM_STUDIO_BASE_URL", DEFAULT_LM_STUDIO_BASE),
+        default=os.getenv("LM_STUDIO_BASE_URL") or DEFAULT_LM_STUDIO_BASE,
     )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=int(os.getenv("LOCAL_AI_TIMEOUT", DEFAULT_TIMEOUT_S)),
-    )
-    parser.add_argument(
-        "--retries",
-        type=int,
-        default=int(os.getenv("LOCAL_AI_RETRIES", DEFAULT_RETRIES)),
-    )
+    
+    # Handle timeout with proper error checking for empty/invalid env vars
+    timeout_env = os.getenv("LOCAL_AI_TIMEOUT")
+    default_timeout = int(timeout_env) if timeout_env and timeout_env.strip() else DEFAULT_TIMEOUT_S
+    parser.add_argument("--timeout", type=int, default=default_timeout)
+    
+    # Handle retries with proper error checking for empty/invalid env vars
+    retries_env = os.getenv("LOCAL_AI_RETRIES")
+    default_retries = int(retries_env) if retries_env and retries_env.strip() else DEFAULT_RETRIES
+    parser.add_argument("--retries", type=int, default=default_retries)
+    
     parser.add_argument("--api-key", default=os.getenv("LOCAL_AI_API_KEY"))
     parser.add_argument("--stdin", action="store_true", help="Read JSON from stdin and exit")
     return parser.parse_args(argv)
