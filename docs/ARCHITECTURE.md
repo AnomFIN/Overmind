@@ -139,7 +139,7 @@
 
 ## iPhone Integration
 
-1. User opens Safari: `https://anomfin.github.io/Overmind/`
+1. User opens Safari: `https://<username>.github.io/<repo>/`
 2. Taps Share button → Add to Home Screen
 3. Names app "Nettiauto Plates"
 4. Icon appears on home screen
