@@ -119,12 +119,23 @@ async function loadPlates() {
   } catch (error) {
     console.error('Error loading plates data:', error);
     const container = document.getElementById('platesContainer');
-    container.innerHTML = `
-      <div class="error">
-        <strong>Error loading data:</strong> ${error.message}
-        <p>Make sure the workflow has run at least once and GitHub Pages is enabled.</p>
-      </div>
-    `;
+    container.innerHTML = '';
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error';
+
+    const strong = document.createElement('strong');
+    strong.textContent = 'Error loading data:';
+    errorDiv.appendChild(strong);
+
+    const messageText = document.createTextNode(' ' + (error && error.message ? error.message : 'Unknown error'));
+    errorDiv.appendChild(messageText);
+
+    const infoParagraph = document.createElement('p');
+    infoParagraph.textContent = 'Make sure the workflow has run at least once and GitHub Pages is enabled.';
+    errorDiv.appendChild(infoParagraph);
+
+    container.appendChild(errorDiv);
   }
 }
 
