@@ -103,21 +103,28 @@ async function extractPlateFromListing(page, url) {
       const labels = ['Rekisteritunnus', 'Rekisterinumero', 'Registration number'];
       
       for (const label of labels) {
-        // Try to find the label element
-        const elements = Array.from(document.querySelectorAll('*'));
-        for (const el of elements) {
-          if (el.textContent && el.textContent.includes(label)) {
-            // Look for the value in next sibling or parent's children
-            let valueEl = el.nextElementSibling;
-            if (!valueEl) {
-              valueEl = el.parentElement?.querySelector('span, div, td');
-            }
-            if (valueEl) {
-              const text = valueEl.textContent?.trim();
-              // Match Finnish plate format: 2-3 letters, hyphen, 1-3 digits
-              const plateMatch = text?.match(/\b([A-Z]{2,3})-(\d{1,3})\b/);
-              if (plateMatch) {
-                return plateMatch[0];
+        // Try to find the label element inside likely spec/info containers
+        const specContainers = document.querySelectorAll(
+          'table, dl, .technical-details, .specifications, .vehicle-info, .data-table'
+        );
+
+        for (const container of specContainers) {
+          const elements = container.querySelectorAll('th, td, dt, dd, span, div, label, strong, b');
+          for (const el of elements) {
+            const textContent = el.textContent;
+            if (textContent && textContent.includes(label)) {
+              // Look for the value in next sibling or parent's children
+              let valueEl = el.nextElementSibling;
+              if (!valueEl && el.parentElement) {
+                valueEl = el.parentElement.querySelector('span, div, td, dd');
+              }
+              if (valueEl) {
+                const text = valueEl.textContent?.trim();
+                // Match Finnish plate format: 2-3 letters, hyphen, 1-3 digits
+                const plateMatch = text?.match(/\b([A-Z]{2,3})-(\d{1,3})\b/);
+                if (plateMatch) {
+                  return plateMatch[0];
+                }
               }
             }
           }
