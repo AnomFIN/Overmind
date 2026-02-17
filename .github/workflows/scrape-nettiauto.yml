@@ -39,5 +39,10 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add data/plates.json data/plates.txt docs/data/plates.json docs/data/plates.txt
-          git diff --staged --quiet || git commit -m "Update Nettiauto plates data [automated]"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "Update Nettiauto plates data [automated]"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push
+          else
+            echo "No changes to commit; skipping push."
+          fi
