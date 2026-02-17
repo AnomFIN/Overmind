@@ -49,7 +49,7 @@ function renderPlates(items) {
       
       // Make clickable to open listing URL
       if (item.url) {
-        card.onclick = () => window.open(item.url, '_blank');
+        card.onclick = () => window.open(item.url, '_blank', 'noopener,noreferrer');
         card.style.cursor = 'pointer';
       }
       
