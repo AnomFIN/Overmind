@@ -165,6 +165,14 @@ def build_request(config: ProxyConfig, payload: Dict[str, Any]) -> Request:
     return Request(target_url, data=body, headers=headers, method="POST")
 
 
+def retry_backoff(attempt: int) -> None:
+    """Sleep for exponential backoff with jitter."""
+    sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
+        BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
+    )
+    time.sleep(sleep_for)
+
+
 def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
     last_error: Optional[str] = None
 
@@ -182,10 +190,7 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
             last_error = f"Invalid response from LM Studio: {exc}"
             if attempt >= config.retries:
                 break
-            sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
-                BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
-            )
-            time.sleep(sleep_for)
+            retry_backoff(attempt)
         except HTTPError as exc:
             # Distinguish between retryable (5xx) and non-retryable (4xx) HTTP errors.
             last_error = str(exc)
@@ -195,18 +200,12 @@ def call_lm_studio(config: ProxyConfig, payload: Dict[str, Any]) -> Tuple[int, D
                 break
             if attempt >= config.retries:
                 break
-            sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
-                BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
-            )
-            time.sleep(sleep_for)
+            retry_backoff(attempt)
         except URLError as exc:
             last_error = str(exc)
             if attempt >= config.retries:
                 break
-            sleep_for = BACKOFF_BASE_SECONDS * (2**attempt) + random.uniform(
-                BACKOFF_JITTER_MIN, BACKOFF_JITTER_MAX
-            )
-            time.sleep(sleep_for)
+            retry_backoff(attempt)
 
     raise ConnectionError(last_error or "Unknown LM Studio error")
 

@@ -248,7 +248,7 @@ class TestLocalAI(unittest.TestCase):
             api_key=None,
         )
         payload = {"model": "test", "messages": []}
-        
+
         # Mock response with invalid JSON
         mock_response = MagicMock()
         mock_response.getcode.return_value = 200
