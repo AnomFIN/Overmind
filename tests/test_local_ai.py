@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 import io
+import os
 
 from local_ai import (
     ValidationError,
@@ -11,6 +12,7 @@ from local_ai import (
     build_request,
     call_lm_studio,
     handle_stdin,
+    parse_args,
     ProxyConfig,
     MAX_TOKENS_LIMIT,
 )
