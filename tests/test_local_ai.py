@@ -258,7 +258,7 @@ class TestLocalAI(unittest.TestCase):
             call_lm_studio(config, payload)
         
         # Verify it's treated as a backend error
-        self.assertIn("Invalid JSON from LM Studio", str(ctx.exception))
+        self.assertIn("Invalid response from LM Studio", str(ctx.exception))
         # Should try initial + 2 retries = 3 times
         self.assertEqual(mock_urlopen.call_count, 3)
         self.assertEqual(mock_sleep.call_count, 2)
