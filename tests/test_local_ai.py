@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 import io
+import os
 
 from local_ai import (
     ValidationError,
@@ -11,6 +12,7 @@ from local_ai import (
     build_request,
     call_lm_studio,
     handle_stdin,
+    parse_args,
     ProxyConfig,
     MAX_TOKENS_LIMIT,
 )
@@ -199,6 +201,68 @@ class TestLocalAI(unittest.TestCase):
         self.assertEqual(data, {"result": "success"})
         self.assertEqual(mock_urlopen.call_count, 1)
 
+    @patch("local_ai.urlopen")
+    @patch("local_ai.time.sleep")
+    def test_call_lm_studio_invalid_json_retries(self, mock_sleep: MagicMock, mock_urlopen: MagicMock) -> None:
+        """Test that invalid JSON from LM Studio triggers retries and converts to ConnectionError."""
+        config = ProxyConfig(
+            listen_host="127.0.0.1",
+            listen_port=8081,
+            lm_studio_base="http://localhost:1234",
+            timeout_s=30,
+            retries=2,
+            api_key=None,
+        )
+        payload = {"model": "test", "messages": []}
+        
+        # Mock response with invalid JSON
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = b'{"truncated'
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+        
+        with self.assertRaises(ConnectionError) as ctx:
+            call_lm_studio(config, payload)
+        
+        # Verify it's treated as a backend error
+        self.assertIn("Invalid JSON from LM Studio", str(ctx.exception))
+        # Should try initial + 2 retries = 3 times
+        self.assertEqual(mock_urlopen.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
+
+    @patch("local_ai.urlopen")
+    @patch("local_ai.time.sleep")
+    def test_call_lm_studio_empty_response_retries(self, mock_sleep: MagicMock, mock_urlopen: MagicMock) -> None:
+        """Test that empty response from LM Studio triggers retries and converts to ConnectionError."""
+        config = ProxyConfig(
+            listen_host="127.0.0.1",
+            listen_port=8081,
+            lm_studio_base="http://localhost:1234",
+            timeout_s=30,
+            retries=2,
+            api_key=None,
+        )
+        payload = {"model": "test", "messages": []}
+        
+        # Mock empty response
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = b''
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+        
+        with self.assertRaises(ConnectionError) as ctx:
+            call_lm_studio(config, payload)
+        
+        # Verify it's treated as a backend error
+        self.assertIn("Invalid response from LM Studio", str(ctx.exception))
+        # Should try initial + 2 retries = 3 times
+        self.assertEqual(mock_urlopen.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 2)
+
     @patch("sys.stdin")
     @patch("sys.stdout")
     @patch("local_ai.call_lm_studio")
@@ -235,6 +299,36 @@ class TestLocalAI(unittest.TestCase):
         # Check newline is present
         self.assertTrue(output[0].endswith("\n"))
 
+    @patch("local_ai.urlopen")
+    @patch("local_ai.time.sleep")
+    def test_call_lm_studio_invalid_json_response(self, mock_sleep: MagicMock, mock_urlopen: MagicMock) -> None:
+        """Test that invalid JSON from LM Studio is treated as a backend error and retried."""
+        config = ProxyConfig(
+            listen_host="127.0.0.1",
+            listen_port=8081,
+            lm_studio_base="http://localhost:1234",
+            timeout_s=30,
+            retries=2,
+            api_key=None,
+        )
+        payload = {"model": "test", "messages": []}
+
+        # Mock response with invalid JSON
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = b'not valid json'
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+        
+        with self.assertRaises(ConnectionError) as ctx:
+            call_lm_studio(config, payload)
+        
+        # Should treat as backend error and retry
+        self.assertIn("Invalid response from LM Studio", str(ctx.exception))
+        self.assertEqual(mock_urlopen.call_count, 3)  # initial + 2 retries
+        self.assertEqual(mock_sleep.call_count, 2)
+
     @patch("sys.stdin")
     @patch("sys.stdout")
     def test_handle_stdin_validation_error(self, mock_stdout: MagicMock, mock_stdin: MagicMock) -> None:
@@ -263,6 +357,32 @@ class TestLocalAI(unittest.TestCase):
         self.assertIn('"error"', output[0])
         # Check newline is present
         self.assertTrue(output[0].endswith("\n"))
+
+    @patch.dict("os.environ", {"LOCAL_AI_LISTEN_PORT": "30s"})
+    def test_parse_args_invalid_port_env(self) -> None:
+        """Test that invalid port environment variable raises clear error."""
+        with self.assertRaises(SystemExit):
+            parse_args([])
+
+    @patch.dict("os.environ", {"LOCAL_AI_TIMEOUT": "30s"})
+    def test_parse_args_invalid_timeout_env(self) -> None:
+        """Test that invalid timeout environment variable raises clear error."""
+        with self.assertRaises(SystemExit):
+            parse_args([])
+
+    @patch.dict("os.environ", {"LOCAL_AI_RETRIES": "invalid"})
+    def test_parse_args_invalid_retries_env(self) -> None:
+        """Test that invalid retries environment variable raises clear error."""
+        with self.assertRaises(SystemExit):
+            parse_args([])
+
+    @patch.dict("os.environ", {"LOCAL_AI_LISTEN_PORT": "9000", "LOCAL_AI_TIMEOUT": "60", "LOCAL_AI_RETRIES": "5"})
+    def test_parse_args_valid_env_vars(self) -> None:
+        """Test that valid environment variables are parsed correctly."""
+        args = parse_args([])
+        self.assertEqual(args.listen_port, 9000)
+        self.assertEqual(args.timeout, 60)
+        self.assertEqual(args.retries, 5)
 
 
 if __name__ == "__main__":
