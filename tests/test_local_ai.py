@@ -361,28 +361,24 @@ class TestLocalAI(unittest.TestCase):
     @patch.dict("os.environ", {"LOCAL_AI_LISTEN_PORT": "30s"})
     def test_parse_args_invalid_port_env(self) -> None:
         """Test that invalid port environment variable raises clear error."""
-        from local_ai import parse_args
         with self.assertRaises(SystemExit):
             parse_args([])
 
     @patch.dict("os.environ", {"LOCAL_AI_TIMEOUT": "30s"})
     def test_parse_args_invalid_timeout_env(self) -> None:
         """Test that invalid timeout environment variable raises clear error."""
-        from local_ai import parse_args
         with self.assertRaises(SystemExit):
             parse_args([])
 
     @patch.dict("os.environ", {"LOCAL_AI_RETRIES": "invalid"})
     def test_parse_args_invalid_retries_env(self) -> None:
         """Test that invalid retries environment variable raises clear error."""
-        from local_ai import parse_args
         with self.assertRaises(SystemExit):
             parse_args([])
 
     @patch.dict("os.environ", {"LOCAL_AI_LISTEN_PORT": "9000", "LOCAL_AI_TIMEOUT": "60", "LOCAL_AI_RETRIES": "5"})
     def test_parse_args_valid_env_vars(self) -> None:
         """Test that valid environment variables are parsed correctly."""
-        from local_ai import parse_args
         args = parse_args([])
         self.assertEqual(args.listen_port, 9000)
         self.assertEqual(args.timeout, 60)
