@@ -11,6 +11,7 @@
     "validate": "node validate-config.js",
     "setup-local": "echo 'Setting up local AI...' && cp .env.example .env && echo 'Edit .env file and run: npm run validate'",
     "scrape": "node scripts/scrape.js",
+    "build-pages": "node -e \"const fs=require('fs'); fs.mkdirSync('docs/data',{recursive:true}); fs.copyFileSync('data/plates.json','docs/data/plates.json'); fs.copyFileSync('data/plates.txt','docs/data/plates.txt');\""
     "build-pages": "node -e \"const fs=require('fs');const path=require('path');const docsData=path.join('docs','data');if(!fs.existsSync(docsData))fs.mkdirSync(docsData,{recursive:true});['plates.json','plates.txt'].forEach(f=>{const src=path.join('data',f);const dest=path.join(docsData,f);if(fs.existsSync(src))fs.copyFileSync(src,dest);});console.log('Data files copied to docs/data');\""
   },
   "engines": {
@@ -34,6 +35,7 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "playwright": "^1.58.2"
     "playwright": "^1.55.1"
   }
 }

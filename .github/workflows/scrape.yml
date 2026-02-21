@@ -1,0 +1,44 @@
+name: Scrape Nettiauto Listings
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      
+      - name: Run scraper
+        run: npm run scrape
+      
+      - name: Build Pages data
+        run: npm run build-pages
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/plates.json data/plates.txt docs/data/
+          git diff --staged --quiet || git commit -m "Update scraped plates data - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          git push
