@@ -167,7 +167,7 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, HOST, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║           AnomHome Overmind - Dashboard Server               ║
+║          Anonymous Overmind - Dashboard Server               ║
 ╚══════════════════════════════════════════════════════════════╝
 
   Server running at: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}

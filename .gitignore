@@ -164,3 +164,6 @@ backend/data/*.json
 !docs/data/plates.json
 !docs/data/plates.txt
 
+# PHP installer generated files (contain secrets / runtime state)
+config.php
+.installed
